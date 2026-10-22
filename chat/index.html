@@ -5,127 +5,221 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Bit2Noisy Chat</title>
 <meta name="description" content="A group chat between phones in one room: every message travels as sound.">
-<meta name="theme-color" content="#86144f">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d1823" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PHRpdGxlPkJpdDJOb2lzeTwvdGl0bGU+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiM4NjE0NEYiLz48cmVjdCB4PSI3OSIgeT0iMTkxIiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTQ3IiB5PSIxOTEiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSIxODEiIHk9IjE5MSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI0ZGRkZGRiIvPjxyZWN0IHg9IjExMyIgeT0iMjI1IiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTQ3IiB5PSIyMjUiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSI3OSIgeT0iMjU5IiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTEzIiB5PSIyNTkiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSIxODEiIHk9IjI1OSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI0ZGRkZGRiIvPjxyZWN0IHg9IjExMyIgeT0iMjkzIiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTQ3IiB5PSIyOTMiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSIxODEiIHk9IjI5MyIgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yNzUuOCwyMDYuOCBBNzAsNzAgMCAwIDEgMjc1LjgsMzA1LjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIxLjAwIi8+PHBhdGggZD0iTTMxNy4wLDE2Ni4wIEExMjgsMTI4IDAgMCAxIDMxNy4wLDM0Ni4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44OCIvPjxjaXJjbGUgY3g9IjM2My43IiBjeT0iMTMwLjUiIHI9IjkuNiIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzY3LjMiIGN5PSIxNDIuMyIgcj0iMTEuNiIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzg4LjEiIGN5PSIxNTQuNyIgcj0iMTEuNyIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzgyLjEiIGN5PSIxOTAuMiIgcj0iOS4xIiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MDcuMiIgY3k9IjE5Mi4yIiByPSI2LjgiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjQxMi40IiBjeT0iMjE4LjYiIHI9IjkuMSIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iNDA5LjkiIGN5PSIyMzkuMiIgcj0iMTEuOSIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzk4LjQiIGN5PSIyNTguMCIgcj0iOC45IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSIzOTQuMSIgY3k9IjI3MC43IiByPSI3LjQiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjM5OC41IiBjeT0iMjg3LjAiIHI9IjYuOCIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iNDA5LjgiIGN5PSIzMTguNCIgcj0iNi41IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSIzOTUuMiIgY3k9IjM0MS4zIiByPSI2LjkiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjM4NC44IiBjeT0iMzYyLjAiIHI9IjExLjQiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjM2NS4wIiBjeT0iMzY4LjIiIHI9IjcuMiIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzcwLjUiIGN5PSIzODguMyIgcj0iMTEuNCIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PC9zdmc+">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
 <!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page f3bee9f6). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
 :root{
-  --brand:#86144f; --brand-ink:#ffffff; --brand2:#706a7f;
-  --bg:#f5f3f6; --card:#ffffff; --ink:#1c1722; --muted:#706a7f; --line:#e3dfe7;
-  --accent:#86144f; --accent-ink:#ffffff; --ok:#1d7a4e; --warn:#a66300; --bad:#b0122f;
-  --mine:#86144f; --mine-ink:#ffffff; --theirs:#ffffff; --sys:#e9e5ec;
+  color-scheme:light;
+  --page:#e9e4ec; --ground:#f5f3f6; --surface:#ffffff; --ink:#1c1722; --muted:#655f73; --line:#e6e1ea; --soft:#f5f3f6; --field:#8e879b;
+  --accent:#86144f; --accent-fill:#86144f; --accent-tint:#f6e7ef;
+  --mine:linear-gradient(135deg,#86144f 0%,#a8235f 100%); --mine-ink:#ffffff; --mine-meta:rgba(255,255,255,.85);
+  --theirs:#ffffff; --sys:rgba(255,255,255,.88); --sys-ink:#5f5a6b;
+  --shadow:0 1px 1.5px rgba(28,23,34,.10),0 3px 10px rgba(28,23,34,.04);
+  --warn:#b06a00; --banner:#fff5e6; --banner-ink:#5a3a00; --banner-line:#f3d9ad;
+  --ping:rgba(134,20,79,.4);
+  --wall:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%2386144f' stroke-opacity='.045' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M24 70c6-10 12-10 18 0s12 10 18 0 12-10 18 0'/%3E%3Cpath d='M180 230c5-8 10-8 15 0s10 8 15 0 10-8 15 0 10-8 15 0'/%3E%3Cpath d='M230 60a14 14 0 0 1 0 20M238 54a24 24 0 0 1 0 32'/%3E%3Cpath d='M60 210a14 14 0 0 0 0 20M52 204a24 24 0 0 0 0 32'/%3E%3C/g%3E%3Cg fill='%23706a7f' fill-opacity='.07'%3E%3Ccircle cx='150' cy='140' r='2'/%3E%3Ccircle cx='290' cy='170' r='1.6'/%3E%3Ccircle cx='110' cy='300' r='1.6'/%3E%3Ccircle cx='270' cy='296' r='2'/%3E%3C/g%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --brand:#6b1040; --brand2:#a9a3b5;
-    --bg:#110e14; --card:#1c1722; --ink:#f5f3f6; --muted:#a9a3b5; --line:#332c3b;
-    --accent:#e2589c; --accent-ink:#1c1722; --ok:#46c483; --warn:#e3a23b; --bad:#ff6b7f;
-    --mine:#6b1040; --mine-ink:#ffffff; --theirs:#241e2b; --sys:#241e2b;
+  :root{
+    color-scheme:dark;
+    --page:#0e0c11; --ground:#141118; --surface:#1d1823; --ink:#f3eff5; --muted:#a59fb1; --line:#2f2836; --soft:#26202d; --field:#77707f;
+    --accent:#e86aa6; --accent-fill:#a3245f; --accent-tint:#3a1f2f;
+    --mine:linear-gradient(135deg,#7c1249 0%,#a3245f 100%); --mine-ink:#ffffff; --mine-meta:rgba(255,255,255,.85);
+    --theirs:#241e2b; --sys:rgba(36,30,43,.92); --sys-ink:#b9b3c4;
+    --shadow:0 1px 1.5px rgba(0,0,0,.35);
+    --warn:#e3a23b; --banner:#3a2a12; --banner-ink:#f3d9ad; --banner-line:#5a4220;
+    --ping:rgba(232,106,166,.45);
+    --wall:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.035' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M24 70c6-10 12-10 18 0s12 10 18 0 12-10 18 0'/%3E%3Cpath d='M180 230c5-8 10-8 15 0s10 8 15 0 10-8 15 0 10-8 15 0'/%3E%3Cpath d='M230 60a14 14 0 0 1 0 20M238 54a24 24 0 0 1 0 32'/%3E%3Cpath d='M60 210a14 14 0 0 0 0 20M52 204a24 24 0 0 0 0 32'/%3E%3C/g%3E%3C/svg%3E");
   }
-}
-:root[data-theme="dark"]{
-  --brand:#6b1040; --brand2:#a9a3b5;
-  --bg:#110e14; --card:#1c1722; --ink:#f5f3f6; --muted:#a9a3b5; --line:#332c3b;
-  --accent:#e2589c; --accent-ink:#1c1722; --ok:#46c483; --warn:#e3a23b; --bad:#ff6b7f;
-  --mine:#6b1040; --mine-ink:#ffffff; --theirs:#241e2b; --sys:#241e2b;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{background:var(--page);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit}
+::placeholder{color:var(--muted);opacity:1}
 .hidden{display:none!important}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:820px;margin:0 auto;background:var(--bg)}
-/* logo bar: always on white, the ground the logo is drawn for */
-.logos{background:#fff;border-bottom:1px solid #e3dfe7;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top))}
-.b2n{margin:0;line-height:0;display:flex;align-items:center;gap:8px}.b2n svg{height:34px;width:auto;display:block}
-.b2n .tag{font:700 17px/1 "Bricolage Grotesque",system-ui,sans-serif;color:#86144f;line-height:1}
-.tb{display:flex;gap:6px}
-.icon{border:1px solid #e3dfe7;background:#fff;color:#1c1722;border-radius:10px;min-width:40px;height:40px;padding:0 10px;cursor:pointer;font-size:15px}
-.strip{background:var(--brand);color:var(--brand-ink);display:flex;align-items:center;gap:10px;padding:6px 12px;font-size:14px;border-bottom:3px solid var(--brand2)}
-.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;background:rgba(255,255,255,.18);white-space:nowrap}
-.pill.live{background:#fff;color:#86144f}.pill.bad{background:#b0122f;color:#fff}
-.lvl{flex:0 0 64px;height:6px;border-radius:3px;background:rgba(255,255,255,.25);overflow:hidden}.lvl i{display:block;height:100%;width:0;background:#fff;transition:width .2s}
-.me{margin-left:auto;background:transparent;border:0;color:var(--brand-ink);cursor:pointer;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
-#chat{flex:1;overflow-y:auto;padding:12px 10px 6px;display:flex;flex-direction:column;gap:6px;overscroll-behavior:contain}
-.msg{max-width:82%;padding:7px 10px 5px;border-radius:14px;background:var(--theirs);box-shadow:0 1px 1px rgba(28,23,34,.08);align-self:flex-start;overflow-wrap:anywhere;position:relative}
-.msg.mine{align-self:flex-end;background:var(--mine);color:var(--mine-ink);border-bottom-right-radius:4px}
-.msg.theirs{border-bottom-left-radius:4px}
-.who{font-size:13px;font-weight:700;margin-bottom:1px}
-.txt{white-space:pre-wrap;font-size:16px}
-.txt.big{font-size:38px;line-height:1.15}
-.meta{display:flex;justify-content:flex-end;gap:6px;font-size:11.5px;opacity:.75;margin-top:2px;white-space:nowrap}
-.msg.mine .meta{opacity:.85}
-.phys{font-size:11.5px;opacity:.75;margin-top:2px}
-.msg img,.msg canvas{display:block;max-width:100%;max-height:300px;border-radius:9px;margin-top:2px;image-rendering:auto}
-.msg canvas{image-rendering:pixelated;background:#fff}
-.msg.pending{opacity:.85;font-style:italic}
-.bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:5px;min-width:140px}.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s linear}
-.sys{align-self:center;background:var(--sys);color:var(--muted);font-size:13px;padding:4px 10px;border-radius:8px;max-width:90%;text-align:center}
-.day{align-self:center;color:var(--muted);font-size:12px;margin:6px 0}
-.banner{margin:0 10px 6px;padding:8px 12px;border-radius:10px;background:#fff4e0;color:#5a3a00;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
-.banner button{border:1px solid #a66300;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
-footer{background:var(--card);border-top:1px solid var(--line);padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom))}
-.emoji{display:flex;flex-wrap:wrap;gap:2px;padding:2px 0 6px}
-.emoji button{border:0;background:transparent;font-size:26px;width:44px;height:44px;border-radius:10px;cursor:pointer}
-.emoji button:hover{background:var(--bg)}
-.row{display:flex;align-items:flex-end;gap:6px}
-.round{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;font-size:22px;cursor:pointer}
-#sendBtn{background:var(--accent);color:var(--accent-ink);font-size:20px}
-#sendBtn:disabled{opacity:.4}
-#txt{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid var(--line);border-radius:22px;padding:10px 14px;font:inherit;font-size:16px;background:var(--bg);color:var(--ink);outline:none}
-#txt:focus{border-color:var(--accent)}
-.count{font-size:12px;color:var(--muted);text-align:right;padding:0 8px}
+svg.i{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:760px;margin:0 auto;background:var(--ground) var(--wall);box-shadow:0 20px 60px rgba(28,23,34,.12)}
+
+/* header: the wordmark always on white (a white plate in dark mode) */
+header{background:var(--surface);border-bottom:1px solid var(--line)}
+.logos{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 6px 14px;padding-top:max(8px,env(safe-area-inset-top))}
+.b2n{margin:0;line-height:0;display:flex;align-items:center;gap:10px}
+.b2n svg{height:32px;width:auto;display:block;background:#fff;border-radius:10px}
+.b2n .tag{font:600 20px/1 "Bricolage Grotesque",system-ui,sans-serif;color:#706a7f;letter-spacing:-.01em}
+.grp{margin-right:auto;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-tint);border-radius:999px;padding:3px 9px;white-space:nowrap}
+@media (prefers-color-scheme: dark){.logos .b2n{background:#fff;border-radius:10px;padding:5px 12px 5px 9px}.logos .b2n svg{background:none;padding:0;height:32px}}
+@media (prefers-color-scheme: dark) and (max-width:389px){.logos .b2n{padding:4px 9px 4px 7px;gap:7px}.logos .b2n svg{height:26px}.b2n .tag{font-size:17px}}
+.tb{display:flex;gap:2px}
+.icon{border:0;background:transparent;color:var(--ink);border-radius:12px;width:44px;height:44px;display:grid;place-items:center;cursor:pointer}
+.icon:hover{background:var(--soft)}
+.status{display:flex;align-items:center;gap:10px;padding:2px 10px 8px 14px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink);white-space:nowrap;flex:none;min-width:6.8em;overflow:visible}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.status[data-state="listen"] .pill::before{background:var(--accent);animation:ping 2.4s infinite}
+.status[data-state="hear"] .pill::before,.status[data-state="send"] .pill::before{background:var(--accent);animation:ping .9s infinite}
+.status[data-state="decode"] .pill::before,.status[data-state="wait"] .pill::before{background:var(--warn)}
+@keyframes ping{0%{box-shadow:0 0 0 0 var(--ping)}100%{box-shadow:0 0 0 7px transparent}}
+#spec{flex:1 1 auto;min-width:40px;max-width:220px;height:28px;border-radius:6px;background:#1c1722;margin-left:auto;display:block}
+@media (prefers-color-scheme: dark){#spec{background:#110d15;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}}
+.me{flex:none;width:34px;height:34px;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;position:relative}
+.me::after{content:"";position:absolute;inset:-5px}
+.me .av{width:34px;height:34px;font-size:15px;background:#86144f}
+.me .pen{position:absolute;right:-4px;bottom:-4px;width:17px;height:17px;border-radius:50%;background:var(--surface);border:1px solid var(--field);color:var(--ink);display:grid;place-items:center}
+.me .pen svg{width:10px;height:10px;display:block;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* the conversation */
+#chat{flex:1;overflow-y:auto;padding:14px 10px 10px;display:flex;flex-direction:column;overscroll-behavior:contain}
+.line{display:flex;align-items:flex-end;gap:7px;margin-top:10px;max-width:100%}
+.line.cont{margin-top:3px}
+.line.mine{justify-content:flex-end}
+.av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--c,#706a7f);color:#fff;display:grid;place-items:center;font:700 14px/1 "Bricolage Grotesque",system-ui,sans-serif}
+.line.theirs:has(+ .line.cont) .av{visibility:hidden}
+.msg{max-width:min(85%,520px);padding:6px 10px 6px 11px;border-radius:18px;background:var(--theirs);box-shadow:var(--shadow);overflow-wrap:anywhere;position:relative}
+.line.theirs .msg{border-bottom-left-radius:6px}
+.line.theirs.cont .msg{border-top-left-radius:6px}
+.line.mine .msg{background:var(--mine);color:var(--mine-ink);border-bottom-right-radius:6px}
+.line.mine.cont .msg{border-top-right-radius:6px}
+.who{font-size:13px;font-weight:700;color:var(--c,var(--muted));margin-bottom:1px}
+@media (prefers-color-scheme: dark){.who{color:var(--cd,var(--muted))}}
+.line.cont .who{display:none}
+.txt{white-space:pre-wrap}
+/* the time sits at the end of the last line, as in WhatsApp: a spacer keeps room for it */
+.txt::after{content:"";display:inline-block;width:38px}
+.line.mine .txt::after{width:50px}
+.meta{position:absolute;right:10px;bottom:5px;display:flex;align-items:center;gap:4px;font-size:11px;line-height:1;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.line.mine .meta{color:var(--mine-meta)}
+.tick{font-size:12px}
+.phys{font-size:11.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.line.mine .phys{color:var(--mine-meta)}
+.msg.has-phys .txt::after{display:none}
+.msg.has-phys .meta,.msg.jumbo .meta{position:static;justify-content:flex-end;margin-top:3px}
+/* a few emoji alone: no bubble, large */
+.msg.jumbo{background:transparent!important;box-shadow:none;padding:0 2px}
+.msg.jumbo .txt{font-size:44px;line-height:1.1}
+.msg.jumbo .txt::after{display:none}
+.line.mine .msg.jumbo .meta,.line.mine .msg.jumbo .phys{color:var(--muted)}
+/* pictures: the photo fills the bubble, the time on it */
+.msg.pic{padding:4px}
+.msg.pic .who{padding:2px 7px 3px}
+.msg img,.msg canvas{display:block;width:100%;max-width:280px;max-height:320px;object-fit:cover;border-radius:14px}
+.msg canvas{image-rendering:pixelated;background:#fff;width:auto}
+.msg.pic .meta,.msg.pic.has-phys .meta{position:absolute;right:10px;bottom:10px;color:#fff;background:rgba(28,23,34,.7);border-radius:999px;padding:3px 7px;margin:0}
+.msg.pic{max-width:min(85%,288px)}
+.msg.pic.has-phys .meta{position:static;background:none;color:var(--muted);padding:0 7px 3px;margin:0;justify-content:flex-end}
+.line.mine .msg.pic.has-phys .meta{color:var(--mine-meta)}
+.msg.pic .phys{padding:0 7px 3px}
+.msg.pic .note{font-size:12px;color:var(--muted);padding:3px 7px 1px}
+/* a frame on its way */
+.line.pending .msg{background:var(--accent-tint);box-shadow:none;color:var(--ink);padding:8px 12px}
+.line.pending .av{background:#706a7f}
+.line.pending .meta{display:none}
+.line.pending .msg.pic{padding:4px;background:var(--theirs);box-shadow:var(--shadow)}
+.frame{width:200px;aspect-ratio:4/3;border-radius:14px;background:#1c1722;color:rgba(255,255,255,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;position:relative;font-size:13px}
+.frame .wave{height:22px}.frame .wave i{background:#e86aa6;width:3.5px}
+.frame .bar{position:absolute;left:12px;right:12px;bottom:12px;margin:0;min-width:0;background:rgba(255,255,255,.18)}.frame .bar i{background:#e86aa6}
+.recv{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--muted)}
+.wave{display:flex;align-items:center;gap:2px;height:16px}
+.wave i{width:3px;height:30%;border-radius:2px;background:var(--accent);animation:bars 1s ease-in-out infinite}
+.av .wave{height:14px}.av .wave i{background:#fff;width:2px}
+.wave i:nth-child(2){animation-delay:-.8s}.wave i:nth-child(3){animation-delay:-.6s}.wave i:nth-child(4){animation-delay:-.4s}.wave i:nth-child(5){animation-delay:-.2s}
+@keyframes bars{0%,100%{height:25%}50%{height:100%}}
+.bar{height:3px;border-radius:2px;background:color-mix(in srgb,var(--accent) 20%,transparent);overflow:hidden;margin:7px 0 1px;min-width:170px}.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s linear}
+.sys{align-self:center;background:var(--sys);color:var(--sys-ink);font-size:12.5px;padding:5px 12px;border-radius:10px;max-width:88%;text-align:center;margin-top:12px;box-shadow:0 1px 1px rgba(28,23,34,.06)}
+.banner{margin:6px 10px;padding:9px 12px;border-radius:12px;background:var(--banner);color:var(--banner-ink);font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--banner-line)}
+.banner button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:10px;padding:0 12px;min-height:44px;cursor:pointer;white-space:nowrap}
+
+/* the composer */
+footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.emoji{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:0 2px 8px}
+.emoji button{border:0;background:transparent;font-size:26px;height:44px;border-radius:12px;cursor:pointer}
+.emoji button:hover,.emoji button:active{background:var(--soft)}
+.row{display:flex;align-items:flex-end;gap:2px}
+.round{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.round:hover,.round[aria-pressed="true"]{color:var(--accent);background:var(--soft)}
+#sendBtn{background:var(--accent-fill);color:#fff;margin-left:4px;transition:transform .12s,background .12s,color .12s}
+#sendBtn:disabled{background:var(--soft);color:var(--muted);cursor:default}
+#sendBtn:not(:disabled){animation:pop .16s ease-out}
+#sendBtn:not(:disabled):active{transform:scale(.92)}
+@keyframes pop{0%{transform:scale(.8)}100%{transform:scale(1)}}
+#sendBtn svg{margin-left:2px}
+#txt{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid var(--field);border-radius:22px;padding:10px 16px;font:inherit;font-size:16px;line-height:1.4;background:var(--surface);color:var(--ink);outline:none;margin-left:2px}
+#txt:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.count{font-size:12px;color:var(--muted);text-align:right;padding:0 10px 4px}
+
 /* overlays */
-.overlay{position:fixed;inset:0;background:rgba(28,23,34,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
-.card{background:var(--card);color:var(--ink);border-radius:16px;max-width:420px;width:100%;max-height:100%;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
-.card .in{padding:18px}
-.card h2{font:700 22px/1.2 "Bricolage Grotesque",system-ui,sans-serif;margin:0 0 6px}
+.overlay{position:fixed;inset:0;background:rgba(20,17,24,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.card{background:var(--surface);color:var(--ink);border-radius:24px;max-width:420px;width:100%;max-height:100%;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.card .in{padding:20px}
+.card h2{font:700 25px/1.15 "Bricolage Grotesque",system-ui,sans-serif;margin:0 0 6px;letter-spacing:-.01em}
 .card p{margin:6px 0;color:var(--muted);font-size:14.5px}
-.card label{display:block;font-weight:600;font-size:14px;margin:14px 0 4px}
-.card input[type=text],.card input[type=number]{width:100%;font:inherit;font-size:17px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-.primary{display:block;width:100%;margin-top:16px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:17px;padding:13px;cursor:pointer}
-.secondary{display:block;width:100%;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:transparent;font-size:15px;padding:10px;cursor:pointer}
-.whitebar{background:#fff;border-radius:16px 16px 0 0;padding:12px 18px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #e3dfe7}
-.whitebar .b2n svg{height:44px}
-.inst{display:flex;align-items:center;gap:12px}
+.card label{display:block;font-weight:600;font-size:14px;margin:16px 0 6px}
+.card input[type=text],.card input[type=number]{width:100%;font:inherit;font-size:17px;padding:0 14px;height:48px;border-radius:12px;border:1px solid var(--field);background:var(--surface);color:var(--ink);outline:none}
+.card input[type=text]:focus,.card input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.primary{display:block;width:100%;margin-top:18px;border:0;border-radius:14px;background:var(--accent-fill);color:#fff;font-weight:700;font-size:17px;min-height:52px;cursor:pointer;box-shadow:0 6px 18px rgba(134,20,79,.28)}
+.primary:active{transform:translateY(1px)}
+.secondary{display:block;width:100%;margin-top:8px;border:1px solid var(--field);border-radius:14px;background:transparent;font-size:15px;min-height:48px;cursor:pointer}
+.tile{background:#fff;border-radius:24px 24px 0 0;margin:0;padding:16px 20px 12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #ece8ef}
+.tile .b2n svg{height:40px}
+.hero{display:block;width:100%;height:auto}
+.hero .arc{animation:arc 1.8s ease-out infinite}
+.hero .arc.b{animation-delay:.3s}.hero .arc.c{animation-delay:.6s}
+@keyframes arc{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+.inst{display:flex;align-items:center;gap:12px;border-top:1px solid #efebf1;padding-top:10px}
 .ice{display:flex;align-items:center;gap:8px;color:#1c1722}
-.ice svg{height:28px;width:auto;display:block;flex:none}
-.ice span{font:700 11.5px/1.2 "Bricolage Grotesque",system-ui,sans-serif}
-.cs{height:38px;width:auto;display:block}
-.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{border:0;background:transparent;padding:8px 12px;font-size:14px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.hint{font-size:13px;color:var(--muted);margin-top:4px}
-.small{font-size:12px;color:var(--muted);margin-top:14px}
-#qrCanvas{display:block;margin:10px auto;background:#fff;padding:8px;border-radius:8px;max-width:100%}
-.prev img{display:block;max-width:100%;max-height:50vh;margin:0 auto;border-radius:10px}
-.check{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:14.5px}
+.ice svg{height:26px;width:auto;display:block;flex:none}
+.ice span{font:700 11px/1.2 "Bricolage Grotesque",system-ui,sans-serif}
+.cs{height:34px;width:auto;display:block;margin-left:auto}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:3px;gap:2px}
+.seg button{flex:1 1 auto;white-space:nowrap;border:0;background:transparent;padding:0 10px;min-height:44px;font-size:14px;border-radius:9px;cursor:pointer;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:inset 0 0 0 1.5px var(--accent),0 1px 3px rgba(28,23,34,.18)}
+@media (prefers-color-scheme: dark){.seg button[aria-pressed="true"]{background:var(--accent-tint)}}
+.hint,.card p.hint{font-size:13px;color:var(--muted);margin-top:6px}
+.small,.card p.small{font-size:11.5px;color:var(--muted);margin-top:14px;text-align:center}
+#qrCanvas{display:block;margin:12px auto;background:#fff;padding:10px;border-radius:14px;max-width:100%}
+.prev img{display:block;max-width:100%;max-height:50vh;margin:4px auto 0;border-radius:14px}
+.card label.check{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:14.5px;font-weight:400;min-height:44px}
+.check input{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin:0;flex:none;border:1.5px solid var(--field);border-radius:6px;background:var(--surface);display:grid;place-items:center;cursor:pointer}
+.check input:checked{background:var(--accent-fill);border-color:var(--accent-fill)}
+.check input:checked::after{content:"";width:5px;height:10px;border:solid #fff;border-width:0 2.2px 2.2px 0;transform:translateY(-1px) rotate(45deg)}
+.check input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M8.2 14.2c1 1.4 2.3 2.1 3.8 2.1s2.8-.7 3.8-2.1"/><path d="M9 9.6h.01M15 9.6h.01" stroke-width="2.6"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.2" y="4.5" width="17.6" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="m4 17.5 4.6-4.4 3.4 3 3.2-2.8 4.8 4.4"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4.5 12 19.5 4.8l-3.8 14.6-4.3-5.8z" fill="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h2.5v2.5H14zM17.5 17.5H20V20h-2.5zM14 19h1M19 14h1"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+</svg>
 <div id="app">
   <header>
     <div class="logos">
-      <h1 class="b2n"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="206 0 655 220"><g transform="translate(206,0)"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></g></svg><span class="tag">Chat</span></h1>
-      <div class="tb"><button class="icon" id="inviteBtn" aria-label="Invite: QR code of this page">Invite</button><button class="icon" id="setBtn" aria-label="Settings">⚙</button></div>
+      <h1 class="b2n"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="206 0 655 220"><g transform="translate(206,0)"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></g></svg><span class="tag" aria-hidden="true">Chat</span></h1>
+      <div class="tb"><button class="icon" id="inviteBtn" aria-label="Invite: QR code of this page" title="Invite"><svg class="i"><use href="#i-qr"/></svg></button><button class="icon" id="setBtn" aria-label="Settings" title="Settings"><svg class="i"><use href="#i-gear"/></svg></button></div>
     </div>
-    <div class="strip"><span class="pill" id="pill">Not listening</span><span class="lvl" aria-hidden="true"><i id="lvl"></i></span><button class="me" id="meBtn" aria-label="Change nickname"></button></div>
+    <div class="status" id="status" data-state="off"><span class="pill" id="pill">Not listening</span><canvas id="spec" aria-hidden="true"></canvas><button class="me" id="meBtn" aria-label="Change nickname"><span class="av" id="meAv"></span><span class="pen" aria-hidden="true"><svg><use href="#i-pen"/></svg></span></button></div>
   </header>
-  <main id="chat" aria-live="polite"></main>
+  <main id="chat" role="log" aria-live="polite" aria-label="Messages"></main>
   <div class="banner hidden" id="banner"><span id="bannerTxt"></span><button id="bannerBtn" class="hidden"></button></div>
   <footer>
     <div class="emoji hidden" id="emojiBar"></div>
     <div class="count hidden" id="count"></div>
     <div class="row">
-      <button class="round" id="emoBtn" aria-label="Smileys">😀</button>
-      <button class="round" id="picBtn" aria-label="Send a picture">📷</button>
+      <button class="round" id="emoBtn" aria-label="Smileys" aria-pressed="false"><svg class="i"><use href="#i-smile"/></svg></button>
+      <button class="round" id="picBtn" aria-label="Send a picture"><svg class="i"><use href="#i-image"/></svg></button>
       <textarea id="txt" rows="1" placeholder="Message" aria-label="Message" enterkeyhint="send"></textarea>
-      <button class="round" id="sendBtn" aria-label="Send" disabled>➤</button>
+      <button class="round" id="sendBtn" aria-label="Send" disabled><svg class="i"><use href="#i-send"/></svg></button>
     </div>
     <input type="file" id="picIn" accept="image/*" hidden>
   </footer>
@@ -133,16 +227,27 @@ footer{background:var(--card);border-top:1px solid var(--line);padding:6px 8px;p
 
 <div class="overlay" id="join">
   <div class="card">
-    <div class="whitebar"><div class="b2n"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="206 0 655 220"><g transform="translate(206,0)"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></g></svg></div><div class="inst">
+    <div class="tile"><div class="b2n"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="206 0 655 220"><g transform="translate(206,0)"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></g></svg></div>
+      <svg class="hero" viewBox="0 0 360 96" role="img" aria-label="Two phones talking through sound">
+        <g fill="none" stroke="#1c1722" stroke-width="2.4"><rect x="40" y="14" width="44" height="72" rx="9"/><rect x="276" y="14" width="44" height="72" rx="9"/></g>
+        <g fill="#1c1722"><rect x="54" y="20" width="16" height="3" rx="1.5"/><rect x="290" y="20" width="16" height="3" rx="1.5"/></g>
+        <g fill="none" stroke="#86144f" stroke-width="3" stroke-linecap="round">
+          <path class="arc" d="M100 36a20 20 0 0 1 0 28"/><path class="arc b" d="M114 28a32 32 0 0 1 0 44"/><path class="arc c" d="M128 20a44 44 0 0 1 0 60"/>
+        </g>
+        <path d="M146 50c6-12 10-12 14 0s8 12 14 0 8-12 14 0 8 12 14 0 8-12 14 0 8 12 14 0 8-12 14 0" fill="none" stroke="#706a7f" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 5"/>
+        <g fill="#86144f"><circle cx="262" cy="50" r="3"/><circle cx="252" cy="42" r="2"/><circle cx="252" cy="58" r="2"/></g>
+      </svg>
+      <div class="inst">
   <div class="ice" role="img" aria-label="Mention ICE, Information &amp; Communication Engineering">
     <svg viewBox="226 116 444 230" aria-hidden="true"><circle cx="253.5" cy="142.5" r="22.5" fill="#86144F"/><path d="M253.5 207V315" stroke="#1C1722" stroke-width="42" stroke-linecap="round"/><path d="M487.1 161.2A92 92 0 1 0 487.1 302.2" fill="none" stroke="#86144F" stroke-width="36" stroke-linecap="round"/><path d="M454.2 198.2A42.5 42.5 0 1 0 454.2 265.2" fill="none" stroke="#706A7F" stroke-width="19" stroke-linecap="round"/><circle cx="428" cy="231.7" r="11" fill="#1C1722"/><path d="M573.3 146H645.7M573.3 317.5H645.7" stroke="#1C1722" stroke-width="38.5" stroke-linecap="round"/><path d="M573.3 232H608.7" stroke="#706A7F" stroke-width="38.5" stroke-linecap="round"/></svg>
     <span aria-hidden="true">Information &amp;<br>Communication Engineering</span>
   </div>
   <img class="cs" alt="CentraleSupélec" width="390" height="200" src="data:image/png;base64,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">
-  </div></div>
+  </div>
+    </div>
     <div class="in">
       <h2>Chat through sound</h2>
-      <p>Every message travels from your phone's speaker to the microphones of the phones around you. No network: everyone in the room who has this page open reads it.</p>
+      <p>Your message leaves through your phone's speaker and reaches every phone in the room that has this page open. No network needed.</p>
       <label for="nickIn">Your nickname</label>
       <input type="text" id="nickIn" maxlength="24" autocomplete="nickname" autocapitalize="words">
       <div class="hint" id="nickHint"></div>
@@ -162,11 +267,11 @@ footer{background:var(--card);border-top:1px solid var(--line);padding:6px 8px;p
     <div class="seg" id="modeSeg"><button data-v="robust">Robust</button><button data-v="fast">Fast</button><button data-v="sc">Single carrier</button></div>
     <div class="hint" id="modeHint"></div>
     <label>Pictures I send</label>
-    <div class="seg" id="picSeg"><button data-v="small">Small (160 px)</button><button data-v="medium">Medium (320 px)</button></div>
+    <div class="seg" id="picSeg"><button data-v="small">Small · 160 px</button><button data-v="medium">Medium · 320 px</button></div>
     <label for="groupIn">Group code (0 to 255)</label>
     <input type="number" id="groupIn" min="0" max="255" step="1" inputmode="numeric">
     <div class="hint">Phones with another code ignore your messages: two groups can share a room.</div>
-    <label class="check"><input type="checkbox" id="physChk"> Show the physics under each message (mode, SNR, seconds of sound)</label>
+    <label class="check"><input type="checkbox" id="physChk"> <span>Show the physics under each message: mode, SNR, seconds of sound</span></label>
     <button class="primary" id="setDone">Done</button>
   </div></div>
 </div>
@@ -176,7 +281,7 @@ footer{background:var(--card);border-top:1px solid var(--line);padding:6px 8px;p
     <h2>Invite people in the room</h2>
     <p>Scan to open this chat on another phone.</p>
     <canvas id="qrCanvas"></canvas>
-    <p id="qrUrl" style="word-break:break-all"></p>
+    <p id="qrUrl" style="word-break:break-all;font-size:13px"></p>
     <button class="primary" id="qrDone">Close</button>
   </div></div>
 </div>
@@ -3933,36 +4038,62 @@ let physics = store.get('physics', '0') === '1';
 let seq = (parseInt(store.get('seq', '0'), 10) || 0) & 255;
 const DEBUG = params.has('debug');
 const DET = params.get('det') === 'smap' ? 'smap' : 'lmmse';   // the single carrier's detector: linear MMSE unless asked
-const COLORS = ['#86144f', '#1d6fa5', '#1d7a4e', '#a66300', '#6b3fa0', '#b0122f', '#00777a', '#5f5a6b'];
+// the others' colours (magenta is mine): [name and avatar in light mode, name in dark mode], each name at least 4.5:1 on its bubble
+const COLORS = [['#0d7275', '#3fc1c4'], ['#4a4ab3', '#9d9df5'], ['#a3500b', '#f0995a'], ['#2a7448', '#5ccf8c'], ['#7a3fb0', '#c59cf2'], ['#1f6fb2', '#6cb4f2'], ['#6b6a00', '#d6cf5a'], ['#b3261e', '#ff8a80']];
+const PAGE_COLOR = ['#706a7f', '#b9b3c4'];
 const colorOf = id => COLORS[id % COLORS.length];
-const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '👍', '👎', '👏', '🙏', '🎉', '❤️', '🔥', '✅', '❓', '👋', '📡', '🔊'];
+const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '🥳', '🤯', '😴', '🙈', '👍', '👎', '👏', '🙏', '👋', '💪', '🎉', '❤️', '🔥', '✅', '❓', '🔊'];
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- the chat screen ----------
 const chatEl = $('chat');
 const nearBottom = () => chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 120;
-function add(el) { const b = nearBottom(); chatEl.appendChild(el); if (b) chatEl.scrollTop = chatEl.scrollHeight; return el; }
-const hhmm = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function link(el) {   // a message right after one from the same person joins it: no name, no avatar, tighter
+  const p = el.previousElementSibling;
+  el.classList.toggle('cont', !!(p && el.dataset.key && p.dataset.key === el.dataset.key && !p.classList.contains('pending') && !el.classList.contains('pending')));
+  const n = el.nextElementSibling; if (n && n.classList.contains('line')) link(n);
+}
+function add(el) { const b = nearBottom(); chatEl.appendChild(el); link(el); if (b) chatEl.scrollTop = chatEl.scrollHeight; return el; }
+const firstChar = s => ([...(s || '?').trim()][0] || '?').toUpperCase();
+const hhmm = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
 const onlyEmoji = s => /^(\p{Extended_Pictographic}|\p{Emoji_Component}|️|‍|\s){1,12}$/u.test(s) && /\p{Extended_Pictographic}/u.test(s) && [...s.trim()].length <= 8;
-function bubble({ mine = false, who = '', color = '', pending = false }) {   // -> {el, body, meta, tick, phys}
-  const el = mk('div', 'msg ' + (mine ? 'mine' : 'theirs') + (pending ? ' pending' : ''));
-  if (!mine) { const w = mk('div', 'who', who); if (color) w.style.color = color; el.appendChild(w); }
-  const body = mk('div'); el.appendChild(body);
-  const phys = mk('div', 'phys hidden'); el.appendChild(phys);
-  const meta = mk('div', 'meta'), time = mk('span', '', hhmm(new Date())), tick = mk('span');
-  meta.append(time); if (mine) meta.append(tick); el.appendChild(meta);
-  return { el, body, meta, tick, phys };
+function waveIcon() { const w = mk('span', 'wave'); for (let k = 0; k < 5; k++) w.appendChild(mk('i')); return w; }
+function bubble({ mine = false, who = '', color = null, pending = false, key = '' }) {   // -> {el (the line), box (the bubble), body, meta, tick, phys}
+  const el = mk('div', 'line ' + (mine ? 'mine' : 'theirs') + (pending ? ' pending' : '')); el.dataset.key = mine ? 'me' : key;
+  if (color) { el.style.setProperty('--c', color[0]); el.style.setProperty('--cd', color[1]); }
+  if (!mine) { const av = mk('div', 'av', pending ? undefined : who === 'Bit2Noisy page' ? 'B2' : firstChar(who)); if (pending) av.appendChild(waveIcon()); el.appendChild(av); }
+  const box = mk('div', 'msg'); el.appendChild(box);
+  if (!mine && !pending) box.appendChild(mk('div', 'who', who));
+  const body = mk('div', 'body'); box.appendChild(body);
+  const phys = mk('div', 'phys hidden'); box.appendChild(phys);
+  const meta = mk('div', 'meta'), time = mk('span', '', hhmm(new Date())), tick = mk('span', 'tick');
+  meta.append(time); if (mine) meta.append(tick); box.appendChild(meta);
+  return { el, box, body, meta, tick, phys };
 }
-function setText(b, text) { const t = mk('div', 'txt' + (onlyEmoji(text) ? ' big' : ''), text); b.body.replaceChildren(t); }
+function setText(b, text) { b.box.classList.toggle('jumbo', onlyEmoji(text)); b.body.replaceChildren(mk('div', 'txt', text)); }
 function setPicture(b, file, caption) {
   const url = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' })), im = mk('img');
+  b.box.classList.add('pic');
   im.alt = 'Picture'; im.onload = () => { if (nearBottom()) chatEl.scrollTop = chatEl.scrollHeight; };
-  im.onerror = () => { b.body.replaceChildren(mk('div', 'txt', '🖼 The picture arrived too damaged to show.')); };
-  im.src = url; b.body.replaceChildren(im); if (caption) b.body.appendChild(mk('div', 'phys', caption));
+  im.onerror = () => { b.box.classList.remove('pic'); b.body.replaceChildren(mk('div', 'txt', '🖼 The picture arrived too damaged to show.')); };
+  im.src = url; b.body.replaceChildren(im); if (caption) b.body.appendChild(mk('div', 'note', caption));
 }
-function setPhys(b, s) { b.phys.textContent = s; b.phys.classList.toggle('hidden', !physics || !s); b.phys.dataset.s = s; }
+function setPhys(b, s) { b.phys.textContent = s; b.phys.classList.toggle('hidden', !physics || !s); b.phys.dataset.s = s; b.box.classList.toggle('has-phys', physics && !!s); }
+function scramble(box, text) {   // a received text settles from random characters, left to right, in about 0.35 s (as a decoder converging)
+  const ch = [...text], n = ch.length, pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  if (calm || n > 240 || !/[\p{L}\p{N}]/u.test(text)) return;
+  const el = mk('span'); el.setAttribute('aria-hidden', 'true'); box.replaceChildren(mk('span', 'vh', text), el);   // screen readers read the real text only
+  let k = 0; const steps = 12;
+  const tick = () => {
+    k++; const done = Math.floor(n * k / steps);
+    el.textContent = k >= steps ? text : ch.map((c, i) => i < done || !/[\p{L}\p{N}]/u.test(c) ? c : pool[(Math.random() * pool.length) | 0]).join('');
+    if (k < steps) setTimeout(tick, 30);
+  };
+  tick();
+}
 const sys = t => add(mk('div', 'sys', t));
-function showPhysics() { document.querySelectorAll('.phys[data-s]').forEach(p => p.classList.toggle('hidden', !physics || !p.dataset.s)); }
+function showPhysics() { document.querySelectorAll('.phys[data-s]').forEach(p => { p.classList.toggle('hidden', !physics || !p.dataset.s); p.closest('.msg').classList.toggle('has-phys', physics && !!p.dataset.s); }); }
 
 // how a frame was sent, in words
 function codeName(c) { const r = LDPC_R[c] || POLAR_R[c]; return r ? `${LDPC_R[c] ? 'LDPC' : 'polar'} ${r[0]}/${r[1]}` : TURBO_R[c] ? `turbo 1/${TURBO_R[c]}` : c; }
@@ -3985,7 +4116,12 @@ function banner(t, btn, onBtn) {
   $('bannerTxt').textContent = t; $('banner').classList.toggle('hidden', !t);
   $('bannerBtn').classList.toggle('hidden', !btn); $('bannerBtn').textContent = btn || ''; $('bannerBtn').onclick = onBtn || null;
 }
-function showMe() { $('meBtn').textContent = myNick() + (group ? ` · group ${group}` : ''); $('meBtn').style.textDecoration = 'none'; }
+function showMe() {
+  const t = `${myNick()}${group ? `, group ${group}` : ''}: change`;
+  $('meAv').textContent = firstChar(myNick()); $('meBtn').setAttribute('aria-label', t); $('meBtn').title = t;
+  let g = document.querySelector('.logos .grp'); if (!g) { g = mk('span', 'grp'); document.querySelector('.logos .b2n').after(g); }
+  g.textContent = `group ${group}`; g.classList.toggle('hidden', !group);
+}
 showMe();
 
 // ---------- sound out ----------
@@ -4070,7 +4206,7 @@ async function startMic() {   // -> true if listening
     return false;
   }
   const a = actx, srcN = a.createMediaStreamSource(stream);
-  analyser = a.createAnalyser(); analyser.fftSize = 2048; srcN.connect(analyser);
+  analyser = a.createAnalyser(); analyser.fftSize = 2048; analyser.minDecibels = -110; analyser.maxDecibels = -40; analyser.smoothingTimeConstant = 0.6; srcN.connect(analyser);
   const mute = a.createGain(); mute.gain.value = 0; mute.connect(a.destination);
   makeRx();
   // the samples come from an AudioWorklet (the audio thread) in blocks of 4096 posted to the page, so a decode here
@@ -4112,13 +4248,17 @@ function makeRx() {
       if (s === 'header') {
         const self = Date.now() < selfUntil, p = { hdr: info, self, b: null };
         if (!self && info.type !== 'sound') {
-          p.b = bubble({ who: '…', pending: true });
-          p.b.body.append(mk('div', 'txt', info.type === 'jpeg' || info.type === 'image' ? `Receiving a picture (${Math.round((info.len || info.n0 / 8) / 1024 * 10) / 10} kB)…` : 'Receiving a message…'), mk('div', 'bar'));
-          p.b.body.lastChild.appendChild(mk('i')); add(p.b.el);
+          p.b = bubble({ pending: true });
+          const r = mk('div', 'recv');
+          if (info.type === 'jpeg' || info.type === 'image') {
+            const f = mk('div', 'frame'); p.b.box.classList.add('pic');
+            f.append(waveIcon(), mk('span', 'what', `Receiving a picture · ${Math.round((info.len || info.n0 / 8) / 1024 * 10) / 10} kB`), mk('div', 'bar')); f.lastChild.appendChild(mk('i')); p.b.body.append(f);
+          } else { r.append(waveIcon(), mk('span', 'what', 'Receiving a message')); p.b.body.append(r, mk('div', 'bar')); p.b.body.lastChild.appendChild(mk('i')); }
+          add(p.b.el);
         }
         pendings.push(p);
       }
-      if (s === 'decoding') { decoding++; const p = pendings.find(q => q.hdr === info); if (p) { p.sc = true; if (p.b) p.b.body.firstChild.textContent = 'Decoding…'; } }
+      if (s === 'decoding') { decoding++; const p = pendings.find(q => q.hdr === info); if (p) { p.sc = true; if (p.b) p.b.body.querySelector('.what').textContent = 'Decoding'; } }
       if (s === 'lost') {
         quietUntil = Date.now() + 500;
         const sc = /^single carrier/.test(info.reason || ''), i = sc ? pendings.findIndex(q => q.sc) : pendings.findIndex(q => !q.sc);
@@ -4141,11 +4281,11 @@ function makeRx() {
 }
 function shown(res, p) {   // a frame decoded: into the chat
   const m = chatRead(res), b0 = p && p.b, desc = res.hdr ? frameDesc(res.hdr) + snrTxt(res) : '';
-  const place = b => { if (b0) { b0.el.replaceWith(b.el); if (nearBottom()) chatEl.scrollTop = chatEl.scrollHeight; } else add(b.el); };
+  const place = b => { if (b0) { const nb = nearBottom(); b0.el.replaceWith(b.el); link(b.el); if (nb) chatEl.scrollTop = chatEl.scrollHeight; } else add(b.el); };
   if (m.from === 'other') { if (b0) b0.el.remove(); return; }
   if (m.from === 'damaged') { if (b0) b0.el.remove(); if (!(p && p.self)) sys('🔇 A message arrived damaged.'); return; }
   if (m.from === 'page') {   // a frame of the Bit2Noisy page (or audiocomm_v7.py)
-    const b = bubble({ who: 'Bit2Noisy page', color: 'var(--muted)' });
+    const b = bubble({ who: 'Bit2Noisy page', color: PAGE_COLOR, key: 'page' });
     if (m.text !== undefined) setText(b, m.text);
     else if (m.file) setPicture(b, m.file, m.crcOk ? '' : 'damaged on the way');
     else if (m.image) { const { w, h, bits } = m.image, cv = mk('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'), d = g.createImageData(w, h);
@@ -4168,8 +4308,9 @@ function shown(res, p) {   // a frame decoded: into the chat
   const key = `${e.id}:${e.seq}`, now = Date.now();
   if (seen.has(key) && now - seen.get(key) < 600000) { if (b0) b0.el.remove(); return; }
   seen.set(key, now);
-  const b = bubble({ who: e.nick || chatDefaultNick(e.id), color: colorOf(e.id) });
+  const b = bubble({ who: e.nick || chatDefaultNick(e.id), color: colorOf(e.id), key: 'id' + e.id });
   if (m.text !== undefined) setText(b, m.text); else setPicture(b, m.file, m.crcOk ? '' : 'damaged on the way');
+  if (m.text !== undefined) scramble(b.body.firstChild, m.text);   // before it is placed: the live region reads it once
   setPhys(b, desc); place(b);
   if (document.hidden && navigator.vibrate) try { navigator.vibrate(60); } catch (err) {}
 }
@@ -4212,7 +4353,7 @@ async function pump() {
 }
 function setTick(it, s) {
   it.state = s;
-  it.b.tick.textContent = { queued: '🕓', wait: '🕓', sending: '🔊', sent: '✓', fail: '⚠︎' }[s] || '';
+  it.b.tick.textContent = { queued: '◷', wait: '◷', sending: '♪', sent: '✓', fail: '!' }[s] || '';
   it.b.tick.title = { queued: 'waiting to send', wait: 'waiting for the room to be quiet', sending: 'playing now', sent: 'played', fail: 'not played' }[s] || '';
 }
 function send(frame, b) {
@@ -4228,7 +4369,7 @@ function sendText() {
   const text = chatClip(t, CHAT_TEXT_MAX), b = bubble({ mine: true });
   setText(b, text); add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
   send(chatTextFrame({ ...env(), text }, mode), b);
-  $('txt').value = ''; grow(); $('emojiBar').classList.add('hidden');
+  $('txt').value = ''; grow(); $('emojiBar').classList.add('hidden'); $('emoBtn').setAttribute('aria-pressed', 'false');
 }
 
 // ---------- composer ----------
@@ -4245,7 +4386,7 @@ $('sendBtn').onclick = () => { sendText(); if (touch) txt.blur(); };
 EMOJI.forEach(s => { const b = mk('button', '', s); b.type = 'button'; b.onclick = () => {
   const a = txt.selectionStart ?? txt.value.length, z = txt.selectionEnd ?? a; txt.value = txt.value.slice(0, a) + s + txt.value.slice(z);
   txt.selectionStart = txt.selectionEnd = a + s.length; grow(); if (!touch) txt.focus(); }; $('emojiBar').appendChild(b); });
-$('emoBtn').onclick = () => $('emojiBar').classList.toggle('hidden');
+$('emoBtn').onclick = () => { const nb = nearBottom(), h = $('emojiBar').classList.toggle('hidden'); $('emoBtn').setAttribute('aria-pressed', String(!h)); if (nb) chatEl.scrollTop = chatEl.scrollHeight; };
 
 // pictures: scaled so that the longest side is 160 (or 320) pixels, through the modem's own JPEG coder (quality 50)
 let prevFile = null;
@@ -4323,21 +4464,44 @@ $('inviteBtn').onclick = () => { const u = pageUrl(); drawQR($('qrCanvas'), u, 6
 $('qrDone').onclick = () => $('qr').classList.add('hidden');
 ['settings', 'qr', 'prev'].forEach(id => $(id).addEventListener('click', e => { if (e.target === $(id)) $(id).classList.add('hidden'); }));
 
-// ---------- the status strip, 5 times a second ----------
-const tbuf = new Float32Array(2048);
+// ---------- the status line, 5 times a second ----------
 setInterval(() => {
-  let t = 'Not listening', c = '';
-  if (playingNow) { t = 'Sending…'; c = 'live'; }
-  else if (rx && rx.state !== 'search') { t = 'Hearing a message…'; c = 'live'; }
-  else if (decoding > 0) { t = 'Decoding…'; c = 'live'; }
-  else if (queue.length) { t = 'Waiting for the room…'; }
-  else if (stream) { t = 'Listening'; }
-  const P = $('pill'); if (P.textContent !== t) P.textContent = t; P.className = 'pill ' + c;
-  if (analyser && analyser.getFloatTimeDomainData) {
-    analyser.getFloatTimeDomainData(tbuf); let e = 0; for (const v of tbuf) e += v * v;
-    const db = 10 * Math.log10(e / tbuf.length + 1e-12); $('lvl').style.width = Math.max(0, Math.min(100, (db + 80) * 100 / 60)) + '%';
-  }
+  let t = 'Not listening', c = 'off';
+  if (playingNow) { t = 'Sending'; c = 'send'; }
+  else if (rx && rx.state !== 'search') { t = 'Receiving'; c = 'hear'; }
+  else if (decoding > 0) { t = 'Decoding'; c = 'decode'; }
+  else if (queue.length) { t = 'Waiting to send'; c = 'wait'; }
+  else if (stream) { t = 'Listening'; c = 'listen'; }
+  const P = $('pill'); if (P.textContent !== t) P.textContent = t; $('status').dataset.state = c;
 }, 200);
+// the live spectrogram beside it: what the microphone hears above the room's own noise, 0.5 to 16 kHz (log scale, low at
+// the bottom), the last 2.5 s or so. Each row follows its noise floor (quickly down, slowly up), so a frame lights up and silence stays dark.
+const spec = $('spec'), fdb = new Float32Array(1024);
+let specN = 0, floor = null;
+function specDraw() {
+  requestAnimationFrame(specDraw);
+  if (!analyser || document.hidden || (specN++ & 1)) return;   // 30 columns a second
+  const d = devicePixelRatio || 1, W = Math.round(spec.clientWidth * d), H = Math.round(spec.clientHeight * d);
+  if (!W || !H) return;
+  if (spec.width !== W || spec.height !== H) {   // resized: keep what is drawn, right-aligned
+    const old = document.createElement('canvas'); old.width = spec.width; old.height = spec.height; old.getContext('2d').drawImage(spec, 0, 0);
+    if (spec.height !== H) floor = null;
+    spec.width = W; spec.height = H; spec.getContext('2d').drawImage(old, W - old.width, 0);
+  }
+  if (!floor) floor = new Float32Array(H).fill(NaN);
+  const g = spec.getContext('2d'), st = Math.max(1, Math.round(d)), hz = actx.sampleRate / analyser.fftSize;
+  g.globalCompositeOperation = 'copy'; g.drawImage(spec, -st, 0); g.globalCompositeOperation = 'source-over';
+  analyser.getFloatFrequencyData(fdb);
+  for (let y = 0; y < H; y++) {
+    const db = fdb[Math.min(fdb.length - 1, Math.round(500 * 32 ** (1 - (y + 0.5) / H) / hz))];
+    if (!Number.isFinite(db)) continue;
+    floor[y] = Number.isNaN(floor[y]) ? db : specN < 120 ? 0.8 * floor[y] + 0.2 * db : db < floor[y] ? 0.9 * floor[y] + 0.1 * db : 0.985 * floor[y] + 0.015 * db;   // the first 2 s: learn the room
+    const e = db - floor[y], v = Math.min(1, Math.max(0, (e - 7) / 24)), w = 0.75 * v * v;
+    const a = v > 0 ? 0.3 + 0.7 * v : 0.16 * Math.min(1, Math.max(0, (e + 6) / 13));   // below the threshold: the noise, faint
+    if (a > 0.01) { g.fillStyle = `rgba(${232 + 23 * w | 0},${106 + 120 * w | 0},${166 + 74 * w | 0},${a.toFixed(3)})`; g.fillRect(W - st, y, st, 1); }
+  }
+}
+requestAnimationFrame(specDraw);
 })();
 
 </script>
