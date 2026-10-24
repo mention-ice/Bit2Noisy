@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
-<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page 015714d4). -->
+<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page b1f0e72e). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
 :root{
@@ -1192,7 +1192,13 @@ function decodeFrame(res, soft) {
     const g = soft === 'ratio' ? null : levelTrack(res);
     for (let j = 0; j < res.E[0].length; j++) for (const r of softLLR(soft, res.cal, res.E.map(e => e[j]), g ? g[j] : 1)) if (llr.length < hdr.nc) llr.push(r);
   }
-  const dec = decodeFEC(hdr.code, hdr.n0, llr.map((r, j) => key[j] ? -r : r), soft === 'ratio' ? 4 : Infinity);
+  let dec = decodeFEC(hdr.code, hdr.n0, llr.map((r, j) => key[j] ? -r : r), soft === 'ratio' ? 4 : Infinity);
+  if (hdr.ofdm && res.ofdm.Y && !dec.ok) {   // v7.22: wide OFDM, a second try with the room's echo kept up to N/2
+    const o = res.ofdm, o2 = ofdmCoherent(o.Y, hdr.ns, hdr.nc, o.m, hdr.map, o.erased, true), l2 = Array.from(o2.llr);
+    const d2 = decodeFEC(hdr.code, hdr.n0, l2.map((r, j) => key[j] ? -r : r), Infinity);
+    o.long = { snr: o2.snr, ok: !!d2.ok };
+    if (d2.ok) { Object.assign(o, { llr: o2.llr, snr: o2.snr, z: o2.z }); llr = l2; dec = d2; }
+  }
   const bits = Uint8Array.from(dec.bits), sent = Uint8Array.from(encodeFEC(hdr.code, bits), (x, j) => x ^ key[j]);
   const chErr = llr.reduce((e, r, j) => e + ((r > 0 ? 1 : 0) !== sent[j]), 0);    // channel errors the code corrected
   return { soft, bits, llr, sent, chErr, rsFails: dec.fails, rsBlocks: dec.blocks, iters: dec.iters, codeword: dec.ok, oks: dec.oks };   // v7: LDPC, whether every parity check holds
@@ -1891,6 +1897,11 @@ const OFDM_WF0 = 2300, OFDM_WF1 = 20500, OFDM_WRMS = 0.45 * 10 ** (-3 / 20), OFD
 const OFDM_WIDE_MASK = 0x1D;  // header: xored onto the mask (as on the fast wide band, which has the rate field 2)
 const OFDM_WMAPS = ['qpsk', '16qam', '64qam', '256qam', '1024qam'];
 const OFDM_WALPHA = 1e-4;     // their smoothing's alpha: OFDM_ALPHA (0.01) bent the estimate enough to cap 1024QAM at 29 dB
+// v7.22, wide OFDM's second try: when the code finds no codeword, the room is estimated again keeping its echo up to
+// N OFDM_LONG_KEEP samples (43 ms with N 4096, 85 ms with N 8192) instead of the guard, and the frame decoded once more:
+// an echo that outlasts the guard mostly shapes each subcarrier's gain, which the smoothing to the guard threw away
+// (next to a Mac: 15 -> 19 dB with the short guard; through v7.21's recorded rooms 0.5 to 10 dB more, no frame lost)
+const OFDM_LONG_KEEP = 0.5;
 const ofdmMode = name => [...OFDM_MODES, ...OFDM_WMODES].find(m => m.name === name) || OFDM_MODES[0];
 function ofdmCarriers(N) { const [f0, f1] = N > 2048 ? [OFDM_WF0, OFDM_WF1] : [OFDM_F0, OFDM_F1], k = []; for (let i = 0; i <= N / 2; i++) if (i * FS_TX >= f0 * N && i * FS_TX < f1 * N) k.push(i); return k; }   // v7.21: the wide modes' longer symbols (N 4096, 8192)
 const ofdmRate = (m, map = 'dqpsk') => { const K = ofdmCarriers(m.N).length; return OFDM_BITS[map] * (map === 'dqpsk' ? K : K * (1 - 1 / OFDM_PSTEP)) * FS_TX / (m.N + m.CP); };   // channel bits per second
@@ -1935,15 +1946,16 @@ function ofdmLayout(m, map, nc) {   // [data symbols for nc channel bits, the ch
 // what the guard holds well (eigenvalues of A near 1) and drops what it does not (near 0): with the long guard, about
 // half the noise goes.
 const _smooth = {};
-function ofdmSmooth(m, gr, gi) {   // G = gr + j gi on the K subcarriers -> the smoothed [re, im]
+function ofdmSmooth(m, gr, gi, long = false) {   // G = gr + j gi on the K subcarriers -> the smoothed [re, im]
   const { N, CP } = m, K = gr.length, al = m.wide ? OFDM_WALPHA : OFDM_ALPHA;   // v7.21
-  if (!_smooth[m.name]) {
+  const key = long ? m.name + '/long' : m.name, last = long ? Math.floor(N * OFDM_LONG_KEEP) : CP;   // v7.22, long: the second try keeps the echo up to N/2
+  if (!_smooth[key]) {
     const re = new Float64Array(N), im = new Float64Array(N);
-    for (let n = -16; n <= CP; n++) re[(n + N) % N] = 1;
+    for (let n = -16; n <= last; n++) re[(n + N) % N] = 1;
     fft(re, im);
-    _smooth[m.name] = [Float64Array.from({ length: K }, (_, k) => re[k] / N + (k === 0 ? al : 0)), Float64Array.from({ length: K }, (_, k) => im[k] / N)];   // first column of A + alpha I
+    _smooth[key] = [Float64Array.from({ length: K }, (_, k) => re[k] / N + (k === 0 ? al : 0)), Float64Array.from({ length: K }, (_, k) => im[k] / N)];   // first column of A + alpha I
   }
-  const [tr, ti] = _smooth[m.name], [xr, xi] = levinson(tr, ti, gr, gi);
+  const [tr, ti] = _smooth[key], [xr, xi] = levinson(tr, ti, gr, gi);
   return [Float64Array.from(gr, (v, j) => v - al * xr[j]), Float64Array.from(gi, (v, j) => v - al * xi[j])];
 }
 // Solves T x = y for a Hermitian Toeplitz T, T[j][l] = t[j - l] for j >= l, conj(t[l - j]) otherwise (t = tr + j ti):
@@ -2157,7 +2169,7 @@ function ofdmReceive(y, off, len, fs, t0, m, ns, nc, map = 'dqpsk') {
   let hin = 0, hall = 0; h.forEach((v, n) => { hall += v; if (n <= CP) hin += v; });
   const Y = Array.from({ length: ns + 2 }, (_, i) => spec(r, i, w));   // the two references and the data
   const gap = { slips: slips.map(([i, d]) => [i, d * sc]), erased };   // the gaps in samples of the recording
-  if (map !== 'dqpsk') return Object.assign(ofdmCoherent(Y, ns, nc, m, map, erased), { eps, tau, inside: hin / Math.max(hall, 1e-30), K, h, N, CP, map }, gap);
+  if (map !== 'dqpsk') return Object.assign(ofdmCoherent(Y, ns, nc, m, map, erased), { eps, tau, inside: hin / Math.max(hall, 1e-30), K, h, N, CP, map, Y: m.wide ? Y : null, m }, gap);   // v7.22: Y kept for wide OFDM's second try
   const Zr = [], Zi = [];   // z = Y_i conj(Y_i-1), turned back by the delay change between the two symbols
   for (let i = 1; i <= ns; i++) {
     const [ar, ai] = Y[i], [br, bi] = Y[i - 1], xr = new Float64Array(K), xi = new Float64Array(K), wr = new Float64Array(K), wi = new Float64Array(K);
@@ -2291,7 +2303,7 @@ function ofdmGaps(r, m, map, ns, pad, spec, read, cr, ci) {
 // the band (ofdmSmooth). Three rounds. N0 per group of 32 subcarriers from what the references and pilots leave
 // (x 1.25: the estimate absorbs some of the noise). LLR of each bit: ln sum over the points s with that bit 1 of
 // exp(-|Y - H_i s|^2 / N0), minus the same over the points with that bit 0.
-function ofdmCoherent(Y, ns, nc, m, map, erased = []) {   // erased (v4.1): data symbols that hold a gap, left out, LLRs 0
+function ofdmCoherent(Y, ns, nc, m, map, erased = [], long = false) {   // erased (v4.1): data symbols that hold a gap, left out, LLRs 0; long (v7.22): the room's echo kept up to N/2
   const { N } = m, kk = ofdmCarriers(N), K = kk.length, th = ofdmReference(K), rr = th.map(Math.cos), ri = th.map(Math.sin);
   const [pr, pim, lab] = ofdmPoints(map), nb = OFDM_BITS[map], M = pr.length, all = [...Array(K).keys()];
   const pil = Array.from({ length: ns + 2 }, (_, i) => i === 0 || i === ns + 1 ? all : erased.includes(i) ? [] : all.filter(j => ofdmPilot(j, i)));
@@ -2315,7 +2327,7 @@ function ofdmCoherent(Y, ns, nc, m, map, erased = []) {   // erased (v4.1): data
     const cr = sr / Math.max(ee, 1e-30), ci = si / Math.max(ee, 1e-30);
     for (let j = 0; j < K; j++) { const ph = -2 * Math.PI * kk[j] * dl / N, c = Math.cos(ph), s = Math.sin(ph); Cr[i][j] = cr * c - ci * s; Ci[i][j] = cr * s + ci * c; }
   };
-  [Hr, Hi] = ofdmSmooth(m, Float64Array.from(all, j => Y[0][0][j] * rr[j] + Y[0][1][j] * ri[j]), Float64Array.from(all, j => Y[0][1][j] * rr[j] - Y[0][0][j] * ri[j]));   // the first reference alone
+  [Hr, Hi] = ofdmSmooth(m, Float64Array.from(all, j => Y[0][0][j] * rr[j] + Y[0][1][j] * ri[j]), Float64Array.from(all, j => Y[0][1][j] * rr[j] - Y[0][0][j] * ri[j]), long);   // the first reference alone
   for (let it = 0; it < OFDM_ITERS; it++) {
     for (let i = 1; i < ns + 2; i++) fit(i);
     const ar = new Float64Array(K), ai = new Float64Array(K), cnt = new Float64Array(K);
@@ -2323,7 +2335,7 @@ function ofdmCoherent(Y, ns, nc, m, map, erased = []) {   // erased (v4.1): data
       const er = rr[j] * Cr[i][j] - ri[j] * Ci[i][j], ei = rr[j] * Ci[i][j] + ri[j] * Cr[i][j], e2 = er * er + ei * ei;
       ar[j] += (Y[i][0][j] * er + Y[i][1][j] * ei) / e2; ai[j] += (Y[i][1][j] * er - Y[i][0][j] * ei) / e2; cnt[j]++;
     }
-    [Hr, Hi] = ofdmSmooth(m, ar.map((v, j) => v / cnt[j]), ai.map((v, j) => v / cnt[j]));
+    [Hr, Hi] = ofdmSmooth(m, ar.map((v, j) => v / cnt[j]), ai.map((v, j) => v / cnt[j]), long);
   }
   const HC = (i, j) => [Hr[j] * Cr[i][j] - Hi[j] * Ci[i][j], Hr[j] * Ci[i][j] + Hi[j] * Cr[i][j]];
   const num = new Float64Array(K), den = new Float64Array(K);
