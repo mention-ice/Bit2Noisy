@@ -1,0 +1,931 @@
+<!doctype html>
+<!-- Device check: is this phone or laptop ready to be a radio? © 2026 Sheng Yang. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Device check</title>
+<meta name="description" content="One minute to see whether a phone or laptop can be a radio: its speaker and microphone band, the noise, the echo, the distortion, the delay and the clock.">
+<meta name="author" content="Sheng Yang">
+<meta name="copyright" content="© 2026 Sheng Yang. All rights reserved.">
+<meta name="theme-color" content="#86144F">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiM4NjE0NEYiLz48cmVjdCB4PSI3OSIgeT0iMTkxIiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTQ3IiB5PSIxOTEiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSIxODEiIHk9IjE5MSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI0ZGRkZGRiIvPjxyZWN0IHg9IjExMyIgeT0iMjI1IiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTQ3IiB5PSIyMjUiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSI3OSIgeT0iMjU5IiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTEzIiB5PSIyNTkiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSIxODEiIHk9IjI1OSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI0ZGRkZGRiIvPjxyZWN0IHg9IjExMyIgeT0iMjkzIiB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMTQ3IiB5PSIyOTMiIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNGRkZGRkYiLz48cmVjdCB4PSIxODEiIHk9IjI5MyIgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI0ZGRkZGRiIvPjxwYXRoIGQ9Ik0yNzUuOCwyMDYuOCBBNzAsNzAgMCAwIDEgMjc1LjgsMzA1LjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIxLjAwIi8+PHBhdGggZD0iTTMxNy4wLDE2Ni4wIEExMjgsMTI4IDAgMCAxIDMxNy4wLDM0Ni4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44OCIvPjxjaXJjbGUgY3g9IjM2My43IiBjeT0iMTMwLjUiIHI9IjkuNiIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzY3LjMiIGN5PSIxNDIuMyIgcj0iMTEuNiIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzg4LjEiIGN5PSIxNTQuNyIgcj0iMTEuNyIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzgyLjEiIGN5PSIxOTAuMiIgcj0iOS4xIiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MDcuMiIgY3k9IjE5Mi4yIiByPSI2LjgiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjQxMi40IiBjeT0iMjE4LjYiIHI9IjkuMSIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iNDA5LjkiIGN5PSIyMzkuMiIgcj0iMTEuOSIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzk4LjQiIGN5PSIyNTguMCIgcj0iOC45IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSIzOTQuMSIgY3k9IjI3MC43IiByPSI3LjQiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjM5OC41IiBjeT0iMjg3LjAiIHI9IjYuOCIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iNDA5LjgiIGN5PSIzMTguNCIgcj0iNi41IiBmaWxsPSIjRkZGRkZGIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSIzOTUuMiIgY3k9IjM0MS4zIiByPSI2LjkiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjM4NC44IiBjeT0iMzYyLjAiIHI9IjExLjQiIGZpbGw9IiNGRkZGRkYiIG9wYWNpdHk9IjAuOCIvPjxjaXJjbGUgY3g9IjM2NS4wIiBjeT0iMzY4LjIiIHI9IjcuMiIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iMzcwLjUiIGN5PSIzODguMyIgcj0iMTEuNCIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC44Ii8+PC9zdmc+Cg==">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
+:root{
+  --bg:#f5f3f6; --card:#fff; --ink:#1c1722; --muted:#5f5a6b; --line:#e3dfe7; --soft:#f3edf2;
+  --accent:#86144f; --accent-ink:#fff; --ok:#1d7a4e; --warn:#9a5b00; --bad:#b0122f;
+  --plot:#fbf9fb; --grid:#e6e0e8; --curve:#86144f; --curve2:#706a7f; --band:#86144f14; --band2:#706a7f1f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#110e14; --card:#1c1722; --ink:#f5f3f6; --muted:#b4aec0; --line:#332c3b; --soft:#2a2130;
+    --accent:#e2589c; --accent-ink:#1c1722; --ok:#46c483; --warn:#f0b35a; --bad:#ff6b7f;
+    --plot:#15111a; --grid:#2e2836; --curve:#ff70ba; --curve2:#a9a3b5; --band:#ff70ba1a; --band2:#a9a3b526;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#110e14; --card:#1c1722; --ink:#f5f3f6; --muted:#b4aec0; --line:#332c3b; --soft:#2a2130;
+  --accent:#e2589c; --accent-ink:#1c1722; --ok:#46c483; --warn:#f0b35a; --bad:#ff6b7f;
+  --plot:#15111a; --grid:#2e2836; --curve:#ff70ba; --curve2:#a9a3b5; --band:#ff70ba1a; --band2:#a9a3b526;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.015em;text-wrap:balance}
+a{color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* logo bar: always on white, the ground the logos are drawn for */
+.logos{background:#fff;border-bottom:1px solid #e3dfe7}
+.logos>div{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.b2n{line-height:0;display:block}.b2n svg{height:44px;width:auto;display:block}
+.inst{display:flex;align-items:center;gap:16px}
+.ice{display:flex;align-items:center;gap:10px;color:#1c1722}
+.ice svg{height:36px;width:auto;display:block;flex:none}
+.ice span{font:700 13px/1.2 "Bricolage Grotesque",system-ui,sans-serif}
+.cs{height:48px;width:auto;display:block}
+@media (max-width:560px){.b2n svg{height:34px}.inst{gap:10px}.ice svg{height:26px}.ice{gap:6px}.ice span{font-size:10.5px}.cs{height:34px}}
+/* title band */
+.hero{background:radial-gradient(120% 160% at 90% 0%,#b0306f 0%,#86144f 50%,#4a0b2c 100%);color:#fff}
+.hero .wrap{padding-top:26px;padding-bottom:24px}
+.hero h1{font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0 0 8px;font-weight:800}
+.hero p{margin:0;max-width:40em;opacity:.95;font-size:17px}
+main.wrap{padding-top:18px;padding-bottom:40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 14px}
+.card h2{font-size:20px;margin:0 0 10px}
+/* the three ways */
+.modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+@media (max-width:620px){.modes{grid-template-columns:1fr}}
+.mode{display:block;text-align:left;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:12px 14px;cursor:pointer;font:inherit}
+.mode b{display:block;font:700 16px/1.25 "Bricolage Grotesque",system-ui,sans-serif;margin-bottom:2px}
+.mode span{display:block;color:var(--muted);font-size:14px;line-height:1.35}
+.mode[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--soft)}
+.mode:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.steps{margin:0 0 14px;padding-left:22px}
+.steps li{margin:0 0 4px}
+.go{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 22px;font:600 16px/1 system-ui,sans-serif;border:1.5px solid var(--accent);cursor:pointer;background:var(--card);color:var(--accent);min-height:44px}
+.btn.main{background:var(--accent);color:var(--accent-ink);font-size:17px;padding:14px 28px}
+.btn[disabled]{opacity:.5;cursor:default}
+.status{color:var(--muted);font-size:15px;min-height:1.5em}
+.meter{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--muted)}
+.meter .bar{flex:1;height:8px;border-radius:4px;background:var(--soft);overflow:hidden;position:relative}
+.meter .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);border-radius:4px;transition:width .1s}
+.prog{height:4px;border-radius:2px;background:var(--soft);overflow:hidden;margin-top:12px}
+.prog i{display:block;height:100%;width:0;background:var(--accent)}
+.hidden{display:none!important}
+/* results */
+.head{display:flex;align-items:flex-start;gap:12px;margin:0 0 6px}
+.head .dot{flex:none;width:14px;height:14px;border-radius:50%;margin-top:9px}
+.head h2{margin:0;font-size:24px}
+.sub{color:var(--muted);margin:0 0 14px}
+.vlist{list-style:none;margin:0;padding:0}
+.vlist li{display:grid;grid-template-columns:18px 1fr;gap:4px 10px;padding:9px 0;border-top:1px solid var(--line)}
+.vlist li:first-child{border-top:0}
+.vlist .dot{width:10px;height:10px;border-radius:50%;margin-top:7px}
+.vlist b{font-weight:650}
+.vlist span{grid-column:2;color:var(--muted);font-size:14.5px;line-height:1.45}
+.ok{background:var(--ok)}.warn{background:var(--warn)}.bad{background:var(--bad)}
+figure{margin:0}
+figcaption{color:var(--muted);font-size:14px;margin-top:6px}
+canvas.plot{width:100%;height:220px;display:block;border-radius:10px;background:var(--plot);border:1px solid var(--line)}
+table.kv{width:100%;border-collapse:collapse;font-size:14.5px}
+table.kv th{text-align:left;font-weight:600;color:var(--muted);padding:6px 10px 6px 0;vertical-align:top;width:42%}
+table.kv td{padding:6px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+table.kv tr+tr th,table.kv tr+tr td{border-top:1px solid var(--line)}
+details{margin-top:4px}
+summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.note{color:var(--muted);font-size:14px}
+footer{color:var(--muted);font-size:13.5px;padding:8px 0 30px}
+</style>
+</head>
+<body>
+<header>
+<div class="logos"><div>
+  <a class="b2n" href="https://mention-ice.github.io/Bit2Noisy/" title="Open Bit2Noisy"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 655 220"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></svg>
+</a>
+  <div class="inst"><div class="ice" role="img" aria-label="Mention ICE, Information &amp; Communication Engineering">
+    <svg viewBox="226 116 444 230" aria-hidden="true"><circle cx="253.5" cy="142.5" r="22.5" fill="#86144F"/><path d="M253.5 207V315" stroke="#1C1722" stroke-width="42" stroke-linecap="round"/><path d="M487.1 161.2A92 92 0 1 0 487.1 302.2" fill="none" stroke="#86144F" stroke-width="36" stroke-linecap="round"/><path d="M454.2 198.2A42.5 42.5 0 1 0 454.2 265.2" fill="none" stroke="#706A7F" stroke-width="19" stroke-linecap="round"/><circle cx="428" cy="231.7" r="11" fill="#1C1722"/><path d="M573.3 146H645.7M573.3 317.5H645.7" stroke="#1C1722" stroke-width="38.5" stroke-linecap="round"/><path d="M573.3 232H608.7" stroke="#706A7F" stroke-width="38.5" stroke-linecap="round"/></svg>
+    <span aria-hidden="true">Information &amp;<br>Communication Engineering</span>
+  </div><img class="cs" alt="CentraleSupélec" width="390" height="200" src="data:image/png;base64,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"></div>
+</div></div>
+<div class="hero"><div class="wrap">
+  <h1>Device check</h1>
+  <p>Is this phone or laptop ready to be a radio? It plays a short sweep, listens, and tells you what its speaker, microphone and room can carry.</p>
+</div></div>
+</header>
+
+<main class="wrap">
+  <div class="modes" role="group" aria-label="What to check">
+    <button class="mode" data-mode="self" aria-pressed="true"><b>This device alone</b><span>Its own speaker into its own microphone. 7 seconds.</span></button>
+    <button class="mode" data-mode="listen" aria-pressed="false"><b>Listen to another</b><span>The link from another device to this one, with both clocks.</span></button>
+    <button class="mode" data-mode="play" aria-pressed="false"><b>Play for another</b><span>This device sends the sound; the other one listens.</span></button>
+  </div>
+
+  <section class="card" id="runCard" aria-live="polite">
+    <ol class="steps" id="steps"></ol>
+    <div class="go">
+      <button class="btn main" id="goBtn">Start the check</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="meter hidden" id="meter"><span>Microphone</span><div class="bar"><i id="lvl"></i></div><span id="lvlTxt">–</span></div>
+    <div class="prog hidden" id="prog"><i id="progBar"></i></div>
+  </section>
+
+  <section id="results" class="hidden">
+    <div class="card">
+      <div class="head"><span class="dot" id="headDot"></span><h2 id="headTitle"></h2></div>
+      <p class="sub" id="headSub"></p>
+      <ul class="vlist" id="vlist"></ul>
+    </div>
+    <div class="card" id="snrCard">
+      <h2>Signal over noise, across frequency</h2>
+      <figure><canvas class="plot" id="snrPlot" aria-label="Signal-to-noise ratio against frequency"></canvas>
+      <figcaption id="snrCap"></figcaption></figure>
+    </div>
+    <div class="card" id="irCard">
+      <h2>Echo</h2>
+      <figure><canvas class="plot" id="irPlot" aria-label="Echo level against time"></canvas>
+      <figcaption id="irCap"></figcaption></figure>
+    </div>
+    <div class="card">
+      <h2>All the numbers</h2>
+      <table class="kv" id="kv"></table>
+      <div class="go" style="margin-top:14px">
+        <button class="btn" id="copyBtn">Copy the results</button>
+        <button class="btn" id="wavBtn">Save the recording</button>
+        <span class="status" id="copyMsg"></span>
+      </div>
+      <p class="note">The recording and the results stay on this device unless you copy or save them.</p>
+    </div>
+  </section>
+
+  <details class="card">
+    <summary>What the check measures, and how</summary>
+    <p>The test sound lasts 4.6 seconds: a short chirp, a sweep from 100&nbsp;Hz to 21&nbsp;kHz, and the chirp again. The microphone listens a second before it starts.</p>
+    <ul>
+      <li><b>Noise:</b> the second of quiet before the sound.</li>
+      <li><b>Band and SNR:</b> dividing what came back by the sweep gives the response of the speaker, the room and the microphone at every frequency. The SNR is for a signal as loud as the sweep (its RMS level, 9&nbsp;dB below full scale), spread evenly over 2.3 to 20.5&nbsp;kHz, as the modems' wide band is.</li>
+      <li><b>Shannon limit:</b> the most bits per second any modem sending that flat spectrum could carry over this link: the sum of log<sub>2</sub>(1&nbsp;+&nbsp;SNR) across the band. Real modems reach a fraction of it.</li>
+      <li><b>Echo:</b> the same response, read in time: how long the room keeps ringing, until 30&nbsp;dB below the direct sound.</li>
+      <li><b>Distortion:</b> a loud speaker adds harmonics. A sweep puts them at their own place in time, so they can be measured apart.</li>
+      <li><b>Clock:</b> the two chirps are 3.8&nbsp;s apart on the player's clock; the listener counts its own samples between them.</li>
+      <li><b>Delay</b> (this device alone): from the moment the page asks the speaker to play to the moment the microphone hears it.</li>
+      <li><b>Checks:</b> each chirp must stand out from the sound just before it, so a steady tone or music is not taken for the test sound. Another test sound in the same recording, a level change between the two chirps, and 44.1&nbsp;kHz taken for 48&nbsp;kHz are reported.</li>
+    </ul>
+    <p>The same analysis runs in Python on any recording: <code>python devcheck.py analyse rec.wav</code>.</p>
+  </details>
+  <footer>© 2026 Sheng Yang. All rights reserved.</footer>
+</main>
+
+<script id="dc-core">
+/* Device check core: the test sound and what a recording of it says about a device. devcheck.py gives the same numbers.
+   © 2026 Sheng Yang. All rights reserved. */
+(function (root) {
+'use strict';
+// The test sound, in seconds (multiples of 10 ms, so whole samples at 44.1 and 48 kHz):
+// 0.3 s silence | marker A 0.1 s | 0.2 s | sweep 2.5 s | 1.0 s for the echo to die | marker B 0.1 s | 0.4 s
+const T_A = 0.30, T_MK = 0.10, T_SW = 0.60, DUR_SW = 2.50, T_B = 4.10, DUR = 4.60, D_AB = T_B - T_A;
+const AMP = 0.5, F1 = 100, F2 = 21000, MK0 = 1500, MK1 = 15000;
+const SW_L = DUR_SW / Math.log(F2 / F1);           // the sweep's time constant: frequency F1 exp(t / SW_L)
+const BANDS = { standard: [3200, 16000], wide: [2300, 20500] };
+const B_REF = BANDS.wide[1] - BANDS.wide[0];       // SNR(f) is for a sound as loud as the sweep, spread evenly over the wide band
+const PRE = 0.05, SEG = 3.45;                      // the sweep's segment: 50 ms before it, 3.45 s in all (it ends before marker B)
+
+const tukey = (u, r) => u < 0 || u > 1 ? 0 : u < r / 2 ? 0.5 - 0.5 * Math.cos(2 * Math.PI * u / r) : u > 1 - r / 2 ? 0.5 - 0.5 * Math.cos(2 * Math.PI * (1 - u) / r) : 1;
+function marker(t) {   // linear chirp from MK0 to MK1 in T_MK
+  if (t < 0 || t >= T_MK) return 0;
+  return AMP * tukey(t / T_MK, 0.2) * Math.sin(2 * Math.PI * (MK0 * t + (MK1 - MK0) * t * t / (2 * T_MK)));
+}
+function sweep(t) {    // exponential sine sweep F1 to F2 in DUR_SW, faded in over 20 ms and out over 10 ms
+  if (t < 0 || t >= DUR_SW) return 0;
+  const g = t < 0.02 ? 0.5 - 0.5 * Math.cos(Math.PI * t / 0.02) : t > DUR_SW - 0.01 ? 0.5 - 0.5 * Math.cos(Math.PI * (DUR_SW - t) / 0.01) : 1;
+  return AMP * g * Math.sin(2 * Math.PI * F1 * SW_L * (Math.exp(t / SW_L) - 1));
+}
+function testSound(fs) {   // what the speaker plays
+  const n = Math.round(DUR * fs), x = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const t = i / fs; x[i] = marker(t - T_A) + sweep(t - T_SW) + marker(t - T_B); }
+  return x;
+}
+
+// ---------- FFT (radix 2, in place) ----------
+const tw = {};
+function fft(re, im, inv) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let b = n >> 1; for (; j & b; b >>= 1) j ^= b; j ^= b;
+    if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+  }
+  let c = tw[n];
+  if (!c) { c = tw[n] = new Float64Array(n); for (let k = 0; k < n / 2; k++) { c[k] = Math.cos(2 * Math.PI * k / n); c[k + n / 2] = Math.sin(2 * Math.PI * k / n); } }
+  const s = inv ? 1 : -1, h = n / 2;
+  for (let len = 2; len <= n; len <<= 1) {
+    const half = len >> 1, step = n / len;
+    for (let i = 0; i < n; i += len) for (let k = 0; k < half; k++) {
+      const wr = c[k * step], wi = s * c[h + k * step], a = i + k, b = a + half;
+      const xr = re[b] * wr - im[b] * wi, xi = re[b] * wi + im[b] * wr;
+      re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi;
+    }
+  }
+  if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+}
+const pow2 = n => 1 << Math.ceil(Math.log2(Math.max(2, n)));
+
+function xcorr(y, m) {   // c[k] = sum_i y[k + i] m[i], k = 0 .. len(y) - len(m)
+  const n = pow2(y.length + m.length), yr = new Float64Array(n), yi = new Float64Array(n), mr = new Float64Array(n), mi = new Float64Array(n);
+  yr.set(y); mr.set(m); fft(yr, yi); fft(mr, mi);
+  for (let k = 0; k < n; k++) { const a = yr[k] * mr[k] + yi[k] * mi[k], b = yi[k] * mr[k] - yr[k] * mi[k]; yr[k] = a; yi[k] = b; }
+  fft(yr, yi, true);
+  return yr.subarray(0, y.length - m.length + 1);
+}
+const ref = (f, fs, eps, n, t0) => { const r = new Float64Array(n), k = fs * (1 + eps); for (let i = 0; i < n; i++) r[i] = f((i - t0) / k); return r; };
+
+// where marker m starts in y near sample k, to a fraction of a sample: the correlation between lags k - 2 and k + 2 in
+// steps of 1/16, from the cross spectrum of a short segment, then a parabola through the best three
+function refine(y, k, m, sg) {
+  const P = 64, n = pow2(m.length + 2 * P + m.length), a = k - P, yr = new Float64Array(n), yi = new Float64Array(n), mr = new Float64Array(n), mi = new Float64Array(n);
+  for (let i = 0; i < m.length + 2 * P; i++) yr[i] = y[a + i] || 0;
+  mr.set(m); fft(yr, yi); fft(mr, mi);
+  const cr = new Float64Array(n / 2 + 1), ci = new Float64Array(n / 2 + 1);
+  for (let q = 0; q <= n / 2; q++) { cr[q] = yr[q] * mr[q] + yi[q] * mi[q]; ci[q] = yi[q] * mr[q] - yr[q] * mi[q]; }
+  const at = tau => { let s = cr[0] + cr[n / 2] * Math.cos(Math.PI * tau); for (let q = 1; q < n / 2; q++) { const ph = 2 * Math.PI * q * tau / n; s += 2 * (cr[q] * Math.cos(ph) - ci[q] * Math.sin(ph)); } return sg * s / n; };
+  let best = P, bv = -Infinity; const v = {};
+  for (let j = -32; j <= 32; j++) { const t = P + j / 16; v[j] = at(t); if (v[j] > bv) { bv = v[j]; best = j; } }
+  const j = Math.max(-31, Math.min(31, best)), y0 = v[j - 1], y1 = v[j], y2 = v[j + 1], den = y0 - 2 * y1 + y2;
+  return a + P + (j + (den < 0 ? 0.5 * (y0 - y2) / den : 0)) / 16;
+}
+
+// one-sided power spectral density of x[a..b) per Hz (times fs: divide by fs after). Segments under half the median
+// segment's power (the microphone still starting, a gap filled with zeros) are left out. { p, kept, n, ms: kept mean square }
+function welch(x, a, b, nf) {
+  const w = new Float64Array(nf); let w2 = 0;
+  for (let i = 0; i < nf; i++) { w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / nf); w2 += w[i] * w[i]; }
+  const qs = [], e = [], ms = [], re = new Float64Array(nf), im = new Float64Array(nf);
+  for (let s = a; s + nf <= b; s += nf / 2) {
+    let m = 0; for (let i = 0; i < nf; i++) { re[i] = x[s + i] * w[i]; im[i] = 0; m += x[s + i] * x[s + i]; }
+    fft(re, im);
+    const q = new Float64Array(nf / 2 + 1); let t = 0;
+    for (let k = 0; k <= nf / 2; k++) { q[k] = (k === 0 || k === nf / 2 ? 1 : 2) * (re[k] * re[k] + im[k] * im[k]); t += q[k]; }
+    qs.push(q); e.push(t); ms.push(m / nf);
+  }
+  const p = new Float64Array(nf / 2 + 1); if (!qs.length) return { p, kept: 0, n: 0, ms: 0 };
+  const lim = 0.5 * median(e); let kept = 0, msum = 0;
+  qs.forEach((q, j) => { if (e[j] >= lim) { kept++; msum += ms[j]; for (let k = 0; k <= nf / 2; k++) p[k] += q[k]; } });
+  for (let k = 0; k <= nf / 2; k++) p[k] /= kept * w2;
+  return { p, kept, n: qs.length, ms: msum / kept };
+}
+
+// the 1/12-octave grid from 100 Hz to 20.3 kHz; each point averages its 1/6 octave, cut at 20.5 kHz (the sweep stops at 21)
+const GRID = Array.from({ length: 93 }, (_, i) => 100 * 2 ** (i / 12)).filter(f => f <= 20600);
+const DF = GRID.map(f => f * (2 ** (1 / 24) - 2 ** (-1 / 24)));
+function onBand(p, binHz, lo, hi, fc) {   // the mean of p over [lo, hi] Hz (the bin nearest fc if no bin falls inside)
+  const a = Math.ceil(lo / binHz), b = Math.min(Math.floor(hi / binHz), p.length - 1);
+  if (b < a) return p[Math.min(p.length - 1, Math.round(fc / binHz))];
+  let s = 0; for (let k = a; k <= b; k++) s += p[k];
+  return s / (b - a + 1);
+}
+const onGrid = (p, binHz) => GRID.map(f => onBand(p, binHz, f * 2 ** (-1 / 12), Math.min(f * 2 ** (1 / 12), 20500), f));
+const db = v => 10 * Math.log10(Math.max(v, 1e-30));
+
+// sliding maximum of |c| over [k - w, k + w]
+function runMax(c, w) {
+  const n = c.length, o = new Float64Array(n), q = new Int32Array(n); let h = 0, t = 0;
+  for (let i = 0; i < n + w; i++) {
+    if (i < n) { const v = Math.abs(c[i]); while (t > h && Math.abs(c[q[t - 1]]) <= v) t--; q[t++] = i; }
+    const k = i - w; if (k < 0) continue;
+    while (q[h] < k - w) h++;
+    o[k] = Math.abs(c[q[h]]);
+  }
+  return o;
+}
+// band 1-20 kHz (raised-cosine edges at 0.5-1 and 20-20.5 kHz): what the echo and distortion are measured in
+const bandW = f => f < 500 || f > 20500 ? 0 : f < 1000 ? 0.5 - 0.5 * Math.cos(Math.PI * (f - 500) / 500) : f > 20000 ? 0.5 + 0.5 * Math.cos(Math.PI * (f - 20000) / 500) : 1;
+
+const RATES = [0, 48000 / 44100 - 1, 44100 / 48000 - 1];   // same rate; 44.1 kHz taken for 48 kHz; the reverse
+const PROM = 10;   // a marker's correlation peak against the median of the 0.4 s before it (steady tones and music: under 3)
+function median(v) { const s = Float64Array.from(v).sort(), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
+// |c[k]| over the median |c| from 0.4 s to 20 ms before k; null if less than 0.1 s of it is there
+function prominence(c, k, fs) {
+  const a = Math.max(0, k - Math.round(0.4 * fs)), b = k - Math.round(0.02 * fs);
+  if (b - a < Math.round(0.1 * fs)) return null;
+  const v = new Float64Array(b - a); for (let i = a; i < b; i++) v[i - a] = Math.abs(c[i]);
+  return Math.abs(c[k]) / (median(v) + 1e-30);
+}
+// markers A and B for a clock near 1 + eps0: { c, m0, kA, kB, match, prom } or null
+function findMarkers(y, fs, eps0) {
+  const m0 = ref(marker, fs, eps0, Math.round(T_MK * fs * (1 + eps0)), 0), c = xcorr(y, m0);
+  // candidates for A are the strongest pairs of correlation peaks 3.8 s apart (clocks within 3000 ppm); for each, B is
+  // where the correlation around A (its echoes too, 15 ms each side) repeats best. Of the pairs that stand out from
+  // what comes before them (a test sound starts after quiet; a steady tone or music does not), the one that repeats
+  // best wins: a room's echoes make the same pattern twice, noise does not
+  const dn = Math.round(D_AB * fs * (1 + eps0)), w = Math.round(0.003 * D_AB * fs);
+  if (c.length <= dn + w) return null;
+  const M = runMax(c, w), nsc = c.length - dn, score = new Float64Array(nsc); let smax = 0;
+  for (let k = 0; k < nsc; k++) { score[k] = Math.abs(c[k]) + M[k + dn]; if (score[k] > smax) smax = score[k]; }
+  const P = Math.round(0.015 * fs), cs = new Float64Array(c.length + 1);
+  for (let i = 0; i < c.length; i++) cs[i + 1] = cs[i] + c[i] * c[i];
+  const cand = [];   // [match, kA, kB] per candidate
+  for (let it = 0; it < 8; it++) {
+    let ka = 0; for (let k = 1; k < nsc; k++) if (score[k] > score[ka]) ka = k;
+    if (score[ka] <= 0 || score[ka] < 0.2 * smax) break;
+    for (let k = Math.max(0, ka - Math.trunc(0.05 * fs)); k < Math.min(nsc, ka + Math.trunc(0.05 * fs)); k++) score[k] = 0;
+    if (ka - P < 0) continue;
+    const ea = cs[ka + P + 1] - cs[ka - P]; let best = [-Infinity, ka, -1];
+    for (let d = -w; d <= w; d++) {
+      const k = ka + dn + d; if (k + P >= c.length) break;
+      let r = 0; for (let i = -P; i <= P; i++) r += c[ka + i] * c[k + i];
+      r /= Math.sqrt(ea * (cs[k + P + 1] - cs[k - P]) + 1e-30);
+      if (r > best[0]) best = [r, ka, k];
+    }
+    if (best[2] < 0) continue;
+    const pa = prominence(c, best[1], fs), pb = prominence(c, best[2], fs);
+    if ((pa === null || pa >= PROM) && pb !== null && pb >= PROM) cand.push(best);
+  }
+  if (!cand.length) return null;
+  // of the pairs that repeat nearly as well as the best, the strongest (the echoes of one marker repeat too)
+  const top = Math.max(...cand.map(v => v[0]));
+  let [match, kA, kB] = cand.find(v => v[0] === top);
+  for (const v of cand) if (v[0] >= Math.max(0.4, 0.8 * top) && Math.abs(c[v[1]]) + Math.abs(c[v[2]]) > Math.abs(c[kA]) + Math.abs(c[kB])) [match, kA, kB] = v;
+  { // A on its strongest path within 25 ms, B on the same path, at its peak
+    const k0 = kA; for (let k = Math.max(0, k0 - Math.round(0.025 * fs)); k <= Math.min(c.length - 1, k0 + Math.round(0.025 * fs)); k++) if (Math.abs(c[k]) > Math.abs(c[kA])) kA = k;
+    const k1 = Math.min(c.length - 3, Math.max(2, kB + kA - k0)); kB = k1; for (let k = k1 - 2; k <= k1 + 2; k++) if (Math.abs(c[k]) > Math.abs(c[kB])) kB = k;
+  }
+  return { c, m0, kA, kB, match, prom: [prominence(c, kA, fs), prominence(c, kB, fs)] };
+}
+
+// What a recording y (at fs) of the test sound says. opts.play: the sample of y at which the speaker was told to start
+// the sound (this device's own sound only), for the latency. opts.rates (default true): if not heard, look for it again
+// as if played or recorded at 44.1 kHz taken for 48 kHz, or the reverse
+function analyse(y, fs, opts = {}) {
+  const out = { fs, version: 2, found: false };
+  let mk = null, eps0 = 0;
+  for (const e of (opts.rates === false ? RATES.slice(0, 1) : RATES)) {
+    const m = findMarkers(y, fs, e); if (!m) continue;
+    const { c, m0, kA, kB } = m; let mm = 0; for (const v of m0) mm += v * v;
+    const rho = k => { let s = 0; for (let i = k; i < k + m0.length && i < y.length; i++) s += y[i] * y[i]; return Math.abs(c[k]) / Math.sqrt(mm * s + 1e-30); };
+    out.rho = [rho(kA), rho(kB)]; out.match = +m.match.toFixed(3); out.prom = m.prom.map(v => v === null ? null : +v.toFixed(1));
+    const q = Math.abs(c[kB]) / Math.abs(c[kA]);
+    if (m.match >= 0.4 && q >= 0.25 && q <= 4 && m.prom.every(v => v === null || v >= PROM)) { mk = m; eps0 = e; break; }
+  }
+  if (!mk) return out;
+  const { c, m0, kA, kB } = mk;
+  out.found = true; out.polarity = c[kA] < 0 ? -1 : 1; out.rate_mismatch = eps0 !== 0;
+  // clock offset from the two markers, then the markers again at that clock
+  let pA = refine(y, kA, m0, out.polarity), pB = refine(y, kB, m0, out.polarity), eps = (pB - pA) / (D_AB * fs) - 1;
+  const m1 = ref(marker, fs, eps, Math.round(T_MK * fs * (1 + eps)), 0);
+  pA = refine(y, kA, m1, out.polarity); pB = refine(y, kB, m1, out.polarity); eps = (pB - pA) / (D_AB * fs) - 1;
+  out.ppm = eps * 1e6; out.markerA = pA / fs; out.markerB = pB / fs;
+  { // the markers' level, with their first 2 ms of echo: the same twice unless the gain changed (or a device moved)
+    const q2 = Math.round(0.002 * fs), en = k => { let s = 0; for (let i = k - q2; i <= k + q2; i++) s += c[i] * c[i]; return s; };
+    out.marker_change_db = +db(en(kB) / en(kA)).toFixed(2);
+  }
+  if (opts.play != null) {   // the first path at least half as strong as the strongest, within 20 ms before it
+    let kf = kA; for (let k = Math.max(0, kA - Math.round(0.02 * fs)); k < kA; k++) if (Math.abs(c[k]) >= 0.5 * Math.abs(c[kA])) { kf = k; break; }
+    out.latency_ms = 1000 * (kf + (pA - kA) - (opts.play + T_A * fs)) / fs;
+  }
+  // levels
+  const r0 = Math.max(0, Math.floor(pA - 0.02 * fs)), r1 = Math.min(y.length, Math.ceil(pB + (T_MK + 0.02) * fs));
+  let pk = 0, clip = 0; for (let i = r0; i < r1; i++) { const v = Math.abs(y[i]); if (v > pk) pk = v; if (v >= 0.999) clip++; }
+  const s0 = pA + (T_SW - T_A) * fs * (1 + eps), s1 = s0 + DUR_SW * fs * (1 + eps);
+  let se = 0, sn = 0; for (let i = Math.ceil(s0); i < s1 && i < y.length; i++) { se += y[i] * y[i]; sn++; }
+  out.peak_dbfs = 20 * Math.log10(Math.max(pk, 1e-9)); out.clipped = clip;
+  out.sweep_dbfs = 10 * Math.log10(Math.max(se / Math.max(1, sn), 1e-18));
+  // noise: what the microphone heard before marker A (up to 1.5 s, after the first 0.15 s of the recording)
+  const n1 = Math.floor(pA - 0.05 * fs), n0 = Math.max(Math.round(0.15 * fs), n1 - Math.round(1.5 * fs)), NF = 4096;
+  const W = n1 - n0 >= NF ? welch(y, n0, n1, NF) : { p: null, kept: 0, n: 0, ms: 0 }, Wp = W.p;
+  out.noise_s = +(Math.max(0, n1 - n0) / fs * (W.n ? W.kept / W.n : 1)).toFixed(3);
+  if (!W.kept) { out.noise_short = true; return out; }
+  out.noise_dbfs = 10 * Math.log10(Math.max(W.ms, 1e-18));
+  const N = onGrid(Wp, fs / NF).map(v => v / fs);
+  // the room and device: deconvolve the sweep's segment by the sweep (at the measured clock); lag 0 = the strongest path
+  const g0 = Math.round(s0 - PRE * fs), L = Math.round(SEG * fs), nf = pow2(L + Math.round(0.2 * fs));
+  const yr = new Float64Array(nf), yi = new Float64Array(nf), xr = new Float64Array(nf), xi = new Float64Array(nf);
+  for (let i = 0; i < L; i++) yr[i] = (y[g0 + i] || 0) * (i < PRE * fs ? 0.5 - 0.5 * Math.cos(Math.PI * i / (PRE * fs)) : 1);   // tapered start: less of marker A's echo
+  xr.set(ref(sweep, fs, eps, L, s0 - g0));
+  fft(yr, yi); fft(xr, xi);
+  const X2 = new Float64Array(nf / 2 + 1); let xm = 0;
+  for (let k = 0; k < nf; k++) { const v = xr[k] * xr[k] + xi[k] * xi[k]; if (k <= nf / 2) X2[k] = v; xm = Math.max(xm, v); }
+  const lam = 1e-6 * xm, br = new Float64Array(nf), bi = new Float64Array(nf);
+  for (let k = 0; k < nf; k++) {   // H = Y X* / (|X|^2 + lam); br, bi: H in the band 1-20 kHz
+    const d = xr[k] * xr[k] + xi[k] * xi[k] + lam, a = (yr[k] * xr[k] + yi[k] * xi[k]) / d, b = (yi[k] * xr[k] - yr[k] * xi[k]) / d, g = bandW(Math.min(k, nf - k) * fs / nf);
+    yr[k] = a; yi[k] = b; br[k] = a * g; bi[k] = b * g;
+  }
+  fft(yr, yi, true); fft(br, bi, true);
+  const at = (v, i) => v[((i % nf) + nf) % nf];
+  const hs = (v, a, b) => { let s = 0, n = 0; for (let i = Math.round(a * fs); i < Math.round(b * fs); i++) { const u = at(v, i); s += u * u; n++; } return [s, n]; };
+  // frequency response from -25 ms to 300 ms (the last 50 ms tapered), less its expected estimation noise: the noise heard
+  // before marker A (spectrum S) goes through the same division by the sweep, gain G = |X|^2 / (|X|^2 + lam)^2 per bin
+  const hl = Math.round(0.325 * fs), hf = pow2(hl), Ptx = AMP * AMP / 2 / B_REF;
+  const S = f => Wp[Math.min(NF / 2, Math.round(f * NF / fs))] / fs;   // noise, one-sided, per Hz
+  const hr = new Float64Array(hf), hi = new Float64Array(hf); let w2 = 0;
+  for (let i = 0; i < hl; i++) { const t = i / fs - 0.025, g = t > 0.25 ? 0.5 + 0.5 * Math.cos(Math.PI * (t - 0.25) / 0.05) : 1; hr[i] = at(yr, i - Math.round(0.025 * fs)) * g; w2 += g * g; }
+  fft(hr, hi);
+  const p = new Float64Array(hf / 2 + 1); for (let k = 0; k <= hf / 2; k++) p[k] = hr[k] * hr[k] + hi[k] * hi[k];
+  const Hraw = onGrid(p, fs / hf), sg = new Float64Array(nf / 2 + 1);
+  let fl0 = 0;   // the estimation noise per lag of the band-limited response (lags -0.5 to 0.9 s hold all of it)
+  for (let k = 0; k <= nf / 2; k++) {
+    const f = k * fs / nf, x2 = X2[k], g = x2 / ((x2 + lam) * (x2 + lam)); sg[k] = S(f) * g;
+    fl0 += (k === 0 || k === nf / 2 ? 1 : 2) * sg[k] * bandW(f) ** 2;
+  }
+  const Hn = onGrid(sg, fs / nf).map(v => v * w2 * fs / 2), floorLag = fl0 * fs / 2 / nf;
+  const Hg = Hraw.map((v, i) => Math.max(v - Hn[i], 1e-3 * Hn[i]));
+  const snr = Hg.map((v, i) => v * Ptx / N[i]);
+  const ref48 = GRID.map((f, i) => [f, Hg[i]]).filter(([f]) => f >= 2000 && f <= 8000).map(v => v[1]).sort((a, b) => a - b);
+  const mid = ref48[ref48.length >> 1];
+  out.grid = GRID.map(f => Math.round(f)); out.response_db = Hg.map(v => +(db(v / mid)).toFixed(2));
+  out.noise_db = N.map(v => +db(v).toFixed(2)); out.snr_db = snr.map(v => +db(v).toFixed(2));
+  out.gain_db = +db(mid).toFixed(2);   // the device and room's gain from 2 to 8 kHz (received over played, squared)
+  out.bands = {};
+  for (const [name, [a, b]] of Object.entries(BANDS)) {
+    let S = 0, Nn = 0, C = 0;
+    GRID.forEach((f, i) => { if (f >= a && f <= b) { S += Hg[i] * Ptx * DF[i]; Nn += N[i] * DF[i]; C += Math.log2(1 + snr[i]) * DF[i]; } });
+    out.bands[name] = { lo: a, hi: b, snr_db: +db(S / Nn).toFixed(2), shannon_kbps: +(C / 1000).toFixed(1) };
+  }
+  out.top_hz = null; out.low_hz = null;
+  for (let i = GRID.length - 1; i >= 0; i--) if (snr[i] >= 10) { out.top_hz = Math.round(GRID[i]); break; }
+  for (let i = 0; i < GRID.length; i++) if (snr[i] >= 10) { out.low_hz = Math.round(GRID[i]); break; }
+  let i20 = 0; GRID.forEach((f, i) => { if (Math.abs(f - 20000) < Math.abs(GRID[i20] - 20000)) i20 = i; });
+  out.resp20k_db = out.response_db[i20]; out.snr20k_db = out.snr_db[i20];
+  { // the wide band's top, 19.5 to 20.5 kHz, in one piece
+    const Ht = onBand(p, fs / hf, 19500, 20500, 20000), Hnt = onBand(sg, fs / nf, 19500, 20500, 20000) * w2 * fs / 2;
+    out.snr_top_db = +db(Math.max(Ht - Hnt, 1e-3 * Hnt) * Ptx / (onBand(Wp, fs / NF, 19500, 20500, 20000) / fs)).toFixed(2);
+  }
+  { // another test sound in the same recording shows in the response as a second sharp start, away from this one's
+    // (lags -60..50 ms) and from its harmonics' (just after -SW_L ln k): a 5 ms block whose peak is 100 times the
+    // median of the ten blocks before it, with a marker that stands out as far from A or B
+    const B5 = Math.round(0.005 * fs), nb = Math.floor(nf / B5), bm = new Float64Array(nb), bx = new Float64Array(nb), bk = new Int32Array(nb);
+    for (let j = 0; j < nb; j++) for (let i = 0; i < B5; i++) { const v = br[j * B5 + i] ** 2; bm[j] += v / B5; if (v > bx[j]) { bx[j] = v; bk[j] = i; } }
+    const harm = []; for (let k = 2; k <= 16; k++) harm.push(SW_L * (1 + eps) * Math.log(k));
+    const markerAt = k => {
+      const lo = Math.max(0, k - B5), hi = Math.min(c.length, k + B5 + 1); if (hi - lo < B5) return false;
+      let kk = lo; for (let i = lo; i < hi; i++) if (Math.abs(c[i]) > Math.abs(c[kk])) kk = i;
+      const v = prominence(c, kk, fs); return v !== null && v >= PROM;
+    };
+    out.overlap_ms = null; let best = 0;
+    for (let j = 0; j < nb; j++) {
+      let tl = j * B5 / fs; if (tl > nf / fs / 2) tl -= nf / fs;
+      if (!((tl >= 0.05 && tl <= 3.2) || (tl >= -1.9 && tl <= -0.06))) continue;
+      if (harm.some(h => -h - 0.02 <= tl + 0.005 && tl <= -h + 0.03)) continue;
+      const base = median(Array.from({ length: 10 }, (_, i) => bm[((j - i - 1) % nb + nb) % nb])), ratio = bx[j] / (base + 1e-30);
+      if (ratio < 100 || ratio <= best) continue;
+      const d = Math.round(tl * fs) + bk[j];
+      if (markerAt(kA + d) || markerAt(kB + d)) { best = ratio; out.overlap_ms = Math.round(1000 * d / fs); }
+    }
+  }
+  // echo, in the band 1-20 kHz: the response's energy in 2 ms steps against the strongest path's, above the floor (up
+  // to another sound)
+  const env = [], ST = 0.002, tEnd = out.overlap_ms > 0 ? out.overlap_ms / 1000 - 0.005 : 9;
+  for (let i = 0; i < 500; i++) { const t = -0.1 + i * ST, [s, n] = hs(br, t - ST / 2, t + ST / 2); env.push([t, s / n]); }
+  const e0 = env[50][1], floor = floorLag;
+  out.ir_dyn_db = +db(e0 / floor).toFixed(1);
+  const thr = Math.min(30, out.ir_dyn_db - 6);
+  out.echo_db = +thr.toFixed(1); out.echo_ms = 0;
+  for (const [t, v] of env) if (t > 0 && t < tEnd && v >= e0 * 10 ** (-thr / 10)) out.echo_ms = Math.round(1000 * t);
+  const sel = env.filter(([t]) => t >= -0.02 - 1e-9 && t <= 0.5 + 1e-9);
+  out.ir_t_ms = sel.map(([t]) => Math.round(1000 * t)); out.ir_db = sel.map(([, v]) => +db(v / e0).toFixed(1));
+  out.ir_floor_db = +db(floor / e0).toFixed(1);
+  // distortion: the 2nd and 3rd harmonics' responses come SW_L ln k before the linear one
+  const [E1, n1w] = hs(br, -0.002, 0.020); let E23 = 0, nn = 0;
+  for (const k of [2, 3]) { const d = SW_L * Math.log(k), [s, n] = hs(br, -d - 0.002, -d + 0.020); E23 += s; nn += n; }
+  const fe = floor * nn, Ed = Math.max(E23 - fe, 0);
+  out.distortion_db = +db(Math.max(Ed, 2 * fe) / (E1 - floor * n1w)).toFixed(1);
+  out.distortion_hidden = Ed < 2 * fe;   // under the noise: the value is an upper bound
+  return out;
+}
+
+// For listening: where in y a marker may start, cheaply (one correlation, no sweep): the strongest of the three highest
+// correlation peaks (50 ms apart) that stand out from the 0.4 s before them. { k, prom } or null
+function trigger(y, fs) {
+  const m0 = ref(marker, fs, 0, Math.round(T_MK * fs), 0); if (y.length < m0.length + 0.45 * fs) return null;
+  const c = xcorr(y, m0), a = new Float64Array(c.length); for (let i = 0; i < c.length; i++) a[i] = Math.abs(c[i]);
+  const k0 = Math.round(0.42 * fs); let best = null;
+  for (let it = 0; it < 3; it++) {
+    let k = k0; for (let i = k0; i < a.length; i++) if (a[i] > a[k]) k = i;
+    if (!(a[k] > 0)) break;
+    const v = prominence(c, k, fs); if (v !== null && (!best || v > best.prom)) best = { k, prom: v };
+    for (let i = Math.max(k0, k - Math.round(0.05 * fs)); i < Math.min(a.length, k + Math.round(0.05 * fs)); i++) a[i] = 0;
+  }
+  return best;
+}
+
+// what the numbers mean, in order of importance: [level 'ok' | 'warn' | 'bad', title, text]
+function verdicts(r, info = {}) {
+  const v = [], f1 = x => (x / 1000).toFixed(1);
+  if (!r.found) return [['bad', 'Test sound not heard', 'Turn the volume up, check that the microphone is allowed, and start again in a quieter spot.']];
+  if (r.rate_mismatch) return [['bad', 'Sample rates disagree', `The sound came ${r.ppm > 0 ? 'slower' : 'faster'} than it was played: 44.1 kHz and 48 kHz were taken for each other. Close the browser completely and start again; modems fail like this.`]];
+  if (r.noise_short) v.push(['warn', 'Too little quiet before the sound', 'Start listening at least a second before the other device plays.']);
+  if (r.clipped > 10 || r.peak_dbfs > -0.5) v.push(['bad', 'Too loud', `The microphone clipped ${r.clipped} samples. Lower the volume a few steps and start again.`]);
+  else if (r.sweep_dbfs < -55) v.push(['warn', 'Very quiet', `The sound arrived at ${r.sweep_dbfs.toFixed(0)} dB below full scale. Turn the volume up or move closer.`]);
+  if (r.overlap_ms != null) v.push(['warn', 'Another test sound overlapped', `Another device played the test sound ${Math.abs(r.overlap_ms)} ms ${r.overlap_ms > 0 ? 'after' : 'before'} this one. The numbers may be off: run the check again when the others are done.`]);
+  if (Math.abs(r.marker_change_db) > 2) v.push(['warn', 'The level changed during the test', `The last chirp came ${Math.abs(r.marker_change_db).toFixed(0)} dB ${r.marker_change_db < 0 ? 'quieter' : 'louder'} than the first: automatic gain may be on, or a device moved. Run again with both devices still.`]);
+  if (r.noise_short) return v;
+  const top = r.top_hz, wide = r.snr_top_db >= 10, med = (a, b) => { const s = r.grid.map((f, i) => [f, r.response_db[i]]).filter(([f]) => f >= a && f <= b).map(x => x[1]).sort((x, y) => x - y); return s[s.length >> 1]; };
+  if (top == null) v.push(['bad', 'No usable band', 'The test sound is heard, but less than 10 dB above the noise everywhere. Turn the volume up or move closer.']);
+  else if (wide) v.push(['ok', 'Band reaches past 20 kHz', 'The wide band (2.3 to 20.5 kHz) works here.']);
+  else if (top >= 15500) v.push(['ok', top >= 19000 ? 'Band stops just under 20 kHz' : `Band reaches ${f1(top)} kHz`, 'The standard band (3.2 to 16 kHz) works; the wide band would lose its top here.']);
+  else if (top >= 12000) v.push(['warn', `Band stops near ${f1(top)} kHz`, 'The standard band (3.2 to 16 kHz) loses its top: modems still work, a bit slower. More volume or less distance may help.']);
+  else if (top < 8500 && med(9000, 12000) - med(1000, 4000) < -25) v.push(['bad', `Sound stops at ${f1(top)} kHz`, 'This looks like a Bluetooth headset or phone-call audio. Use the built-in speaker and microphone.']);
+  else v.push(['bad', `Band stops at ${f1(top)} kHz`, 'Too narrow for the modems: the sound is weak above this. Turn the volume up or move closer.']);
+  const w = r.bands.wide, s = r.bands.standard, best = wide ? w : s;
+  v.push([best.snr_db >= 20 ? 'ok' : best.snr_db >= 10 ? 'warn' : 'bad', `SNR ${best.snr_db.toFixed(0)} dB, limit ${best.shannon_kbps.toFixed(0)} kbit/s`,
+    `Signal over noise in the ${wide ? 'wide' : 'standard'} band at this volume and distance, for a signal as loud as the sweep spread evenly over 2.3 to 20.5 kHz. The limit is Shannon's for that flat spectrum; real modems reach a fraction of it.`]);
+  if (r.distortion_hidden) v.push(['ok', 'No distortion seen', `Harmonics are under the noise (below ${r.distortion_db.toFixed(0)} dB).`]);
+  else if (r.distortion_db > -20) v.push(['bad', 'The speaker distorts', `Harmonics at ${r.distortion_db.toFixed(0)} dB. Lower the volume: distortion is noise no receiver can remove.`]);
+  else if (r.distortion_db > -30) v.push(['warn', 'Some distortion', `Harmonics at ${r.distortion_db.toFixed(0)} dB. A step lower in volume may help.`]);
+  else v.push(['ok', 'Clean sound', `Harmonics at ${r.distortion_db.toFixed(0)} dB.`]);
+  const ed = r.echo_db < 29.5 ? ` (${r.echo_db.toFixed(0)} dB below the direct sound, as far as the noise lets us see)` : ' (30 dB below the direct sound)';
+  v.push([r.echo_ms <= 150 ? 'ok' : 'warn', `Echo lasts ${r.echo_ms} ms`, `Time until the echo fades${ed}. ${r.echo_ms <= 50 ? 'A dry spot.' : r.echo_ms <= 150 ? 'A usual room.' : 'A long echo: use long training.'}`]);
+  if (r.latency_ms != null) v.push([r.latency_ms <= 150 ? 'ok' : 'warn', `Speaker-to-microphone delay ${r.latency_ms.toFixed(0)} ms`,
+    r.latency_ms <= 150 ? 'Short enough for quick turn-taking between devices.' : 'Fine for sending, slow for quick turn-taking (acknowledgements, chat).']);
+  if (r.ppm != null) {
+    const a = Math.abs(r.ppm), same = info.mode === 'self';
+    v.push([a <= 200 ? 'ok' : a <= 1000 ? 'warn' : 'bad', `Clock offset ${r.ppm >= 0 ? '+' : ''}${r.ppm.toFixed(1)} ppm`,
+      same ? (a < 2 ? 'Speaker and microphone run on one clock.' : 'Speaker and microphone run on different clocks (an external microphone or speaker?).')
+           : `This device's clock runs ${a.toFixed(1)} millionths ${r.ppm >= 0 ? 'faster' : 'slower'} than the player's. Receivers track this.`]);
+  }
+  if (info.processing && info.processing.length) {
+    const ec = info.mode === 'self' && info.processing.includes('echo cancellation');
+    v.push([ec ? 'bad' : 'warn', 'The browser kept audio processing on', `${info.processing.join(', ')}: ${ec ? 'echo cancellation may remove this device\'s own sound, so these numbers cannot be trusted. Try another browser.' : 'this can bend the results and hurt the modems.'}`]);
+  }
+  if (info.fs && info.fs !== 48000) v.push([info.fs === 44100 ? 'ok' : 'warn', `Sample rate ${info.fs} Hz`, info.fs === 44100 ? 'Fine; most of our tests ran at 48 kHz.' : 'Unusual: tell your teacher.']);
+  return v;
+}
+
+const DC = { T_A, T_MK, T_SW, DUR_SW, T_B, DUR, D_AB, AMP, F1, F2, MK0, MK1, BANDS, GRID, PROM, marker, sweep, testSound, analyse, trigger, verdicts, fft, xcorr };
+if (typeof module !== 'undefined' && module.exports) module.exports = DC; else root.DC = DC;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const AC = window.AudioContext || window.webkitAudioContext;
+const sleep = ms => new Promise(ok => setTimeout(ok, ms));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+// Two ways to play, as on the modem page (v7.7): an audio element first on Apple devices (an iPhone's ring/silent switch
+// silences Web Audio), Web Audio first elsewhere (it also gives the speaker-to-microphone delay); out=element or
+// out=webaudio in the address forces one
+const APPLE = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Safari\//.test(navigator.userAgent) && !/Chrom|Edg|OPR|Firefox|Android/.test(navigator.userAgent));
+const OUT_WAYS = { element: ['element'], webaudio: ['webaudio'] }[params.get('out')] || (APPLE ? ['element', 'webaudio'] : ['webaudio', 'element']);
+let mode = ['self', 'listen', 'play'].includes(params.get('mode')) ? params.get('mode') : 'self';
+let run = null, last = null;
+
+const STEPS = {
+  self: ['Unplug headphones and turn Bluetooth audio off.', 'Set the volume to about 70 % and put the device on a table.', 'Tap Start, allow the microphone, and keep quiet for 7 seconds.'],
+  listen: ['Put the two devices where you will use them, 0.5 to 2 m apart.', 'Tap Listen here first, then Play on the other device.', 'Keep quiet until the results show here.'],
+  play: ['Set the volume to about 70 %.', 'Wait until the other device is listening.', 'Tap Play and keep quiet for 5 seconds. The results show on the other device.']
+};
+const GO = { self: 'Start the check', listen: 'Listen', play: 'Play' };
+function setMode(m) {
+  if (run) return;
+  mode = m;
+  document.querySelectorAll('.mode').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  $('steps').innerHTML = STEPS[m].map(s => `<li>${s}</li>`).join('');
+  $('goBtn').textContent = GO[m]; status('');
+  try { const u = new URL(location.href); u.searchParams.set('mode', m); history.replaceState(null, '', u); } catch (e) {}
+}
+document.querySelectorAll('.mode').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+const status = (t, cls) => { $('status').textContent = t; $('status').style.color = cls ? css(`--${cls}`) : ''; };
+
+// ---------- sound out ----------
+function wavBlob(x, fs, float) {
+  const bps = float ? 4 : 2, n = x.length, b = new ArrayBuffer(44 + n * bps), v = new DataView(b), s = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  s(0, 'RIFF'); v.setUint32(4, 36 + n * bps, true); s(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, float ? 3 : 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, fs, true); v.setUint32(28, fs * bps, true); v.setUint16(32, bps, true); v.setUint16(34, 8 * bps, true); s(36, 'data'); v.setUint32(40, n * bps, true);
+  for (let i = 0; i < n; i++) float ? v.setFloat32(44 + 4 * i, x[i], true) : v.setInt16(44 + 2 * i, Math.max(-32768, Math.min(32767, Math.round(x[i] * 32767))), true);
+  return new Blob([b], { type: 'audio/wav' });
+}
+// Made ready inside the tap (the moment browsers let a page start sound): an AudioContext, and an audio element that
+// starts and stops at once (the sound begins with 0.3 s of silence), so that it may play later; unlock: that stop done
+function prepareOut() {
+  const a = new AC({ latencyHint: 'interactive' }); a.resume().catch(() => {});
+  let el = null, unlock = Promise.resolve();
+  if (OUT_WAYS.includes('element')) {
+    el = new Audio(URL.createObjectURL(wavBlob(DC.testSound(48000), 48000)));
+    const p = el.play(); unlock = p && p.then ? p.then(() => el.pause(), () => {}) : Promise.resolve(el.pause());
+  }
+  return { a, el, unlock };
+}
+// plays the test sound: the first way whose clock moves. Returns { way, playFrame (Web Audio only), pos(), stop() }
+async function playSound(o) {
+  for (const way of OUT_WAYS) {
+    if (way === 'webaudio') {
+      const a = o.a, x = DC.testSound(a.sampleRate), buf = a.createBuffer(1, x.length, a.sampleRate); buf.copyToChannel(x, 0);
+      const src = a.createBufferSource(); src.buffer = buf; src.connect(a.destination);
+      const t0 = a.currentTime + 0.2; src.start(t0);
+      await sleep(700);
+      if (a.state === 'running' && a.currentTime > t0 + 0.1) return { way, playFrame: Math.round(t0 * a.sampleRate), pos: () => a.currentTime - t0, stop: () => { try { src.stop(); } catch (e) {} } };
+      try { src.stop(); } catch (e) {}
+    } else if (o.el) {
+      await o.unlock; const el = o.el; el.currentTime = 0;
+      let ok = true; try { await el.play(); } catch (e) { ok = false; }
+      if (ok) {   // its position stops when the sound ends: time it on the page's clock instead
+        await sleep(700);
+        if (el.currentTime > 0.1) { const t0 = performance.now() - 1000 * el.currentTime; return { way, playFrame: null, pos: () => (performance.now() - t0) / 1000, stop: () => el.pause() }; }
+        el.pause();
+      }
+    }
+  }
+  return null;
+}
+
+// ---------- sound in ----------
+// the microphone's samples from the audio thread, in blocks of 2048 with the audio clock's frame of their first sample
+const TAP = `class DcTap extends AudioWorkletProcessor {
+  constructor() { super(); this.b = new Float32Array(2048); this.k = 0; this.f = 0; }
+  flush() { if (this.k) this.port.postMessage({ f: this.f, d: this.b.slice(0, this.k) }); this.k = 0; }
+  process(inputs) {
+    const c = inputs[0] && inputs[0][0];
+    if (!c) { this.flush(); return true; }   // no input for a while: the page fills the gap with zeros
+    if (this.k && currentFrame !== this.f + this.k) this.flush();
+    if (this.k === 0) this.f = currentFrame;
+    for (let i = 0; i < c.length; i++) { this.b[this.k++] = c[i]; if (this.k === 2048) { this.port.postMessage({ f: this.f, d: this.b }, [this.b.buffer]); this.b = new Float32Array(2048); this.k = 0; this.f = currentFrame + i + 1; } }
+    return true;
+  }
+}
+registerProcessor('dc-tap', DcTap);`;
+async function openMic(a) {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+  const track = stream.getAudioTracks()[0], st = track.getSettings ? track.getSettings() : {};
+  const names = { echoCancellation: 'echo cancellation', noiseSuppression: 'noise suppression', autoGainControl: 'automatic gain' };
+  const processing = Object.keys(names).filter(k => st[k] === true).map(k => names[k]);
+  const reported = Object.keys(names).filter(k => k in st).length;
+  return { stream, track, settings: st, processing, reported, label: track.label || '' };
+}
+async function startRec(a, stream) {
+  const src = a.createMediaStreamSource(stream), mute = a.createGain(); mute.gain.value = 0; mute.connect(a.destination);
+  const an = a.createAnalyser(); an.fftSize = 2048; src.connect(an);
+  // n: samples kept, tot: samples since the start (gaps filled with zeros; those in the first 0.25 s are not counted)
+  const rec = { chunks: [], n: 0, tot: 0, f0: null, next: null, gaps: 0, fs: a.sampleRate, an };
+  const push = (d, f) => {
+    if (f != null) {
+      if (rec.f0 === null) rec.f0 = rec.next = f;
+      if (f > rec.next) {
+        const z = f - rec.next; rec.chunks.push(new Float32Array(z)); rec.n += z; rec.tot += z;
+        if (rec.tot > 0.25 * rec.fs) { rec.gaps++; (rec.gapList = rec.gapList || []).push([+(rec.tot / rec.fs).toFixed(3), z]); }
+      }
+      rec.next = f + d.length;
+    }
+    rec.chunks.push(d); rec.n += d.length; rec.tot += d.length;
+  };
+  let node = null;
+  try {
+    if (a.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
+      const u = URL.createObjectURL(new Blob([TAP], { type: 'text/javascript' })); await a.audioWorklet.addModule(u); URL.revokeObjectURL(u);
+      node = new AudioWorkletNode(a, 'dc-tap', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
+      node.port.onmessage = e => push(e.data.d, e.data.f);
+    }
+  } catch (e) { node = null; }
+  if (!node) { node = a.createScriptProcessor(4096, 1, 1); node.onaudioprocess = e => push(new Float32Array(e.inputBuffer.getChannelData(0)), null); rec.noFrames = true; }
+  src.connect(node); node.connect(mute);
+  rec.stop = () => { try { src.disconnect(); node.disconnect(); if (node.port) node.port.onmessage = null; } catch (e) {} };
+  rec.tail = n => {   // the last n samples (all if fewer)
+    n = Math.min(n, rec.n); const y = new Float32Array(n); let k = n;
+    for (let i = rec.chunks.length - 1; i >= 0 && k > 0; i--) { const c = rec.chunks[i], m = Math.min(k, c.length); y.set(c.subarray(c.length - m), k - m); k -= m; }
+    return y;
+  };
+  rec.trim = keep => { while (rec.chunks.length > 1 && rec.n - rec.chunks[0].length >= keep) { rec.n -= rec.chunks[0].length; rec.chunks.shift(); } };
+  return rec;
+}
+function meter(rec) {   // the microphone's peak level, about 10 times a second
+  const b = new Float32Array(2048); let t = 0;
+  const tick = now => {
+    if (!run || run.rec !== rec) { $('meter').classList.add('hidden'); return; }
+    if (now - t > 90) {
+      t = now; rec.an.getFloatTimeDomainData(b); let pk = 0; for (const v of b) pk = Math.max(pk, Math.abs(v));
+      const d = 20 * Math.log10(pk + 1e-9); $('lvl').style.width = `${Math.max(0, Math.min(100, (d + 80) / 80 * 100))}%`;
+      $('lvlTxt').textContent = pk > 0 ? `${Math.max(-99, d).toFixed(0)} dB` : '–';
+    }
+    requestAnimationFrame(tick);
+  };
+  $('meter').classList.remove('hidden'); requestAnimationFrame(tick);
+}
+function progress(frac) { $('prog').classList.toggle('hidden', frac == null); if (frac != null) $('progBar').style.width = `${Math.max(0, Math.min(1, frac)) * 100}%`; }
+
+function deviceInfo(a, mic, extra = {}) {
+  return Object.assign({ fs: a.sampleRate, baseLatency_ms: a.baseLatency != null ? +(1000 * a.baseLatency).toFixed(1) : null,
+    outputLatency_ms: a.outputLatency ? +(1000 * a.outputLatency).toFixed(1) : null, mic: mic ? mic.label : null,
+    micSettings: mic ? mic.settings : null, processing: mic ? mic.processing : [], processingReported: mic ? mic.reported : 0, ua: navigator.userAgent }, extra);
+}
+function finish(o) {
+  if (!run) return;
+  try { if (run.rec) run.rec.stop(); } catch (e) {}
+  try { if (run.mic) run.mic.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  const a = run.out && run.out.a; if (a) setTimeout(() => a.close().catch(() => {}), 1500);
+  run = null; progress(null); $('goBtn').disabled = false; $('goBtn').textContent = GO[mode];
+  document.querySelectorAll('.mode').forEach(b => b.disabled = false);
+  if (o && o.msg) status(o.msg, o.cls);
+}
+function begin() {
+  $('goBtn').textContent = 'Stop'; document.querySelectorAll('.mode').forEach(b => b.disabled = true);
+}
+
+async function analyseAndShow(y, fs, info, play) {
+  status('Analysing…'); await sleep(40);
+  const t = performance.now(), r = DC.analyse(y, fs, { play });
+  info.analysis_s = +((performance.now() - t) / 1000).toFixed(2);
+  last = { r, info, y, fs, when: new Date().toISOString() };
+  show(last);
+  return r;
+}
+
+// ---------- the three ways ----------
+async function runSelf() {
+  const out = prepareOut(); run = { out }; begin();
+  status('Asking for the microphone…');
+  let mic; try { mic = await openMic(out.a); } catch (e) { finish({ msg: 'No microphone: allow it for this page (it needs https).', cls: 'bad' }); return; }
+  if (!run) { mic.stream.getTracks().forEach(t => t.stop()); return; }
+  run.mic = mic; await out.a.resume().catch(() => {});
+  const rec = await startRec(out.a, mic.stream); run.rec = rec; meter(rec);
+  status('Listening to the quiet (1 s)…'); progress(0);
+  const t0 = performance.now(), total = 1000 + 700 + 1000 * DC.DUR + 1300;
+  const tick = setInterval(() => run && run.rec === rec && progress((performance.now() - t0) / total), 100);
+  await sleep(1000); if (!run) { clearInterval(tick); return; }
+  status('Playing the test sound…');
+  const p = await playSound(out); run.play = p;
+  if (!p) { clearInterval(tick); finish({ msg: 'The browser played no sound. Check the volume and the output, or play a sound in another app first.', cls: 'bad' }); return; }
+  while (run && p.pos() < DC.DUR + 1.0) await sleep(100);
+  clearInterval(tick); if (!run) return;
+  const fs = rec.fs, y = rec.tail(rec.n), playAt = p.playFrame != null && rec.f0 != null && !rec.noFrames ? p.playFrame - rec.f0 : null;
+  const info = deviceInfo(out.a, mic, { mode: 'self', out: p.way, gaps: rec.gaps, gapList: rec.gapList });
+  finish();
+  const r = await analyseAndShow(y, fs, info, playAt);
+  status(r.found ? 'Done.' : 'The test sound was not heard.', r.found ? null : 'bad');
+}
+async function runListen() {
+  const a = new AC({ latencyHint: 'interactive' }); a.resume().catch(() => {});
+  run = { out: { a } }; begin(); status('Asking for the microphone…');
+  let mic; try { mic = await openMic(a); } catch (e) { finish({ msg: 'No microphone: allow it for this page (it needs https).', cls: 'bad' }); return; }
+  if (!run) { mic.stream.getTracks().forEach(t => t.stop()); return; }
+  run.mic = mic; await a.resume().catch(() => {});
+  const rec = await startRec(a, mic.stream); run.rec = rec; meter(rec);
+  status('Listening. Now tap Play on the other device.');
+  // every second, a cheap look for a marker in the last 2 s; the whole analysis only when one is found (right away, in
+  // case it was marker B, and once a sound starting with it would be over) and every 8 s in case one was missed
+  const fs = rec.fs, t0 = performance.now(), due = []; let lastFull = performance.now(), again = false;
+  while (run && run.rec === rec) {
+    await sleep(1000); if (!run) return;
+    if (performance.now() - t0 > 120000) { finish({ msg: 'Nothing heard in 2 minutes. Tap Listen to try again.', cls: 'warn' }); return; }
+    rec.trim(Math.round(20 * fs));
+    const z = rec.tail(Math.round(2 * fs)), tg = DC.trigger(z, fs);
+    if (tg && tg.prom >= 0.6 * DC.PROM) { const K = rec.tot - z.length + tg.k; if (!due.some(d => Math.abs(d.K - K) < 0.2 * fs)) due.push({ K, at: [K + 0.5 * fs, K + 4.6 * fs] }); }
+    const d = due.find(d => d.at.length && rec.tot >= d.at[0]);
+    if (d) d.at.shift();
+    for (let i = due.length - 1; i >= 0; i--) if (!due[i].at.length) due.splice(i, 1);
+    if (!d && !again && performance.now() - lastFull < 8000) continue;
+    lastFull = performance.now(); again = false;
+    if (rec.n < 5 * fs) continue;
+    const y = rec.tail(Math.round(9 * fs)), ta = performance.now(), r = DC.analyse(y, fs, { rates: false });
+    if (!r.found) continue;
+    if (y.length / fs < r.markerB + DC.T_MK + 0.15) { again = true; continue; }   // marker B not quite over: next second
+    const info = deviceInfo(a, mic, { mode: 'listen', gaps: rec.gaps, gapList: rec.gapList, analysis_s: +((performance.now() - ta) / 1000).toFixed(2) });
+    finish(); last = { r, info, y, fs, when: new Date().toISOString() };
+    status('Analysing…'); await sleep(40);   // already analysed: just show it
+    show(last); status('Done.');
+    return;
+  }
+}
+async function runPlay() {
+  const out = prepareOut(); run = { out }; begin(); status('Playing…');
+  const p = await playSound(out);
+  if (!p) { finish({ msg: 'The browser played no sound. Check the volume and the output, or play a sound in another app first.', cls: 'bad' }); return; }
+  run.play = p;
+  while (run && p.pos() < DC.DUR) { progress(p.pos() / DC.DUR); await sleep(100); }
+  if (!run) return;
+  finish({ msg: `Played (${p.way === 'element' ? 'audio element' : `Web Audio, ${out.a.sampleRate} Hz`}). Read the results on the listening device.` });
+}
+$('goBtn').onclick = () => {
+  if (run) { const p = run.play; if (p) p.stop(); finish({ msg: 'Stopped.' }); return; }
+  ({ self: runSelf, listen: runListen, play: runPlay })[mode]().catch(e => { finish({ msg: `Something went wrong: ${e && e.message || e}`, cls: 'bad' }); });
+};
+
+// ---------- results ----------
+const LV = { ok: 'ok', warn: 'warn', bad: 'bad' };
+function show(L) {
+  const { r, info } = L, v = DC.verdicts(r, info);
+  $('results').classList.remove('hidden');
+  const bad = v.find(x => x[0] === 'bad'), w = r.bands && r.bands.wide, s = r.bands && r.bands.standard;
+  const worst = v.some(x => x[0] === 'warn') ? 'warn' : 'ok';
+  let lv, title, sub;
+  if (!r.found) { lv = 'bad'; title = 'Test sound not heard'; sub = v[0][2]; }
+  else if (bad) { lv = 'bad'; title = 'Not ready yet'; sub = `${bad[1]}. ${bad[2]}`; }
+  else if (r.noise_short) { lv = 'warn'; title = 'Start listening earlier'; sub = 'The sound was heard, but the quiet before it was too short to measure the noise.'; }
+  else if (r.snr_top_db >= 10) { lv = worst; title = 'Ready for the wide band'; sub = `From here this link carries 2.3 to 20.5 kHz, with a Shannon limit of ${w.shannon_kbps.toFixed(0)} kbit/s.`; }
+  else { lv = worst; title = 'Ready for the standard band'; sub = `From here this link carries 3.2 to 16 kHz, with a Shannon limit of ${s.shannon_kbps.toFixed(0)} kbit/s.`; }
+  $('headDot').className = `dot ${LV[lv]}`; $('headTitle').textContent = title; $('headSub').textContent = sub;
+  $('vlist').innerHTML = v.map(([l, t, d]) => `<li><i class="dot ${LV[l]}" aria-label="${l === 'ok' ? 'fine' : l === 'warn' ? 'note' : 'problem'}"></i><b>${t}</b><span>${d}</span></li>`).join('');
+  const has = r.found && !r.noise_short;
+  $('snrCard').classList.toggle('hidden', !has); $('irCard').classList.toggle('hidden', !has);
+  if (has) {
+    $('snrCap').textContent = `Wide band (shaded, 2.3 to 20.5 kHz): SNR ${w.snr_db.toFixed(1)} dB, Shannon limit ${w.shannon_kbps.toFixed(0)} kbit/s. Standard band (3.2 to 16 kHz): SNR ${s.snr_db.toFixed(1)} dB, ${s.shannon_kbps.toFixed(0)} kbit/s. Above the dashed line (10 dB) a frequency is usable.`;
+    $('irCap').textContent = `The response in 2 ms steps, against its strongest path (0 dB at 0 ms). It falls ${r.echo_db.toFixed(0)} dB after ${r.echo_ms} ms. The dashed line is how low this measurement can see.`;
+  }
+  drawAll(); table(L);
+  $('results').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+}
+function table(L) {
+  const { r, info } = L, f1 = (x, d = 1) => x == null || !isFinite(x) ? '–' : x.toFixed(d), rows = [];
+  rows.push(['Check', info.mode === 'self' ? 'This device alone' : 'Listening to another device']);
+  rows.push(['Sample rate', `${info.fs} Hz`]);
+  if (info.mic) rows.push(['Microphone', info.mic]);
+  rows.push(['Audio processing', info.processing.length ? `on: ${info.processing.join(', ')}` : info.processingReported ? 'off' : 'not reported by this browser']);
+  if (info.out) rows.push(['Sound played through', info.out === 'element' ? 'an audio element' : 'Web Audio']);
+  if (info.baseLatency_ms != null || info.outputLatency_ms != null) rows.push(['Latency the browser reports', `base ${f1(info.baseLatency_ms)} ms, output ${f1(info.outputLatency_ms)} ms`]);
+  if (r.found) {
+    rows.push(['Loudest sample', `${f1(r.peak_dbfs)} dB full scale${r.clipped ? `, ${r.clipped} clipped` : ''}`]);
+    rows.push(['Sweep level', `${f1(r.sweep_dbfs)} dB full scale`]);
+    if (r.noise_dbfs != null) rows.push(['Noise level', `${f1(r.noise_dbfs)} dB full scale, over ${f1(r.noise_s, 2)} s`]);
+    if (r.bands) {
+      rows.push(['Gain, 2 to 8 kHz', `${f1(r.gain_db)} dB`]);
+      rows.push(['Wide band, 2.3 to 20.5 kHz', `SNR ${f1(r.bands.wide.snr_db)} dB, Shannon limit ${f1(r.bands.wide.shannon_kbps, 0)} kbit/s`]);
+      rows.push(['Standard band, 3.2 to 16 kHz', `SNR ${f1(r.bands.standard.snr_db)} dB, Shannon limit ${f1(r.bands.standard.shannon_kbps, 0)} kbit/s`]);
+      rows.push(['SNR at least 10 dB', r.top_hz ? `${f1(r.low_hz / 1000, 2)} to ${f1(r.top_hz / 1000, 1)} kHz` : 'nowhere']);
+      rows.push(['Top of the wide band, 19.5 to 20.5 kHz', `SNR ${f1(r.snr_top_db)} dB`]);
+      rows.push(['Echo', `${r.echo_ms} ms to fall ${f1(r.echo_db, 0)} dB below the direct sound`]);
+      rows.push(['Distortion (2nd and 3rd harmonics)', r.distortion_hidden ? `under the noise (below ${f1(r.distortion_db)} dB)` : `${f1(r.distortion_db)} dB`]);
+    }
+    if (r.latency_ms != null) rows.push(['Speaker-to-microphone delay', `${f1(r.latency_ms)} ms`]);
+    rows.push(['Clock offset', `${r.ppm >= 0 ? '+' : ''}${f1(r.ppm, 2)} ppm`]);
+    rows.push(['Second chirp against the first', `${r.marker_change_db >= 0 ? '+' : ''}${f1(r.marker_change_db)} dB`]);
+    if (r.overlap_ms != null) rows.push(['Another test sound', `${r.overlap_ms > 0 ? '+' : ''}${r.overlap_ms} ms from this one`]);
+    if (r.polarity < 0) rows.push(['Polarity', 'inverted (harmless)']);
+  }
+  if (info.gaps) rows.push(['Gaps in the recording', String(info.gaps)]);
+  rows.push(['Analysis time', `${f1(info.analysis_s, 2)} s`]);
+  $('kv').innerHTML = rows.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${String(v).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c])}</td></tr>`).join('');
+}
+
+function plotArea(cv) {
+  const d = devicePixelRatio || 1, W = cv.width = Math.round(cv.clientWidth * d), H = cv.height = Math.round(cv.clientHeight * d), g = cv.getContext('2d');
+  g.clearRect(0, 0, W, H); g.font = `${12 * d}px system-ui,sans-serif`; g.lineJoin = 'round';
+  return { g, W, H, d, L: 40 * d, R: 12 * d, T: 22 * d, B: 24 * d };
+}
+// x-axis labels: the important ones first, the others only where they fit
+function xLabels(g, d, items, xmin, xmax, y) {
+  const placed = []; g.textAlign = 'left'; g.textBaseline = 'top';
+  for (const [x, txt] of items) {
+    const w = g.measureText(txt).width, a = Math.max(xmin, Math.min(xmax - w, x - w / 2)), b = a + w;
+    if (placed.some(([p, q]) => a < q + 8 * d && b > p - 8 * d)) continue;
+    placed.push([a, b]); g.fillText(txt, a, y);
+  }
+}
+function drawSNR() {
+  const r = last && last.r; if (!r || !r.snr_db) return;
+  const cv = $('snrPlot'), { g, W, H, d, L, R, T, B } = plotArea(cv);
+  const top = Math.max(50, Math.ceil(Math.max(...r.snr_db) / 10) * 10), bot = -10;
+  const X = f => L + (W - L - R) * Math.log(f / 100) / Math.log(21000 / 100), Y = v => T + (H - T - B) * (top - Math.max(bot, Math.min(top, v))) / (top - bot);
+  g.fillStyle = css('--band'); g.fillRect(X(2300), T, X(20500) - X(2300), H - T - B);
+  g.strokeStyle = css('--grid'); g.fillStyle = css('--muted'); g.lineWidth = d;
+  for (let v = bot; v <= top; v += 10) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(W - R, Y(v)); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(`${v}`, L - 6 * d, Y(v)); }
+  for (const f of [100, 200, 500, 1000, 2000, 5000, 10000, 20000]) { g.beginPath(); g.moveTo(X(f), T); g.lineTo(X(f), H - B); g.stroke(); }
+  xLabels(g, d, [[X(100), '100 Hz'], [X(1000), '1k'], [X(10000), '10k'], [X(20000), '20k'], [X(2000), '2k'], [X(5000), '5k'], [X(500), '500'], [X(200), '200']], 0, W - 2 * d, H - B + 6 * d);
+  g.save(); g.setLineDash([5 * d, 4 * d]); g.strokeStyle = css('--muted'); g.beginPath(); g.moveTo(L, Y(10)); g.lineTo(W - R, Y(10)); g.stroke(); g.restore();
+  g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = css('--muted'); g.fillText('SNR, dB', 4 * d, 4 * d);
+  g.strokeStyle = css('--curve'); g.lineWidth = 2.2 * d; g.beginPath();
+  r.grid.forEach((f, i) => { const x = X(f), y = Y(r.snr_db[i]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+}
+function drawIR() {
+  const r = last && last.r; if (!r || !r.ir_db) return;
+  const cv = $('irPlot'), { g, W, H, d, L, R, T, B } = plotArea(cv);
+  const bot = Math.min(-40, Math.floor((r.ir_floor_db - 10) / 10) * 10), t1 = 500;
+  const X = t => L + (W - L - R) * (t + 20) / (t1 + 20), Y = v => T + (H - T - B) * (-Math.max(bot, Math.min(0, v))) / -bot;
+  g.strokeStyle = css('--grid'); g.fillStyle = css('--muted'); g.lineWidth = d;
+  for (let v = 0; v >= bot; v -= 10) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(W - R, Y(v)); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(`${v}`, L - 6 * d, Y(v)); }
+  for (let t = 0; t <= t1; t += 100) { g.beginPath(); g.moveTo(X(t), T); g.lineTo(X(t), H - B); g.stroke(); }
+  xLabels(g, d, [[X(0), '0'], [X(500), '500 ms'], [X(100), '100'], [X(200), '200'], [X(300), '300'], [X(400), '400']], 0, W - 2 * d, H - B + 6 * d);
+  g.save(); g.setLineDash([5 * d, 4 * d]); g.strokeStyle = css('--muted'); g.beginPath(); g.moveTo(L, Y(r.ir_floor_db)); g.lineTo(W - R, Y(r.ir_floor_db)); g.stroke(); g.restore();
+  g.fillStyle = css('--band2'); g.fillRect(X(0), T, X(r.echo_ms) - X(0), H - T - B);
+  g.strokeStyle = css('--curve'); g.lineWidth = 1.6 * d; g.beginPath();
+  r.ir_t_ms.forEach((t, i) => { const x = X(t), y = Y(r.ir_db[i]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+  g.fillStyle = css('--ink'); g.textAlign = 'left'; g.textBaseline = 'top';
+  const lab = `${r.echo_ms} ms`, lx = Math.min(X(r.echo_ms) + 6 * d, W - R - g.measureText(lab).width - 2 * d); g.fillText(lab, lx, T + 6 * d);
+  g.fillStyle = css('--muted'); g.textBaseline = 'top'; g.fillText('Level, dB', 4 * d, 4 * d);
+}
+function drawAll() { drawSNR(); drawIR(); }
+addEventListener('resize', () => last && drawAll());
+matchMedia('(prefers-color-scheme: dark)').addEventListener && matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => last && drawAll());
+
+$('copyBtn').onclick = async () => {
+  if (!last) return;
+  const txt = JSON.stringify({ page: 'devcheck v2', when: last.when, device: last.info, result: last.r });
+  try { await navigator.clipboard.writeText(txt); $('copyMsg').textContent = 'Copied.'; }
+  catch (e) { const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); $('copyMsg').textContent = 'Copied.'; } catch (e2) { $('copyMsg').textContent = 'Copy failed.'; } t.remove(); }
+};
+$('wavBtn').onclick = () => {
+  if (!last) return;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(wavBlob(last.y, last.fs, true));
+  a.download = `devcheck_${last.info.mode}_${last.when.replace(/[:.]/g, '-')}.wav`; document.body.appendChild(a); a.click(); a.remove();
+};
+// for tests: analyse a recording given as samples; the last results
+window.dcLast = () => last && { r: last.r, info: last.info };
+window.dcShowRecording = (y, fs, info) => { last = { r: DC.analyse(y, fs, {}), info: Object.assign({ mode: 'listen', fs, processing: [], processingReported: 0 }, info || {}), y, fs, when: new Date().toISOString() }; show(last); return last.r; };
+setMode(mode);
+})();
+
+</script>
+</body>
+</html>
