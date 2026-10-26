@@ -399,6 +399,14 @@ function analyse(y, fs, opts = {}) {
   if (!W.kept) { out.noise_short = true; return out; }
   out.noise_dbfs = 10 * Math.log10(Math.max(W.ms, 1e-18));
   const N = onGrid(Wp, fs / NF).map(v => v / fs);
+  // the noise again in the gap before marker B (from 0.4 s after the sweep): the same unless this device's gain changed
+  out.noise_change_db = null;
+  { const gs = Math.ceil(s1 + 0.4 * fs), g1 = Math.floor(pB - 0.05 * fs);
+    if (g1 - gs >= NF) {
+      const G = welch(y, gs, g1, NF); let a = 0, b = 0;
+      for (let k = 0; k <= NF / 2; k++) { const f = k * fs / NF; if (f >= BANDS.wide[0] && f <= BANDS.wide[1]) { a += G.p[k]; b += Wp[k]; } }
+      if (G.kept) out.noise_change_db = +db(a / b).toFixed(2);
+    } }
   // the room and device: deconvolve the sweep's segment by the sweep (at the measured clock); lag 0 = the strongest path
   const g0 = Math.round(s0 - PRE * fs), L = Math.round(SEG * fs), nf = pow2(L + Math.round(0.2 * fs));
   const yr = new Float64Array(nf), yi = new Float64Array(nf), xr = new Float64Array(nf), xi = new Float64Array(nf);
@@ -492,6 +500,12 @@ function analyse(y, fs, opts = {}) {
   const fe = floor * nn, Ed = Math.max(E23 - fe, 0);
   out.distortion_db = +db(Math.max(Ed, 2 * fe) / (E1 - floor * n1w)).toFixed(1);
   out.distortion_hidden = Ed < 2 * fe;   // under the noise: the value is an upper bound
+  { // the limit with the speaker's harmonics counted as noise (no receiver removes them)
+    const d = out.distortion_hidden ? 0 : 10 ** (out.distortion_db / 10);
+    for (const [name, [a, b]] of Object.entries(BANDS)) {
+      let C = 0; GRID.forEach((f, i) => { if (f >= a && f <= b) C += Math.log2(1 + 1 / (1 / snr[i] + d)) * DF[i]; });
+      out.bands[name].limit_kbps = +(C / 1000).toFixed(1);
+    } }
   return out;
 }
 
@@ -519,7 +533,12 @@ function verdicts(r, info = {}) {
   if (r.clipped > 10 || r.peak_dbfs > -0.5) v.push(['bad', 'Too loud', `The microphone clipped ${r.clipped} samples. Lower the volume a few steps and start again.`]);
   else if (r.sweep_dbfs < -55) v.push(['warn', 'Very quiet', `The sound arrived at ${r.sweep_dbfs.toFixed(0)} dB below full scale. Turn the volume up or move closer.`]);
   if (r.overlap_ms != null) v.push(['warn', 'Another test sound overlapped', `Another device played the test sound ${Math.abs(r.overlap_ms)} ms ${r.overlap_ms > 0 ? 'after' : 'before'} this one. The numbers may be off: run the check again when the others are done.`]);
-  if (Math.abs(r.marker_change_db) > 2) v.push(['warn', 'The level changed during the test', `The last chirp came ${Math.abs(r.marker_change_db).toFixed(0)} dB ${r.marker_change_db < 0 ? 'quieter' : 'louder'} than the first: automatic gain may be on, or a device moved. Run again with both devices still.`]);
+  if (Math.abs(r.marker_change_db) > 2) {
+    const a = Math.abs(r.marker_change_db), how = `The last chirp came ${a.toFixed(0)} dB ${r.marker_change_db < 0 ? 'quieter' : 'louder'} than the first`;
+    if (r.noise_change_db != null && Math.abs(r.noise_change_db) < 1) v.push([a > 6 ? 'warn' : 'ok', 'The sound changed, not this microphone',
+      `${how}, but the background noise here stayed the same, so this device's gain did not change. Phones often play the first sound after a silence louder; a device that moved does this too. The modems' training follows such changes.`]);
+    else v.push(['warn', 'The level changed during the test', `${how}, and so did the background noise here: automatic gain may be on, or a device moved. Run again with both devices still.`]);
+  }
   if (r.noise_short) return v;
   const top = r.top_hz, wide = r.snr_top_db >= 10, med = (a, b) => { const s = r.grid.map((f, i) => [f, r.response_db[i]]).filter(([f]) => f >= a && f <= b).map(x => x[1]).sort((x, y) => x - y); return s[s.length >> 1]; };
   if (top == null) v.push(['bad', 'No usable band', 'The test sound is heard, but less than 10 dB above the noise everywhere. Turn the volume up or move closer.']);
@@ -529,8 +548,9 @@ function verdicts(r, info = {}) {
   else if (top < 8500 && med(9000, 12000) - med(1000, 4000) < -25) v.push(['bad', `Sound stops at ${f1(top)} kHz`, 'This looks like a Bluetooth headset or phone-call audio. Use the built-in speaker and microphone.']);
   else v.push(['bad', `Band stops at ${f1(top)} kHz`, 'Too narrow for the modems: the sound is weak above this. Turn the volume up or move closer.']);
   const w = r.bands.wide, s = r.bands.standard, best = wide ? w : s;
-  v.push([best.snr_db >= 20 ? 'ok' : best.snr_db >= 10 ? 'warn' : 'bad', `SNR ${best.snr_db.toFixed(0)} dB, limit ${best.shannon_kbps.toFixed(0)} kbit/s`,
-    `Signal over noise in the ${wide ? 'wide' : 'standard'} band at this volume and distance, for a signal as loud as the sweep spread evenly over 2.3 to 20.5 kHz. The limit is Shannon's for that flat spectrum; real modems reach a fraction of it.`]);
+  const lim = best.limit_kbps != null ? best.limit_kbps : best.shannon_kbps, capped = lim < 0.95 * best.shannon_kbps;
+  v.push([best.snr_db >= 20 ? 'ok' : best.snr_db >= 10 ? 'warn' : 'bad', `SNR ${best.snr_db.toFixed(0)} dB, limit ${lim.toFixed(0)} kbit/s`,
+    `Signal over noise in the ${wide ? 'wide' : 'standard'} band at this volume and distance, for a signal as loud as the sweep spread evenly over 2.3 to 20.5 kHz. The limit is Shannon's for that flat spectrum${capped ? `, with the speaker's harmonics counted as noise (${best.shannon_kbps.toFixed(0)} kbit/s for the noise alone)` : ''}; real modems reach a fraction of it.`]);
   if (r.distortion_hidden) v.push(['ok', 'No distortion seen', `Harmonics are under the noise (below ${r.distortion_db.toFixed(0)} dB).`]);
   else if (r.distortion_db > -20) v.push(['bad', 'The speaker distorts', `Harmonics at ${r.distortion_db.toFixed(0)} dB. Lower the volume: distortion is noise no receiver can remove.`]);
   else if (r.distortion_db > -30) v.push(['warn', 'Some distortion', `Harmonics at ${r.distortion_db.toFixed(0)} dB. A step lower in volume may help.`]);
@@ -814,8 +834,8 @@ function show(L) {
   if (!r.found) { lv = 'bad'; title = 'Test sound not heard'; sub = v[0][2]; }
   else if (bad) { lv = 'bad'; title = 'Not ready yet'; sub = `${bad[1]}. ${bad[2]}`; }
   else if (r.noise_short) { lv = 'warn'; title = 'Start listening earlier'; sub = 'The sound was heard, but the quiet before it was too short to measure the noise.'; }
-  else if (r.snr_top_db >= 10) { lv = worst; title = 'Ready for the wide band'; sub = `From here this link carries 2.3 to 20.5 kHz, with a Shannon limit of ${w.shannon_kbps.toFixed(0)} kbit/s.`; }
-  else { lv = worst; title = 'Ready for the standard band'; sub = `From here this link carries 3.2 to 16 kHz, with a Shannon limit of ${s.shannon_kbps.toFixed(0)} kbit/s.`; }
+  else if (r.snr_top_db >= 10) { lv = worst; title = 'Ready for the wide band'; sub = `From here this link carries 2.3 to 20.5 kHz, with a limit of ${(w.limit_kbps ?? w.shannon_kbps).toFixed(0)} kbit/s.`; }
+  else { lv = worst; title = 'Ready for the standard band'; sub = `From here this link carries 3.2 to 16 kHz, with a limit of ${(s.limit_kbps ?? s.shannon_kbps).toFixed(0)} kbit/s.`; }
   $('headDot').className = `dot ${LV[lv]}`; $('headTitle').textContent = title; $('headSub').textContent = sub;
   $('vlist').innerHTML = v.map(([l, t, d]) => `<li><i class="dot ${LV[l]}" aria-label="${l === 'ok' ? 'fine' : l === 'warn' ? 'note' : 'problem'}"></i><b>${t}</b><span>${d}</span></li>`).join('');
   const has = r.found && !r.noise_short;
@@ -841,8 +861,8 @@ function table(L) {
     if (r.noise_dbfs != null) rows.push(['Noise level', `${f1(r.noise_dbfs)} dB full scale, over ${f1(r.noise_s, 2)} s`]);
     if (r.bands) {
       rows.push(['Gain, 2 to 8 kHz', `${f1(r.gain_db)} dB`]);
-      rows.push(['Wide band, 2.3 to 20.5 kHz', `SNR ${f1(r.bands.wide.snr_db)} dB, Shannon limit ${f1(r.bands.wide.shannon_kbps, 0)} kbit/s`]);
-      rows.push(['Standard band, 3.2 to 16 kHz', `SNR ${f1(r.bands.standard.snr_db)} dB, Shannon limit ${f1(r.bands.standard.shannon_kbps, 0)} kbit/s`]);
+      rows.push(['Wide band, 2.3 to 20.5 kHz', `SNR ${f1(r.bands.wide.snr_db)} dB, Shannon limit ${f1(r.bands.wide.shannon_kbps, 0)} kbit/s, ${f1(r.bands.wide.limit_kbps, 0)} with the harmonics`]);
+      rows.push(['Standard band, 3.2 to 16 kHz', `SNR ${f1(r.bands.standard.snr_db)} dB, Shannon limit ${f1(r.bands.standard.shannon_kbps, 0)} kbit/s, ${f1(r.bands.standard.limit_kbps, 0)} with the harmonics`]);
       rows.push(['SNR at least 10 dB', r.top_hz ? `${f1(r.low_hz / 1000, 2)} to ${f1(r.top_hz / 1000, 1)} kHz` : 'nowhere']);
       rows.push(['Top of the wide band, 19.5 to 20.5 kHz', `SNR ${f1(r.snr_top_db)} dB`]);
       rows.push(['Echo', `${r.echo_ms} ms to fall ${f1(r.echo_db, 0)} dB below the direct sound`]);
@@ -850,7 +870,7 @@ function table(L) {
     }
     if (r.latency_ms != null) rows.push(['Speaker-to-microphone delay', `${f1(r.latency_ms)} ms`]);
     rows.push(['Clock offset', `${r.ppm >= 0 ? '+' : ''}${f1(r.ppm, 2)} ppm`]);
-    rows.push(['Second chirp against the first', `${r.marker_change_db >= 0 ? '+' : ''}${f1(r.marker_change_db)} dB`]);
+    rows.push(['Second chirp against the first', `${r.marker_change_db >= 0 ? '+' : ''}${f1(r.marker_change_db)} dB${r.noise_change_db != null ? `; background noise ${r.noise_change_db >= 0 ? '+' : ''}${f1(r.noise_change_db)} dB` : ''}`]);
     if (r.overlap_ms != null) rows.push(['Another test sound', `${r.overlap_ms > 0 ? '+' : ''}${r.overlap_ms} ms from this one`]);
     if (r.polarity < 0) rows.push(['Polarity', 'inverted (harmless)']);
   }
