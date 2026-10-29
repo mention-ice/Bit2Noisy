@@ -41,7 +41,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--page);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
-button{font:inherit;color:inherit}
+button{font:inherit;color:inherit;touch-action:manipulation}
 ::placeholder{color:var(--muted);opacity:1}
 .hidden{display:none!important}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -140,13 +140,14 @@ header{background:var(--surface);border-bottom:1px solid var(--line)}
 
 /* the composer */
 footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
-.emoji{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:0 2px 8px}
-.emoji button{border:0;background:transparent;font-size:26px;height:44px;border-radius:12px;cursor:pointer}
+.emoji{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;padding:0 2px 8px;max-height:162px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.emoji button{border:0;background:transparent;font-size:26px;height:44px;border-radius:12px;cursor:pointer;padding:0;min-width:0}
 .emoji button:hover,.emoji button:active{background:var(--soft)}
 .row{display:flex;align-items:flex-end;gap:2px}
 .round{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
 .round:hover,.round[aria-pressed="true"]{color:var(--accent);background:var(--soft)}
-#sendBtn{background:var(--accent-fill);color:#fff;margin-left:4px;transition:transform .12s,background .12s,color .12s}
+#sendBtn,#micBtn{background:var(--accent-fill);color:#fff;margin-left:4px;transition:transform .12s,background .12s,color .12s}
+#micBtn:active,#recStop:active{transform:scale(.92)}
 #sendBtn:disabled{background:var(--soft);color:var(--muted);cursor:default}
 #sendBtn:not(:disabled){animation:pop .16s ease-out}
 #sendBtn:not(:disabled):active{transform:scale(.92)}
@@ -155,6 +156,30 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
 #txt{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid var(--field);border-radius:22px;padding:10px 16px;font:inherit;font-size:16px;line-height:1.4;background:var(--surface);color:var(--ink);outline:none;margin-left:2px}
 #txt:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
 .count{font-size:12px;color:var(--muted);text-align:right;padding:0 10px 4px}
+/* recording a voice message: delete, the time and the level, stop */
+.recbar{display:flex;align-items:center;gap:8px;min-height:44px}
+.recbar .dot{flex:none;width:10px;height:10px;border-radius:50%;background:#d12c4a;margin-left:4px;animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+#recTime{flex:none;font-weight:600;font-variant-numeric:tabular-nums;min-width:2.8em}
+#recTime.late{color:var(--warn)}
+#recWave{flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:2px;height:30px;overflow:hidden}
+#recWave i{flex:none;width:3px;border-radius:2px;background:var(--accent)}
+#recStop{background:var(--accent-fill);color:#fff}
+#recCancel:hover{color:#d12c4a}
+/* a voice message: play, the bars (tap to jump), the time */
+.msg.vmsg{padding-left:8px}
+.voice{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:10px;align-items:center;width:min(236px,60vw);padding:3px 0 1px}
+.vplay{grid-row:1 / span 2;width:40px;height:40px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;background:var(--accent-fill);color:#fff;cursor:pointer}
+.vplay:disabled{opacity:.45;cursor:default}
+.line.mine .vplay{background:#fff;color:#86144f}
+.vwave{display:flex;align-items:center;justify-content:space-between;height:30px;cursor:pointer}
+.vwave i{width:3px;height:20%;border-radius:2px;background:color-mix(in srgb,var(--muted) 50%,transparent)}
+.vwave i.on{background:var(--accent)}
+.line.mine .vwave i{background:rgba(255,255,255,.42)}
+.line.mine .vwave i.on{background:#fff}
+.vdur{font-size:11.5px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums;padding:3px 0 2px;white-space:nowrap}
+.line.mine .vdur{color:var(--mine-meta)}
+.card .voice{width:100%;margin:10px 0 2px;padding:10px 12px;background:var(--soft);border-radius:16px}
 
 /* overlays */
 .overlay{position:fixed;inset:0;background:rgba(20,17,24,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
@@ -201,6 +226,11 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
   <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M8.2 14.2c1 1.4 2.3 2.1 3.8 2.1s2.8-.7 3.8-2.1"/><path d="M9 9.6h.01M15 9.6h.01" stroke-width="2.6"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.2" y="4.5" width="17.6" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="m4 17.5 4.6-4.4 3.4 3 3.2-2.8 4.8 4.4"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M4.5 12 19.5 4.8l-3.8 14.6-4.3-5.8z" fill="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3.2" width="6" height="11" rx="3"/><path d="M5.8 11.4a6.2 6.2 0 0 0 12.4 0M12 17.6v3.2M8.8 20.8h6.4"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2.2" fill="currentColor"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.9 12.2c.1 1 .9 1.8 1.9 1.8h4.8c1 0 1.8-.8 1.9-1.8L17.2 7M10.2 10.8v6.4M13.8 10.8v6.4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.6v12.8c0 .8.9 1.3 1.6.8l9.4-6.4c.6-.4.6-1.2 0-1.6L10.1 4.8c-.7-.5-1.6 0-1.6.8z" fill="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.8" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.7" y="5" width="3.8" height="14" rx="1.2" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
   <symbol id="i-qr" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h2.5v2.5H14zM17.5 17.5H20V20h-2.5zM14 19h1M19 14h1"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
@@ -218,11 +248,18 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
   <footer>
     <div class="emoji hidden" id="emojiBar"></div>
     <div class="count hidden" id="count"></div>
-    <div class="row">
+    <div class="row" id="row">
       <button class="round" id="emoBtn" aria-label="Smileys" aria-pressed="false"><svg class="i"><use href="#i-smile"/></svg></button>
       <button class="round" id="picBtn" aria-label="Send a picture"><svg class="i"><use href="#i-image"/></svg></button>
       <textarea id="txt" rows="1" placeholder="Message" aria-label="Message" enterkeyhint="send"></textarea>
       <button class="round" id="sendBtn" aria-label="Send" disabled><svg class="i"><use href="#i-send"/></svg></button>
+      <button class="round hidden" id="micBtn" aria-label="Record a voice message" title="Record a voice message"><svg class="i"><use href="#i-mic"/></svg></button>
+    </div>
+    <div class="recbar hidden" id="recBar">
+      <button class="round" id="recCancel" aria-label="Delete the recording" title="Delete"><svg class="i"><use href="#i-trash"/></svg></button>
+      <span class="dot" aria-hidden="true"></span><span id="recTime">0:00</span>
+      <div id="recWave" aria-hidden="true"></div>
+      <button class="round" id="recStop" aria-label="Stop recording" title="Stop"><svg class="i"><use href="#i-stop"/></svg></button>
     </div>
     <input type="file" id="picIn" accept="image/*" hidden>
   </footer>
@@ -293,6 +330,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
   <div class="card"><div class="in prev">
     <h2 id="prevTitle">Send this picture?</h2>
     <img id="prevImg" alt="Picture to send">
+    <div id="prevVoice" class="hidden"></div>
     <p id="prevInfo"></p>
     <button class="primary" id="prevFast"></button>
     <button class="secondary" id="prevRobust"></button>
@@ -4041,9 +4079,10 @@ if (typeof module !== 'undefined') module.exports = { PILOT, NP, NHC, CTRL, RATE
 // Every chat message is an ordinary v7 frame, so the Bit2Noisy page and audiocomm_v7.py read it too. The chat's own
 // fields travel inside the message: an envelope in front of a text, or in a comment segment (COM) of a picture's JPEG.
 // Envelope: marker 0xB2, version (4 bits) and kind (4 bits), group code, sender id (16 bits), sequence number, nickname
-// length and nickname (UTF-8, at most 16 bytes), then the body, then a CRC-32 of all of it.
+// length and nickname (UTF-8, at most 16 bytes), then the body, then a CRC-32 of all of it. A voice message is a v7
+// file frame whose whole file is the envelope (see chatVoiceBody).
 const CHAT_MARK = 0xB2, CHAT_VER = 1;
-const CHAT_KIND = { text: 1, picture: 2 };
+const CHAT_KIND = { text: 1, picture: 2, voice: 3 };
 const CHAT_NICK_MAX = 16;      // bytes of the nickname (UTF-8)
 const CHAT_TEXT_MAX = 600;     // bytes of a text (UTF-8); a v7 text frame carries at most 1023 bytes, envelope included
 // The sender's choice of frame. Robust: OFDM with the long guard (21 ms), QPSK, LDPC 1/2, decoded in a fraction of a
@@ -4107,7 +4146,55 @@ function chatTextFrame(e, mode) {   // e: {group, id, seq, nick, text} -> the v7
 function chatPictureFrame(e, file, mode) {   // file: the picture's JPEG (jpegEncode)
   const f = buildFrame({ type: 'jpeg', file: chatJpeg(file, chatPack({ ...e, kind: CHAT_KIND.picture })) }, chatCfg(mode)); f.chatMode = mode; return f;
 }
-// A received frame (the Receiver's result) -> what the chat shows: {from: 'chat', env, text | file, ok} for a chat
+// Voice messages: the envelope (kind 3) travels as the file of a v7 file frame (the frame of pictures, with its own
+// CRC-32); the Bit2Noisy page shows it as a file of unknown format. The body: the coder (1: Opus, 48 kHz, mono), the
+// voice's length in hundredths of a second (16 bits), then every Opus packet, as its length (1 byte below 128, else 2:
+// 128 + the high 7 bits, then the low 8) and its bytes. The packets come from the browser's own Opus coder (WebCodecs).
+const CHAT_OPUS = 1;
+const CHAT_OPUS_HEAD = Uint8Array.from([79, 112, 117, 115, 72, 101, 97, 100, 1, 1, 56, 1, 128, 187, 0, 0, 0, 0, 0]);   // RFC 7845: 'OpusHead', version 1, 1 channel, pre-skip 312, 48 kHz, gain 0, family 0
+function chatVoiceBody(packets, dur) {   // the Opus packets and the voice's length (s) -> the body of a voice message
+  const c = Math.min(65535, Math.round(100 * dur)), u = new Uint8Array(3 + packets.reduce((s, p) => s + (p.length < 128 ? 1 : 2) + p.length, 0));
+  u.set([CHAT_OPUS, c >> 8, c & 255]); let i = 3;
+  for (const p of packets) { if (p.length < 128) u[i++] = p.length; else { u[i++] = 128 | (p.length >> 8); u[i++] = p.length & 255; } u.set(p, i); i += p.length; }
+  return u;
+}
+function chatVoiceParse(u) {   // the body -> null, or {dur (s), packets, bytes}
+  if (!u || u.length < 4 || u[0] !== CHAT_OPUS) return null;
+  const packets = []; let i = 3;
+  while (i < u.length) {
+    let n = u[i++]; if (n & 128) { if (i >= u.length) return null; n = ((n & 127) << 8) | u[i++]; }
+    if (!n || i + n > u.length) return null;
+    packets.push(u.slice(i, i + n)); i += n;
+  }
+  return packets.length ? { dur: ((u[1] << 8) | u[2]) / 100, packets, bytes: u.length } : null;
+}
+function chatVoiceFrame(e, body, mode) {   // body: chatVoiceBody
+  const f = buildFrame({ type: 'jpeg', file: chatPack({ ...e, kind: CHAT_KIND.voice, body }) }, chatCfg(mode)); f.chatMode = mode; return f;
+}
+function chatOpusSamples(p) {   // an Opus packet's length in samples at 48 kHz, from its first byte (RFC 6716, 3.1)
+  const c = p[0] >> 3, f = c < 12 ? [480, 960, 1920, 2880][c & 3] : c < 16 ? [480, 960][c & 1] : [120, 240, 480, 960][c & 3], k = p[0] & 3;
+  return f * (k === 0 ? 1 : k < 3 ? 2 : (p[1] & 63));
+}
+const OGG_CRC = Uint32Array.from({ length: 256 }, (_, n) => { let c = n << 24; for (let k = 0; k < 8; k++) c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : c << 1; return c >>> 0; });
+function chatOgg(packets) {   // the packets as an Ogg Opus file (RFC 7845), for browsers that decode Opus only from a file
+  const pages = [], ascii = s => [...s].map(ch => ch.charCodeAt(0));
+  const page = (flag, gran, ps) => {   // flag 2: the first page, 4: the last; gran: the samples of all the packets so far
+    const lace = []; for (const p of ps) { let n = p.length; while (n >= 255) { lace.push(255); n -= 255; } lace.push(n); }
+    const u = new Uint8Array(27 + lace.length + ps.reduce((s, p) => s + p.length, 0)), v = new DataView(u.buffer);
+    u.set([79, 103, 103, 83, 0, flag]); v.setUint32(6, gran >>> 0, true); v.setUint32(10, Math.floor(gran / 4294967296), true);
+    v.setUint32(14, 0x42324e43, true); v.setUint32(18, pages.length, true); u[26] = lace.length; u.set(lace, 27);
+    let o = 27 + lace.length; for (const p of ps) { u.set(p, o); o += p.length; }
+    let c = 0; for (let i = 0; i < u.length; i++) c = (OGG_CRC[((c >>> 24) ^ u[i]) & 255] ^ (c << 8)) >>> 0;
+    v.setUint32(22, c, true); pages.push(u);
+  };
+  page(2, 0, [CHAT_OPUS_HEAD]);
+  page(0, 0, [Uint8Array.from([...ascii('OpusTags'), 9, 0, 0, 0, ...ascii('Bit2Noisy'), 0, 0, 0, 0])]);
+  let g = 0;
+  for (let i = 0; i < packets.length; i += 50) { const ps = packets.slice(i, i + 50); for (const p of ps) g += chatOpusSamples(p); page(i + 50 >= packets.length ? 4 : 0, g, ps); }
+  const out = new Uint8Array(pages.reduce((s, p) => s + p.length, 0)); let o = 0; for (const p of pages) { out.set(p, o); o += p.length; }
+  return out;
+}
+// A received frame (the Receiver's result) -> what the chat shows: {from: 'chat', env, text | file | voice, ok} for a chat
 // message, {from: 'page', ...} for a frame from the Bit2Noisy page, {from: 'damaged'} for a text whose code failed and
 // whose envelope cannot be found, or {from: 'other'} (room sounding)
 function chatRead(res) {
@@ -4121,7 +4208,13 @@ function chatRead(res) {
     return { from: 'chat', env, ok: true, text: new TextDecoder('utf-8').decode(env.body) };
   }
   if (h.type === 'jpeg') {
-    const { file, crcOk } = jpegUnpack(res.bits, h.len), env = chatJpegEnvelope(file);
+    const { file, crcOk } = jpegUnpack(res.bits, h.len);
+    if (file[0] === CHAT_MARK) {   // a voice message: the file is the envelope
+      const ve = chatUnpack(file), voice = ve && ve.ok && ve.kind === CHAT_KIND.voice ? chatVoiceParse(ve.body) : null;
+      if (voice) return { from: 'chat', env: ve, ok: true, voice };
+      if (ve) return { from: 'chat', env: ve, ok: false };
+    }
+    const env = chatJpegEnvelope(file);
     return env && env.ok ? { from: 'chat', env, ok: true, file, crcOk } : { from: env ? 'chat' : 'page', env, ok: false, file, crcOk };
   }
   if (h.type === 'image') return { from: 'page', image: { w: h.w, h: h.h, bits: res.bits } };   // 1 bit per pixel, by columns, 1 = white
@@ -4147,12 +4240,15 @@ let group = Math.max(0, Math.min(255, parseInt(params.get('group') || store.get(
 let physics = store.get('physics', '0') === '1';
 let seq = (parseInt(store.get('seq', '0'), 10) || 0) & 255;
 const DEBUG = params.has('debug');
+let voiceOk = false;   // this browser has an Opus coder (WebCodecs): the microphone button shows when the text box is empty
 const DET = params.get('det') === 'smap' ? 'smap' : 'lmmse';   // the single carrier's detector: linear MMSE unless asked
 // the others' colours (magenta is mine): [name and avatar in light mode, name in dark mode], each name at least 4.5:1 on its bubble
 const COLORS = [['#0d7275', '#3fc1c4'], ['#4a4ab3', '#9d9df5'], ['#a3500b', '#f0995a'], ['#2a7448', '#5ccf8c'], ['#7a3fb0', '#c59cf2'], ['#1f6fb2', '#6cb4f2'], ['#6b6a00', '#d6cf5a'], ['#b3261e', '#ff8a80']];
 const PAGE_COLOR = ['#706a7f', '#b9b3c4'];
 const colorOf = id => COLORS[id % COLORS.length];
-const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '🥳', '🤯', '😴', '🙈', '👍', '👎', '👏', '🙏', '👋', '💪', '🎉', '❤️', '🔥', '✅', '❓', '🔊'];
+const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '🥳', '🤯', '😴', '🙈', '👍', '👎', '👏', '🙏', '👋', '💪', '🎉', '❤️', '🔥', '✅', '❓', '🔊',
+  // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
+  '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- the chat screen ----------
@@ -4322,8 +4418,8 @@ async function startMic() {   // -> true if listening
   // the samples come from an AudioWorklet (the audio thread) in blocks of 4096 posted to the page, so a decode here
   // only delays them; a ScriptProcessor (older browsers) loses audio then
   proc = await tapNode(a);
-  if (proc) proc.port.onmessage = e => rx.push(e.data);
-  else { proc = a.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = e => rx.push(e.inputBuffer.getChannelData(0)); }
+  if (proc) proc.port.onmessage = e => heard(e.data);
+  else { proc = a.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = e => heard(e.inputBuffer.getChannelData(0)); }
   srcN.connect(proc); proc.connect(mute);
   stream.getTracks().forEach(t => t.onended = () => banner('The microphone stopped.', 'Listen again', retryMic));
   banner('');
@@ -4362,7 +4458,7 @@ function makeRx() {
           const r = mk('div', 'recv');
           if (info.type === 'jpeg' || info.type === 'image') {
             const f = mk('div', 'frame'); p.b.box.classList.add('pic');
-            f.append(waveIcon(), mk('span', 'what', `Receiving a picture · ${Math.round((info.len || info.n0 / 8) / 1024 * 10) / 10} kB`), mk('div', 'bar')); f.lastChild.appendChild(mk('i')); p.b.body.append(f);
+            f.append(waveIcon(), mk('span', 'what', `Receiving · ${Math.round((info.len || info.n0 / 8) / 1024 * 10) / 10} kB`), mk('div', 'bar')); f.lastChild.appendChild(mk('i')); p.b.body.append(f);
           } else { r.append(waveIcon(), mk('span', 'what', 'Receiving a message')); p.b.body.append(r, mk('div', 'bar')); p.b.body.lastChild.appendChild(mk('i')); }
           add(p.b.el);
         }
@@ -4419,9 +4515,9 @@ function shown(res, p) {   // a frame decoded: into the chat
   if (seen.has(key) && now - seen.get(key) < 600000) { if (b0) b0.el.remove(); return; }
   seen.set(key, now);
   const b = bubble({ who: e.nick || chatDefaultNick(e.id), color: colorOf(e.id), key: 'id' + e.id });
-  if (m.text !== undefined) setText(b, m.text); else setPicture(b, m.file, m.crcOk ? '' : 'damaged on the way');
+  if (m.text !== undefined) setText(b, m.text); else if (m.voice) setVoice(b, m.voice); else setPicture(b, m.file, m.crcOk ? '' : 'damaged on the way');
   if (m.text !== undefined) scramble(b.body.firstChild, m.text);   // before it is placed: the live region reads it once
-  setPhys(b, desc); place(b);
+  setPhys(b, (m.voice ? voiceNote(m.voice.bytes, m.voice.dur) + ' · ' : '') + desc); place(b);
   if (document.hidden && navigator.vibrate) try { navigator.vibrate(60); } catch (err) {}
 }
 // my phone should hear its own frames: if the first ones go unheard, the volume is probably too low
@@ -4434,7 +4530,7 @@ function volumeCheck(ok) {
 // ---------- sending: wait for the room, then play ----------
 const queue = [];
 let pumping = false;
-const busy = () => playingNow || (rx && rx.state !== 'search') || Date.now() < quietUntil;
+const busy = () => playingNow || !!rec || !!vNow || (rx && rx.state !== 'search') || Date.now() < quietUntil;   // nor while I record or a voice message plays
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SLOT = 250;   // ms: the random waits are whole slots
 async function waitForRoom(it) {
@@ -4467,18 +4563,18 @@ function setTick(it, s) {
   it.b.tick.title = { queued: 'waiting to send', wait: 'waiting for the room to be quiet', sending: 'playing now', sent: 'played', fail: 'not played' }[s] || '';
   if (it.resend) it.resend.hidden = s !== 'sent' && s !== 'fail';   // once played (or not), the picture can go again
 }
-function send(frame, b, pic = null) {   // pic (a picture): {file, w, h, again: the sequence number of the copy sent before, or null}
-  const again = pic && pic.again !== null, s = again ? pic.again : seq;
-  const c = chatCfg(frame.chatMode), it = { frame, b, seq: s, pic, desc: frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + 0.4 };
+function send(frame, b, item = null) {   // item: a picture or a voice message as the send sheet had it (prevItem), its again the sequence number of the copy sent before, or null
+  const again = item && item.again !== null, s = again ? item.again : seq;
+  const c = chatCfg(frame.chatMode), it = { frame, b, seq: s, item, desc: (frame.note ? frame.note + ' · ' : '') + frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + 0.4 };
   setPhys(b, `${it.desc} · ${it.dur.toFixed(1)} s of sound`);
   sentBySeq.set(s, it); if (!again) { seq = (seq + 1) & 255; store.set('seq', seq); }
-  if (pic) resendBtn(it);
+  if (item) resendBtn(it);
   setTick(it, 'queued'); queue.push(it); pump();
 }
-function resendBtn(it) {   // my picture: Resend opens the send sheet with it again, so it need not be picked again
-  const r = mk('button', 'resend', 'Resend'); r.type = 'button'; r.hidden = true;
-  r.setAttribute('aria-label', 'Send this picture again');
-  r.onclick = () => showPreview(it.pic.file, it.pic.w, it.pic.h, it.seq);
+function resendBtn(it) {   // my picture or voice message: Resend opens the send sheet with it again, so it need not be picked (or recorded) again
+  const voice = it.item.kind === 'voice', r = mk('button', 'resend', 'Resend'); r.type = 'button'; r.hidden = true;
+  r.setAttribute('aria-label', voice ? 'Send this voice message again' : 'Send this picture again');
+  r.onclick = () => voice ? showVoice({ ...it.item, again: it.seq }) : showPreview(it.item.file, it.item.w, it.item.h, it.seq);
   it.b.meta.prepend(r); it.resend = r;
 }
 const env = () => ({ group, id: myId, seq, nick: myNick() });
@@ -4495,7 +4591,8 @@ function sendText() {
 const txt = $('txt');
 function grow() {
   txt.style.height = 'auto'; txt.style.height = Math.min(140, txt.scrollHeight + 2) + 'px';
-  const n = chatUtf8(txt.value).length; $('sendBtn').disabled = !txt.value.trim();
+  const n = chatUtf8(txt.value).length, empty = !txt.value.trim(); $('sendBtn').disabled = empty;
+  $('sendBtn').classList.toggle('hidden', empty && voiceOk); $('micBtn').classList.toggle('hidden', !(empty && voiceOk));   // an empty box: the microphone instead
   $('count').classList.toggle('hidden', n < CHAT_TEXT_MAX - 100); $('count').textContent = n > CHAT_TEXT_MAX ? `${n} bytes: only the first ${CHAT_TEXT_MAX} go` : `${n} / ${CHAT_TEXT_MAX} bytes`;
 }
 txt.addEventListener('input', grow);
@@ -4507,17 +4604,26 @@ EMOJI.forEach(s => { const b = mk('button', '', s); b.type = 'button'; b.onclick
   txt.selectionStart = txt.selectionEnd = a + s.length; grow(); if (!touch) txt.focus(); }; $('emojiBar').appendChild(b); });
 $('emoBtn').onclick = () => { const nb = nearBottom(), h = $('emojiBar').classList.toggle('hidden'); $('emoBtn').setAttribute('aria-pressed', String(!h)); if (nb) chatEl.scrollTop = chatEl.scrollHeight; };
 
-// pictures: scaled so that the longest side is 160 (or 320) pixels, through the modem's own JPEG coder (quality 50)
-let prevFile = null, prevW = 0, prevH = 0, prevSeq = null;   // prevSeq: a picture sent again keeps its sequence number, so a phone that has it already shows it once
-function showPreview(file, w, h, again = null) {
-  prevFile = file; prevW = w; prevH = h; prevSeq = again;
-  $('prevTitle').textContent = again === null ? 'Send this picture?' : 'Send this picture again?';
-  $('prevImg').src = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' }));
-  const fast = mode === 'sc' || mode === 'close' ? mode : 'fast', dF = chatPictureFrame(env(), file, fast).dur + 0.4, dR = chatPictureFrame(env(), file, 'robust').dur + 0.4;
-  $('prevInfo').textContent = `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`;
+// the send sheet, for a picture or a voice message: in my mode (Fast when it is Robust), or Robust. prevItem: {kind: 'pic',
+// file, w, h, again} or {kind: 'voice', x, dur, enc, again}; one sent again keeps its sequence number (again), so a phone
+// that has it already shows it once
+let prevItem = null;
+const firstMode = () => mode === 'sc' || mode === 'close' ? mode : 'fast';
+function sheet(item, what, info, dF, dR) {
+  prevItem = item; const fast = firstMode();
+  $('prevTitle').textContent = `Send this ${what}${item.again === null ? '' : ' again'}?`;
+  $('prevInfo').textContent = info;
   $('prevFast').textContent = `Send (${CHAT_MODES[fast].label}, ${dF.toFixed(1)} s of sound)`; $('prevFast').dataset.m = fast;
   $('prevRobust').textContent = `Send (Robust, ${dR.toFixed(1)} s of sound)`; $('prevRobust').dataset.m = 'robust';
+  $('prevImg').classList.toggle('hidden', item.kind !== 'pic'); $('prevVoice').classList.toggle('hidden', item.kind !== 'voice');
   $('prev').classList.remove('hidden');
+}
+function closeSheet() { $('prev').classList.add('hidden'); prevItem = null; if (vNow && vNow.sheet) vStop(); }
+// pictures: scaled so that the longest side is 160 (or 320) pixels, through the modem's own JPEG coder (quality 50)
+function showPreview(file, w, h, again = null) {
+  $('prevImg').src = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' }));
+  const dF = chatPictureFrame(env(), file, firstMode()).dur + 0.4, dR = chatPictureFrame(env(), file, 'robust').dur + 0.4;
+  sheet({ kind: 'pic', file, w, h, again }, 'picture', `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`, dF, dR);
 }
 $('picBtn').onclick = () => $('picIn').click();
 $('picIn').onchange = () => {
@@ -4534,15 +4640,199 @@ $('picIn').onchange = () => {
   im.onerror = () => sys('This browser cannot open that picture.');
   im.src = URL.createObjectURL(f);
 };
-function sendPicture(m) {
-  $('prev').classList.add('hidden'); if (!prevFile) return;
-  const b = bubble({ mine: true }); setPicture(b, prevFile); add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
-  const e = env(); if (prevSeq !== null) e.seq = prevSeq;
-  send(chatPictureFrame(e, prevFile, m), b, { file: prevFile, w: prevW, h: prevH, again: prevSeq }); prevFile = null; prevSeq = null;
+async function sendPrev(m) {
+  const it = prevItem; closeSheet(); if (!it) return;
+  const v = it.kind === 'voice' ? await voiceVersion(it, voiceKbps(m)) : null;   // coded already, for the sheet
+  const b = bubble({ mine: true }), e = env(); if (it.again !== null) e.seq = it.again;
+  if (v) setVoice(b, { y: v.y, dur: it.dur }); else setPicture(b, it.file);
+  add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
+  if (!v) { send(chatPictureFrame(e, it.file, m), b, it); return; }
+  const f = chatVoiceFrame(e, v.body, m); f.note = voiceNote(v.body.length, it.dur); send(f, b, it);
 }
-$('prevFast').onclick = () => sendPicture($('prevFast').dataset.m);
-$('prevRobust').onclick = () => sendPicture('robust');
-$('prevCancel').onclick = () => { $('prev').classList.add('hidden'); prevFile = null; prevSeq = null; };
+$('prevFast').onclick = () => sendPrev($('prevFast').dataset.m);
+$('prevRobust').onclick = () => sendPrev('robust');
+$('prevCancel').onclick = closeSheet;
+
+// ---------- voice messages ----------
+// Recorded from the microphone the chat listens with (no echo cancelling, no gain control), brought to a steady level,
+// then coded by the browser's own Opus coder (WebCodecs: Safari 26, Chrome, Edge, Firefox 130 and later), 60 ms per
+// packet: 8 kbit/s (narrowband, as a phone call), or 16 kbit/s (the full band) to go Close by. The sheet and my bubble play
+// the coded voice, as the others hear it. A browser without WebCodecs audio has no microphone button; it plays voice
+// messages through an Ogg file if it decodes Opus files.
+const VOICE_MAX = 20;   // s of voice at most: about 20 kB at 8 kbit/s, 10.5 s of sound in Fast
+const VOICE_FS = 48000, VBARS = 30;
+const VOICE_DEC = params.get('voicedec');   // 'ogg': decode as a browser without WebCodecs audio does (tests)
+const voiceKbps = m => m === 'close' ? 16 : 8;
+const voiceNote = (bytes, dur) => `Opus ${(8 * bytes / Math.max(0.1, dur) / 1000).toFixed(1)} kbit/s`;
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`, vLen = d => mmss(Math.round(d));   // a time, and a whole message's length
+async function opusConfig(kbps) {   // the first setting the browser takes: all of them, then fewer, then higher rates
+  for (const k of [kbps, 12, 16, 24].filter(k => k >= kbps)) {
+    const base = { codec: 'opus', sampleRate: VOICE_FS, numberOfChannels: 1, bitrate: 1000 * k };
+    for (const c of [{ ...base, opus: { frameDuration: 60000, application: 'voip', signal: 'voice', complexity: 10 } }, { ...base, opus: { frameDuration: 60000 } }, base])
+      try { if ((await AudioEncoder.isConfigSupported(c)).supported) return c; } catch (e) {}
+  }
+  return null;
+}
+(async () => { try { voiceOk = typeof AudioEncoder !== 'undefined' && !!(await opusConfig(8)); } catch (e) { voiceOk = false; } grow(); })();
+async function voiceEncode(x, kbps) {   // 48 kHz samples -> {packets (Opus), kbps (the rate asked of the coder)}
+  const cfg = await opusConfig(kbps); if (!cfg) throw new Error('no Opus coder');
+  const pk = []; let err = null;
+  const enc = new AudioEncoder({ output: c => { const u = new Uint8Array(c.byteLength); c.copyTo(u); pk.push(u); }, error: e => { err = e; } });
+  enc.configure(cfg);
+  for (let o = 0; o < x.length; o += 4800) {
+    const n = Math.min(4800, x.length - o), d = new AudioData({ format: 'f32', sampleRate: VOICE_FS, numberOfFrames: n, numberOfChannels: 1, timestamp: Math.round(o / VOICE_FS * 1e6), data: x.slice(o, o + n) });
+    enc.encode(d); d.close();
+  }
+  await enc.flush(); enc.close();
+  if (err || !pk.length) throw err || new Error('no packets');
+  return { packets: pk, kbps: cfg.bitrate / 1000 };
+}
+function planeF32(a) {   // the first channel of a decoded block, as floats
+  const n = a.numberOfFrames, f = a.format || '';
+  try { const m = new Float32Array(n); a.copyTo(m, { planeIndex: 0, format: 'f32-planar' }); return m; } catch (e) {}
+  const buf = new ArrayBuffer(a.allocationSize({ planeIndex: 0 })); a.copyTo(buf, { planeIndex: 0 });   // as it is
+  const s = /^f32/.test(f) ? new Float32Array(buf) : /^s16/.test(f) ? new Int16Array(buf) : /^s32/.test(f) ? new Int32Array(buf) : new Uint8Array(buf);
+  const g = /^f32/.test(f) ? 1 : /^s16/.test(f) ? 1 / 32768 : /^s32/.test(f) ? 1 / 2147483648 : 1 / 128, z = /^u8/.test(f) ? 128 : 0, st = /planar/.test(f) ? 1 : a.numberOfChannels;
+  const m = new Float32Array(n); for (let i = 0; i < n; i++) m[i] = (s[i * st] - z) * g; return m;
+}
+async function voiceDecode(packets) {   // the Opus packets -> 48 kHz samples
+  if (typeof AudioDecoder !== 'undefined' && VOICE_DEC !== 'ogg')
+    for (const cfg of [{ codec: 'opus', sampleRate: VOICE_FS, numberOfChannels: 1, description: CHAT_OPUS_HEAD }, { codec: 'opus', sampleRate: VOICE_FS, numberOfChannels: 1 }]) {
+      try {
+        if (!(await AudioDecoder.isConfigSupported(cfg)).supported) continue;
+        const out = []; let err = null, t = 0;
+        const dec = new AudioDecoder({ output: a => { out.push(planeF32(a)); a.close(); }, error: e => { err = e; } });
+        dec.configure(cfg);
+        for (const p of packets) { dec.decode(new EncodedAudioChunk({ type: 'key', timestamp: Math.round(t / VOICE_FS * 1e6), data: p })); t += chatOpusSamples(p); }
+        await dec.flush(); dec.close();
+        if (err || !out.length) continue;
+        const y = new Float32Array(out.reduce((s, m) => s + m.length, 0)); let o = 0; for (const m of out) { y.set(m, o); o += m.length; }
+        return y;
+      } catch (e) {}
+    }
+  const C = window.OfflineAudioContext || window.webkitOfflineAudioContext;   // otherwise as a file, as the browser decodes sound files
+  return (await new C(1, VOICE_FS, VOICE_FS).decodeAudioData(chatOgg(packets).buffer)).getChannelData(0);
+}
+async function voiceVersion(item, kbps) {   // the voice coded at kbps, once: {kbps, packets, body, y (decoded: what the others hear)}
+  if (!item.enc.has(kbps)) { const { packets, kbps: k } = await voiceEncode(item.x, kbps); item.enc.set(kbps, { kbps: k, packets, body: chatVoiceBody(packets, item.dur), y: await voiceDecode(packets) }); }
+  return item.enc.get(kbps);
+}
+async function showVoice(item) {
+  const fast = firstMode(); let vF, vR;
+  try { vF = await voiceVersion(item, voiceKbps(fast)); vR = await voiceVersion(item, voiceKbps('robust')); }
+  catch (e) { sys('This browser could not code the voice message.'); return; }
+  const dF = chatVoiceFrame(env(), vF.body, fast).dur + 0.4, dR = chatVoiceFrame(env(), vR.body, 'robust').dur + 0.4;
+  const vm = setVoice({ box: $('prevVoice'), body: $('prevVoice') }, { y: vF.y, dur: item.dur }); vm.sheet = true;
+  sheet(item, 'voice message', `${item.dur.toFixed(1)} s of voice, Opus ${vF.kbps} kbit/s: ${(vF.body.length / 1024).toFixed(1)} kB.`, dF, dR);
+}
+
+// recording: every block the microphone gives also goes to the recording while one is under way
+let rec = null;   // {chunks, n, fs, acc, k, lo, hi}
+function heard(d) { if (rec) recAdd(d); rx.push(d); }
+function recStart() {
+  if (rec) return;
+  if (!stream || !actx) { sys('Voice messages need the microphone: allow it, then try again.'); return; }
+  vStop();
+  rec = { chunks: [], n: 0, fs: actx.sampleRate, acc: 0, k: 0, lo: Infinity, hi: -Infinity };
+  $('emojiBar').classList.add('hidden'); $('emoBtn').setAttribute('aria-pressed', 'false');
+  $('recWave').replaceChildren(); $('recTime').textContent = '0:00'; $('recTime').classList.remove('late');
+  $('row').classList.add('hidden'); $('recBar').classList.remove('hidden');
+}
+function recAdd(d) {
+  const r = rec, c = Float32Array.from(d), step = Math.round(r.fs / 10);
+  r.chunks.push(c); r.n += c.length;
+  for (let i = 0; i < c.length; i++) { r.acc += c[i] * c[i]; if (++r.k === step) { recBar(10 * Math.log10(r.acc / step + 1e-12)); r.acc = 0; r.k = 0; } }
+  $('recTime').textContent = mmss(r.n / r.fs); $('recTime').classList.toggle('late', r.n > (VOICE_MAX - 5) * r.fs);
+  if (r.n >= VOICE_MAX * r.fs) recStop(true);
+}
+function recBar(db) {   // a bar per 0.1 s, its height from the level between the quietest and the loudest so far
+  const r = rec, w = $('recWave'), i = mk('i'); r.lo = Math.min(r.lo, db); r.hi = Math.max(r.hi, db);
+  i.style.height = (100 * Math.max(0.1, Math.min(1, (db - r.lo - 3) / Math.max(25, r.hi - r.lo)))).toFixed(0) + '%';
+  w.appendChild(i); if (w.childElementCount > 90) w.firstChild.remove();
+}
+function recStop(keep) {
+  const r = rec; if (!r) return; rec = null;
+  $('recBar').classList.add('hidden'); $('row').classList.remove('hidden');
+  if (!keep) return;
+  if (r.n < 0.5 * r.fs) { sys('Too short to send: tap the microphone, speak, then tap the square.'); return; }
+  const x = voicePrep(r.chunks, r.n, r.fs);
+  showVoice({ kind: 'voice', x, dur: x.length / VOICE_FS, enc: new Map(), again: null });
+}
+function voicePrep(chunks, n, fs) {   // the recording -> 48 kHz samples, without rumble, at a steady level, faded in and out
+  const x = new Float32Array(n); let o = 0;
+  for (const c of chunks) { x.set(c.subarray(0, Math.min(c.length, n - o)), o); o += c.length; }
+  const a = Math.exp(-2 * Math.PI * 80 / fs); let px = 0, py = 0;   // high-pass at 80 Hz: the offset and handling noise
+  for (let i = 0; i < n; i++) { const y = a * (py + x[i] - px); px = x[i]; py = y; x[i] = y; }
+  const L = Math.round(0.02 * fs), e = [];   // the level of every 20 ms: its loudest tenth (speech) goes to -18 dBFS, with at most +40 dB
+  for (let i = 0; i + L <= n; i += L) { let s = 0; for (let j = i; j < i + L; j++) s += x[j] * x[j]; e.push(Math.sqrt(s / L)); }
+  e.sort((p, q) => p - q);
+  const g = Math.min(100, Math.max(0.1, 0.126 / Math.max(e[Math.floor(0.9 * (e.length - 1))] || 0, 1e-6)));
+  const m = Math.round(n * VOICE_FS / fs), y = new Float32Array(m), F = Math.round(0.01 * VOICE_FS);
+  for (let k = 0; k < m; k++) {
+    const t = k * fs / VOICE_FS, i = Math.floor(t), u = t - i;
+    let v = g * ((1 - u) * x[i] + u * (i + 1 < n ? x[i + 1] : 0));
+    const s = Math.abs(v); if (s > 0.6) v = Math.sign(v) * (0.6 + 0.39 * Math.tanh((s - 0.6) / 0.39));   // the peaks softly kept under 1
+    y[k] = v * Math.min(1, k / F, (m - 1 - k) / F);
+  }
+  return y;
+}
+$('micBtn').onclick = recStart;
+$('recStop').onclick = () => recStop(true);
+$('recCancel').onclick = () => recStop(false);
+
+// the player: one audio element (it plays even with the iPhone's silent switch on), one voice message at a time
+let vAudio = null, vNow = null, vRaf = 0;
+function setVoice(b, v) {   // a player in the bubble b (or the sheet); v: {dur, y (48 kHz samples) | packets (decoded here)}
+  b.box.classList.add('vmsg');
+  const vm = { dur: v.dur, url: null, pos: 0, root: mk('div', 'voice'), btn: mk('button', 'vplay'), wave: mk('div', 'vwave'), d: mk('span', 'vdur', vLen(v.dur)) };
+  vm.btn.type = 'button'; vm.btn.innerHTML = '<svg class="i"><use href="#i-play"/></svg>'; vm.btn.setAttribute('aria-label', `Play the voice message, ${vLen(v.dur)}`);
+  for (let k = 0; k < VBARS; k++) vm.wave.appendChild(mk('i'));
+  vm.root.append(vm.btn, vm.wave, vm.d); b.body.replaceChildren(vm.root);
+  vm.btn.onclick = () => vNow === vm ? vStop() : vPlay(vm, vm.pos);
+  vm.wave.onclick = e => { const r = vm.wave.getBoundingClientRect(); vPlay(vm, Math.max(0, Math.min(0.99, (e.clientX - r.left) / r.width)) * vm.dur); };
+  if (v.y) vReady(vm, v.y);
+  else {
+    vm.btn.disabled = true;
+    voiceDecode(v.packets).then(y => { vReady(vm, y); vm.btn.disabled = false; }, () => { vm.d.textContent = `${vLen(v.dur)} · this browser cannot play it`; });
+  }
+  return vm;
+}
+function vReady(vm, y) {   // the bars, and the voice as a WAV file (16 bits: half the memory of the samples, which go)
+  vShape(vm, y); vm.url = URL.createObjectURL(wavBlob(y, VOICE_FS));
+}
+function vShape(vm, y) {   // the bars: the level of each thirtieth of the voice
+  const L = Math.max(1, Math.floor(y.length / VBARS)), e = [];
+  for (let k = 0; k < VBARS; k++) { let s = 0; for (let i = k * L; i < Math.min(y.length, (k + 1) * L); i++) s += y[i] * y[i]; e.push(Math.sqrt(s / L)); }
+  const top = Math.max(...e, 1e-6);
+  [...vm.wave.children].forEach((i, k) => { i.style.height = (100 * Math.max(0.12, Math.sqrt(e[k] / top))).toFixed(0) + '%'; });
+}
+function vIcon(vm, on) { vm.btn.querySelector('use').setAttribute('href', on ? '#i-pause' : '#i-play'); vm.btn.setAttribute('aria-label', on ? 'Pause' : `Play the voice message, ${vLen(vm.dur)}`); }
+function vPlay(vm, at) {
+  if (!vm.url || rec) return;
+  if (playingNow) { vm.d.textContent = 'after my message'; setTimeout(() => { if (vNow !== vm) vm.d.textContent = vm.pos ? mmss(vm.pos) : vLen(vm.dur); }, 1500); return; }   // the speaker is busy
+  if (!vAudio) { vAudio = new Audio(); vAudio.setAttribute('playsinline', ''); }
+  if (vNow === vm) { try { vAudio.currentTime = at; } catch (e) {} return; }   // a tap on the bars while it plays
+  vStop(); vNow = vm; vm.pos = at;
+  const a = vAudio; a.onended = () => { if (vNow === vm) vStop(true); };
+  a.src = vm.url;
+  if (at > 0) a.addEventListener('loadedmetadata', () => { try { a.currentTime = at; } catch (e) {} }, { once: true });
+  let r; try { r = a.play(); } catch (e) { r = Promise.reject(e); }
+  if (r && r.catch) r.catch(() => { if (vNow === vm) vStop(); });
+  vIcon(vm, true); cancelAnimationFrame(vRaf); vRaf = requestAnimationFrame(vTick);
+}
+function vTick() {
+  const vm = vNow; if (!vm) return;
+  const t = vAudio.currentTime || 0, f = Math.min(1, t / vm.dur);
+  vm.d.textContent = mmss(t);
+  [...vm.wave.children].forEach((i, k) => i.classList.toggle('on', (k + 0.5) / VBARS <= f));
+  vRaf = requestAnimationFrame(vTick);
+}
+function vStop(ended = false) {
+  const vm = vNow; if (!vm) return; vNow = null;
+  vAudio.onended = null; vm.pos = ended ? 0 : vAudio.currentTime || 0; vAudio.pause();
+  vIcon(vm, false); vm.d.textContent = vm.pos ? mmss(vm.pos) : vLen(vm.dur);
+  if (ended) [...vm.wave.children].forEach(i => i.classList.remove('on'));
+}
 
 // ---------- join, settings, invite ----------
 $('nickIn').value = nick; $('nickIn').placeholder = defNick;
@@ -4550,7 +4840,7 @@ $('nickHint').textContent = `Leave it empty to be ${defNick}.`;
 let wakeLock = null;
 async function wake() { try { if ('wakeLock' in navigator && !document.hidden) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (e) {} }
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
+  if (document.hidden) { recStop(true); return; }   // a recording ends with the page hidden (the microphone may stop)
   wake();
   if (actx && actx.state !== 'running') actx.resume().catch(() => {});
   if (stream && stream.getTracks().some(t => t.readyState === 'ended')) banner('The microphone stopped while the page was hidden.', 'Listen again', retryMic);
@@ -4588,12 +4878,14 @@ $('setDone').onclick = () => {
 const pageUrl = () => location.protocol === 'https:' ? location.origin + location.pathname + (group ? `?group=${group}` : '') : 'https://mention-ice.github.io/Bit2Noisy/chat/';
 $('inviteBtn').onclick = () => { const u = pageUrl(); drawQR($('qrCanvas'), u, 6); $('qrUrl').textContent = u; $('qr').classList.remove('hidden'); };
 $('qrDone').onclick = () => $('qr').classList.add('hidden');
-['settings', 'qr', 'prev'].forEach(id => $(id).addEventListener('click', e => { if (e.target === $(id)) $(id).classList.add('hidden'); }));
+['settings', 'qr'].forEach(id => $(id).addEventListener('click', e => { if (e.target === $(id)) $(id).classList.add('hidden'); }));
+$('prev').addEventListener('click', e => { if (e.target === $('prev')) closeSheet(); });
 
 // ---------- the status line, 5 times a second ----------
 setInterval(() => {
   let t = 'Not listening', c = 'off';
   if (playingNow) { t = 'Sending'; c = 'send'; }
+  else if (rec) { t = 'Recording'; c = 'send'; }
   else if (rx && rx.state !== 'search') { t = 'Receiving'; c = 'hear'; }
   else if (decoding > 0) { t = 'Decoding'; c = 'decode'; }
   else if (queue.length) { t = 'Waiting to send'; c = 'wait'; }
