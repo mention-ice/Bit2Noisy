@@ -213,6 +213,10 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
 .small,.card p.small{font-size:11.5px;color:var(--muted);margin-top:14px;text-align:center}
 #qrCanvas{display:block;margin:12px auto;background:#fff;padding:10px;border-radius:14px;max-width:100%}
 .prev img{display:block;max-width:100%;max-height:50vh;margin:4px auto 0;border-radius:14px}
+.more{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:4px;border:0;background:transparent;color:var(--accent);font-size:15px;font-weight:600;min-height:44px;cursor:pointer}
+.more::after{content:'';width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.more[aria-expanded="true"]::after{transform:translateY(2px) rotate(-135deg)}
+#prevOther .secondary:first-child{margin-top:0}
 .card label.check{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:14.5px;font-weight:400;min-height:44px}
 .check input{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin:0;flex:none;border:1.5px solid var(--field);border-radius:6px;background:var(--surface);display:grid;place-items:center;cursor:pointer}
 .check input:checked{background:var(--accent-fill);border-color:var(--accent-fill)}
@@ -334,6 +338,8 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <p id="prevInfo"></p>
     <button class="primary" id="prevFast"></button>
     <button class="secondary" id="prevRobust"></button>
+    <button class="more" id="prevMore" aria-expanded="false" aria-controls="prevOther">Other modes</button>
+    <div id="prevOther" class="hidden"></div>
     <button class="secondary" id="prevCancel">Cancel</button>
   </div></div>
 </div>
@@ -4412,7 +4418,7 @@ async function startMic() {   // -> true if listening
     actx.resume().catch(() => {});
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
   } catch (e) {
-    stream = null; banner('No microphone: this phone can send but not receive. Allow the microphone (the page must be opened over https), then', 'Try again', retryMic);
+    stream = null; banner('No microphone: this device can send but not receive. Allow the microphone (the page must be opened over https), then', 'Try again', retryMic);
     return false;
   }
   const a = actx, srcN = a.createMediaStreamSource(stream);
@@ -4450,7 +4456,7 @@ function scDecode(job, onPass) {
 let quietUntil = 0, playingNow = false, selfUntil = 0, decoding = 0;
 const pendings = [];   // {hdr, b, self, sc}: frames whose header was read, until they are done or lost
 const seen = new Map();   // "id:seq" -> time: a message heard twice is shown once
-const sentBySeq = new Map();   // my seq -> the item sent, to notice my own phone hearing it
+const sentBySeq = new Map();   // my seq -> the item sent, to notice my own microphone hearing it
 function makeRx() {
   rx = new Receiver(actx.sampleRate, { soft: 'cal', det: DET, effort: 'fast', est: 'ls' }, {
     onState: (s, info) => {
@@ -4506,7 +4512,7 @@ function shown(res, p) {   // a frame decoded: into the chat
   const e = m.env;
   if (e && e.ok && e.id === myId) {   // my own frame, through my own microphone
     if (b0) b0.el.remove();
-    const it = sentBySeq.get(e.seq); if (it) { it.heard = true; setPhys(it.b, `${it.desc} · ${it.dur.toFixed(1)} s of sound · my phone heard it${snrTxt(res)}`); }
+    const it = sentBySeq.get(e.seq); if (it) { it.heard = true; setPhys(it.b, `${it.desc} · ${it.dur.toFixed(1)} s of sound · my microphone heard it${snrTxt(res)}`); }
     volumeCheck(true); return;
   }
   if (!m.ok) {   // a chat frame whose CRC fails
@@ -4524,11 +4530,11 @@ function shown(res, p) {   // a frame decoded: into the chat
   setPhys(b, (m.voice ? voiceNote(m.voice.bytes, m.voice.dur) + ' · ' : '') + desc); place(b);
   if (document.hidden && navigator.vibrate) try { navigator.vibrate(60); } catch (err) {}
 }
-// my phone should hear its own frames: if the first ones go unheard, the volume is probably too low
+// this device should hear its own frames: if the first ones go unheard, the volume is probably too low
 let volOk = 0, volBad = 0;
 function volumeCheck(ok) {
-  if (ok) { volOk++; if ($('bannerTxt').textContent.startsWith('Your phone')) banner(''); return; }
-  volBad++; if (!volOk && volBad === 1 && stream) banner('Your phone did not hear its own message clearly: check the volume, and keep the speaker and the microphone uncovered.');
+  if (ok) { volOk++; if ($('bannerTxt').textContent.startsWith('This device')) banner(''); return; }
+  volBad++; if (!volOk && volBad === 1 && stream) banner('This device did not hear its own message clearly: check the volume, and keep the speaker and the microphone uncovered.');
 }
 
 // ---------- sending: wait for the room, then play ----------
@@ -4608,26 +4614,53 @@ EMOJI.forEach(s => { const b = mk('button', '', s); b.type = 'button'; b.onclick
   txt.selectionStart = txt.selectionEnd = a + s.length; grow(); if (!touch) txt.focus(); }; $('emojiBar').appendChild(b); });
 $('emoBtn').onclick = () => { const nb = nearBottom(), h = $('emojiBar').classList.toggle('hidden'); $('emoBtn').setAttribute('aria-pressed', String(!h)); if (nb) chatEl.scrollTop = chatEl.scrollHeight; };
 
-// the send sheet, for a picture or a voice message: in my mode (Fast when it is Robust), or Robust. prevItem: {kind: 'pic',
-// file, w, h, again} or {kind: 'voice', x, dur, enc, again}; one sent again keeps its sequence number (again), so a phone
-// that has it already shows it once
+// the send sheet, for a picture or a voice message: the two modes I pick most often, and Other modes for the rest (in the
+// order of Settings). prevItem: {kind: 'pic', file, w, h, again} or {kind: 'voice', x, dur, enc, again}, with secs (the
+// seconds of sound in a mode, or a promise of them); one sent again keeps its sequence number (again), so a phone that has
+// it already shows it once
 let prevItem = null;
-const firstMode = () => mode === 'robust' ? 'fast' : mode;
-function sheet(item, what, info, dF, dR) {
-  prevItem = item; const fast = firstMode();
+// modeUse: how often I picked each mode in the sheet, every pick counting 0.9 times the one after it (so the last ten or so
+// count). None yet: my mode (Fast when it is Robust), then Robust, as the sheet had them. Picking a mode in Settings puts it first.
+let modeUse = {};
+try { const u = JSON.parse(store.get('use', '{}')); if (u && typeof u === 'object') for (const k in u) if (CHAT_MODES[k] && u[k] > 0) modeUse[k] = +u[k]; } catch (e) {}
+function topModes() {
+  const pref = [mode === 'robust' ? 'fast' : mode, 'robust', ...Object.keys(CHAT_MODES)];
+  return Object.keys(CHAT_MODES).sort((a, b) => ((modeUse[b] || 0) - (modeUse[a] || 0)) || pref.indexOf(a) - pref.indexOf(b));
+}
+function usedMode(m) {
+  for (const k in modeUse) { modeUse[k] *= 0.9; if (modeUse[k] < 0.01) delete modeUse[k]; }
+  modeUse[m] = (modeUse[m] || 0) + 1; store.set('use', JSON.stringify(modeUse));
+}
+function pinMode(m) { modeUse[m] = Object.values(modeUse).reduce((a, b) => Math.max(a, b), 0) + 1; store.set('use', JSON.stringify(modeUse)); }
+const modeBtn = (b, m, s) => { b.dataset.m = m; b.textContent = `Send (${CHAT_MODES[m].label}, ${s.toFixed(1)} s of sound)`; };
+async function sheet(item, what, info) {
+  const [m1, m2] = topModes(), s1 = await item.secs(m1), s2 = await item.secs(m2);
+  prevItem = item;
   $('prevTitle').textContent = `Send this ${what}${item.again === null ? '' : ' again'}?`;
   $('prevInfo').textContent = info;
-  $('prevFast').textContent = `Send (${CHAT_MODES[fast].label}, ${dF.toFixed(1)} s of sound)`; $('prevFast').dataset.m = fast;
-  $('prevRobust').textContent = `Send (Robust, ${dR.toFixed(1)} s of sound)`; $('prevRobust').dataset.m = 'robust';
+  modeBtn($('prevFast'), m1, s1); modeBtn($('prevRobust'), m2, s2);
+  $('prevMore').setAttribute('aria-expanded', 'false'); $('prevOther').classList.add('hidden'); $('prevOther').replaceChildren();
   $('prevImg').classList.toggle('hidden', item.kind !== 'pic'); $('prevVoice').classList.toggle('hidden', item.kind !== 'voice');
   $('prev').classList.remove('hidden');
 }
+$('prevMore').onclick = async () => {
+  const it = prevItem, box = $('prevOther'); if (!it) return;
+  const open = box.classList.toggle('hidden') === false; $('prevMore').setAttribute('aria-expanded', String(open));
+  if (!open || box.childElementCount) return;
+  const shown = [$('prevFast').dataset.m, $('prevRobust').dataset.m];
+  for (const m of Object.keys(CHAT_MODES)) {
+    if (shown.includes(m)) continue;
+    let s; try { s = await it.secs(m); } catch (e) { continue; }
+    if (prevItem !== it) return;
+    const b = mk('button', 'secondary'); modeBtn(b, m, s); b.onclick = () => sendPrev(m); box.appendChild(b);
+  }
+};
 function closeSheet() { $('prev').classList.add('hidden'); prevItem = null; if (vNow && vNow.sheet) vStop(); }
 // pictures: scaled so that the longest side is 160 (or 320) pixels, through the modem's own JPEG coder (quality 50)
 function showPreview(file, w, h, again = null) {
   $('prevImg').src = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' }));
-  const dF = chatPictureFrame(env(), file, firstMode()).dur + 0.4, dR = chatPictureFrame(env(), file, 'robust').dur + 0.4;
-  sheet({ kind: 'pic', file, w, h, again }, 'picture', `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`, dF, dR);
+  const secs = m => chatPictureFrame(env(), file, m).dur + 0.4;
+  sheet({ kind: 'pic', file, w, h, again, secs }, 'picture', `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`);
 }
 $('picBtn').onclick = () => $('picIn').click();
 $('picIn').onchange = () => {
@@ -4646,6 +4679,7 @@ $('picIn').onchange = () => {
 };
 async function sendPrev(m) {
   const it = prevItem; closeSheet(); if (!it) return;
+  usedMode(m);
   const v = it.kind === 'voice' ? await voiceVersion(it, voiceKbps(m)) : null;   // coded already, for the sheet
   const b = bubble({ mine: true }), e = env(); if (it.again !== null) e.seq = it.again;
   if (v) setVoice(b, { y: v.y, dur: it.dur }); else setPicture(b, it.file);
@@ -4654,7 +4688,7 @@ async function sendPrev(m) {
   const f = chatVoiceFrame(e, v.body, m); f.note = voiceNote(v.body.length, it.dur); send(f, b, it);
 }
 $('prevFast').onclick = () => sendPrev($('prevFast').dataset.m);
-$('prevRobust').onclick = () => sendPrev('robust');
+$('prevRobust').onclick = () => sendPrev($('prevRobust').dataset.m);
 $('prevCancel').onclick = closeSheet;
 
 // ---------- voice messages ----------
@@ -4721,13 +4755,13 @@ async function voiceVersion(item, kbps) {   // the voice coded at kbps, once: {k
   if (!item.enc.has(kbps)) { const { packets, kbps: k } = await voiceEncode(item.x, kbps); item.enc.set(kbps, { kbps: k, packets, body: chatVoiceBody(packets, item.dur), y: await voiceDecode(packets) }); }
   return item.enc.get(kbps);
 }
-async function showVoice(item) {
-  const fast = firstMode(); let vF, vR;
-  try { vF = await voiceVersion(item, voiceKbps(fast)); vR = await voiceVersion(item, voiceKbps('robust')); }
+async function showVoice(item) {   // the sheet plays the voice as the first mode codes it
+  const m1 = topModes()[0]; let v;
+  item.secs = async m => chatVoiceFrame(env(), (await voiceVersion(item, voiceKbps(m))).body, m).dur + 0.4;
+  try { v = await voiceVersion(item, voiceKbps(m1)); await item.secs(topModes()[1]); }
   catch (e) { sys('This browser could not code the voice message.'); return; }
-  const dF = chatVoiceFrame(env(), vF.body, fast).dur + 0.4, dR = chatVoiceFrame(env(), vR.body, 'robust').dur + 0.4;
-  const vm = setVoice({ box: $('prevVoice'), body: $('prevVoice') }, { y: vF.y, dur: item.dur }); vm.sheet = true;
-  sheet(item, 'voice message', `${item.dur.toFixed(1)} s of voice, Opus ${vF.kbps} kbit/s: ${(vF.body.length / 1024).toFixed(1)} kB.`, dF, dR);
+  const vm = setVoice({ box: $('prevVoice'), body: $('prevVoice') }, { y: v.y, dur: item.dur }); vm.sheet = true;
+  sheet(item, 'voice message', `${item.dur.toFixed(1)} s of voice, Opus ${v.kbps} kbit/s: ${(v.body.length / 1024).toFixed(1)} kB.`);
 }
 
 // recording: every block the microphone gives also goes to the recording while one is under way
@@ -4869,7 +4903,7 @@ const MODE_HINT = {
   max: 'Wide OFDM, 256QAM, LDPC 3/4: the chat at its fastest, about 1.7 times Close by for pictures and voice messages. For phones side by side, lying still. Texts go as Fast.',
   sc: `Single carrier, 16QAM, LDPC 1/2, with training blocks: for rooms with long echo. Receivers use the ${DET === 'smap' ? 'SMAP' : 'linear MMSE'} detector.`,
 };
-seg($('modeSeg'), mode, v => { mode = v; store.set('mode', v); $('modeHint').textContent = MODE_HINT[v]; });
+seg($('modeSeg'), mode, v => { mode = v; store.set('mode', v); pinMode(v); $('modeHint').textContent = MODE_HINT[v]; });
 $('modeHint').textContent = MODE_HINT[mode];
 seg($('picSeg'), picSize, v => { picSize = v; store.set('pic', v); });
 $('setBtn').onclick = () => { $('nickIn2').value = nick; $('nickIn2').placeholder = defNick; $('groupIn').value = group; $('physChk').checked = physics; $('settings').classList.remove('hidden'); };
