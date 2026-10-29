@@ -4225,6 +4225,7 @@ function chatRead(res) {
       if (ve) return { from: 'chat', env: ve, ok: false };
     }
     const env = chatJpegEnvelope(file);
+    if (!env && !crcOk && !(file[0] === 0xff && file[1] === 0xd8)) return { from: 'damaged' };   // no picture, and damaged: a voice message that lost its first bytes, say
     return env && env.ok ? { from: 'chat', env, ok: true, file, crcOk } : { from: env ? 'chat' : 'page', env, ok: false, file, crcOk };
   }
   if (h.type === 'image') return { from: 'page', image: { w: h.w, h: h.h, bits: res.bits } };   // 1 bit per pixel, by columns, 1 = white
@@ -4518,7 +4519,8 @@ function shown(res, p) {   // a frame decoded: into the chat
   if (!m.ok) {   // a chat frame whose CRC fails
     if (p && p.self) { if (b0) b0.el.remove(); volumeCheck(false); return; }
     if (b0) b0.el.remove();
-    sys(`🔇 A message${e && e.nick ? ' from ' + e.nick : ''} arrived damaged.`); return;
+    const what = e && e.kind === CHAT_KIND.voice ? 'voice message' : e && e.kind === CHAT_KIND.picture ? 'picture' : 'message';   // as the envelope says, though it fails its CRC
+    sys(`🔇 A ${what}${e && e.nick ? ' from ' + e.nick : ''} arrived damaged.`); return;
   }
   if (e.group !== group) { if (b0) b0.el.remove(); return; }   // another group in the room
   const key = `${e.id}:${e.seq}`, now = Date.now();
