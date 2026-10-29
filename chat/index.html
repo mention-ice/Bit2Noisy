@@ -304,7 +304,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <label for="nickIn2">Nickname</label>
     <input type="text" id="nickIn2" maxlength="24" autocapitalize="words">
     <label>How my messages sound</label>
-    <div class="seg" id="modeSeg"><button data-v="robust">Robust</button><button data-v="fast">Fast</button><button data-v="close">Close by</button><button data-v="sc">Single carrier</button></div>
+    <div class="seg" id="modeSeg"><button data-v="robust">Robust</button><button data-v="fast">Fast</button><button data-v="close">Close by</button><button data-v="max">Max speed</button><button data-v="sc">Single carrier</button></div>
     <div class="hint" id="modeHint"></div>
     <label>Pictures I send</label>
     <div class="seg" id="picSeg"><button data-v="small">Small · 160 px</button><button data-v="medium">Medium · 320 px</button></div>
@@ -4090,11 +4090,15 @@ const CHAT_TEXT_MAX = 600;     // bytes of a text (UTF-8); a v7 text frame carri
 // with long echo; its receiver is the linear MMSE detector unless the page is opened with ?det=smap. Close by (v7.21):
 // wide OFDM, 2.3 to 20.5 kHz with symbols 8 times longer and the same 21 ms guard, 64QAM, LDPC 1/2: 2.8 times Fast's
 // rate. Through the recorded rooms of the modem's tests it decoded a few centimetres and 30 cm from the speaker, but
-// not 80 cm away in a room with long echo; OFDM needs no equalizer, so it decodes as quickly as the others.
+// not 80 cm away in a room with long echo; OFDM needs no equalizer, so it decodes as quickly as the others. Max speed:
+// the same wide OFDM with 256QAM and LDPC 3/4, 1.6 to 1.8 times Close by for pictures and voice messages of 10 to 30 kB.
+// Replayed through the 20 rooms recorded on 2026-10-24 with an iPhone next to a Mac, a 15 kB picture decoded in 18
+// (Close by: 20; the short guard at 256QAM 3/4: none), so it is for phones side by side, lying still.
 const CHAT_MODES = {
   robust: { label: 'Robust', cfg: { mod: 'ofdm', map: 'qpsk', guard: 'long', code: 'ldpc' } },
   fast: { label: 'Fast', cfg: { mod: 'ofdm', map: '16qam', guard: 'long', code: 'ldpc' } },
   close: { label: 'Close by', cfg: { mod: 'ofdm', band: 'wide', map: '64qam', guard: 'long', code: 'ldpc' } },
+  max: { label: 'Max speed', cfg: { mod: 'ofdm', band: 'wide', map: '256qam', guard: 'long', code: 'ldpc34' } },
   sc: { label: 'Single carrier', cfg: { mod: 'sc', map: '16qam', code: 'ldpc', train: 'medium', band: 'usual' } },
 };
 const CHAT_PIC = { small: 160, medium: 320 };   // a picture's longest side, pixels
@@ -4139,7 +4143,7 @@ function chatJpegEnvelope(file) {   // the envelope of a chat picture, or null
   return L >= 2 && 4 + L <= file.length ? chatUnpack(file.subarray(6, 4 + L)) : null;
 }
 function chatTextFrame(e, mode) {   // e: {group, id, seq, nick, text} -> the v7 frame
-  if (mode === 'close') mode = 'fast';   // v7.21: Close by sends its texts as Fast: one wide OFDM symbol (0.19 s) holds more than a text, so it is no quicker
+  if (mode === 'close' || mode === 'max') mode = 'fast';   // v7.21: Close by (and Max speed) sends its texts as Fast: one wide OFDM symbol (0.19 s) holds more than a text, so it is no quicker
   const env = chatPack({ ...e, kind: CHAT_KIND.text, body: chatUtf8(chatClip(e.text, CHAT_TEXT_MAX)) });
   const f = buildFrame({ type: 'text', text: chatBytesText(env) }, chatCfg(mode)); f.chatMode = mode; return f;
 }
@@ -4608,7 +4612,7 @@ $('emoBtn').onclick = () => { const nb = nearBottom(), h = $('emojiBar').classLi
 // file, w, h, again} or {kind: 'voice', x, dur, enc, again}; one sent again keeps its sequence number (again), so a phone
 // that has it already shows it once
 let prevItem = null;
-const firstMode = () => mode === 'sc' || mode === 'close' ? mode : 'fast';
+const firstMode = () => mode === 'robust' ? 'fast' : mode;
 function sheet(item, what, info, dF, dR) {
   prevItem = item; const fast = firstMode();
   $('prevTitle').textContent = `Send this ${what}${item.again === null ? '' : ' again'}?`;
@@ -4656,13 +4660,13 @@ $('prevCancel').onclick = closeSheet;
 // ---------- voice messages ----------
 // Recorded from the microphone the chat listens with (no echo cancelling, no gain control), brought to a steady level,
 // then coded by the browser's own Opus coder (WebCodecs: Safari 26, Chrome, Edge, Firefox 130 and later), 60 ms per
-// packet: 8 kbit/s (narrowband, as a phone call), or 16 kbit/s (the full band) to go Close by. The sheet and my bubble play
+// packet: 8 kbit/s (narrowband, as a phone call), or 16 kbit/s (the full band) to go Close by or Max speed. The sheet and my bubble play
 // the coded voice, as the others hear it. A browser without WebCodecs audio has no microphone button; it plays voice
 // messages through an Ogg file if it decodes Opus files.
 const VOICE_MAX = 20;   // s of voice at most: about 20 kB at 8 kbit/s, 10.5 s of sound in Fast
 const VOICE_FS = 48000, VBARS = 30;
 const VOICE_DEC = params.get('voicedec');   // 'ogg': decode as a browser without WebCodecs audio does (tests)
-const voiceKbps = m => m === 'close' ? 16 : 8;
+const voiceKbps = m => m === 'close' || m === 'max' ? 16 : 8;
 const voiceNote = (bytes, dur) => `Opus ${(8 * bytes / Math.max(0.1, dur) / 1000).toFixed(1)} kbit/s`;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`, vLen = d => mmss(Math.round(d));   // a time, and a whole message's length
 async function opusConfig(kbps) {   // the first setting the browser takes: all of them, then fewer, then higher rates
@@ -4862,6 +4866,7 @@ const MODE_HINT = {
   robust: 'OFDM, QPSK, LDPC 1/2: about 0.4 s for a short text. Works in most rooms.',
   fast: 'OFDM, 16QAM, LDPC 1/2: twice the speed, for pictures when the phones are close.',
   close: 'Wide OFDM (v7.21), 2.3–20.5 kHz, 64QAM, LDPC 1/2: almost 3 times Fast, for phones within about 30 cm of each other. Texts go as Fast, which is as quick for them.',
+  max: 'Wide OFDM, 256QAM, LDPC 3/4: the chat at its fastest, about 1.7 times Close by for pictures and voice messages. For phones side by side, lying still. Texts go as Fast.',
   sc: `Single carrier, 16QAM, LDPC 1/2, with training blocks: for rooms with long echo. Receivers use the ${DET === 'smap' ? 'SMAP' : 'linear MMSE'} detector.`,
 };
 seg($('modeSeg'), mode, v => { mode = v; store.set('mode', v); $('modeHint').textContent = MODE_HINT[v]; });
