@@ -97,6 +97,8 @@ header{background:var(--surface);border-bottom:1px solid var(--line)}
 .meta{position:absolute;right:10px;bottom:5px;display:flex;align-items:center;gap:4px;font-size:11px;line-height:1;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .line.mine .meta{color:var(--mine-meta)}
 .tick{font-size:12px}
+.resend{font:inherit;color:inherit;background:none;border:0;padding:10px 6px;margin:-10px 2px -10px -6px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.resend[hidden]{display:none}
 .phys{font-size:11.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
 .line.mine .phys{color:var(--mine-meta)}
 .msg.has-phys .txt::after{display:none}
@@ -289,7 +291,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
 
 <div class="overlay hidden" id="prev">
   <div class="card"><div class="in prev">
-    <h2>Send this picture?</h2>
+    <h2 id="prevTitle">Send this picture?</h2>
     <img id="prevImg" alt="Picture to send">
     <p id="prevInfo"></p>
     <button class="primary" id="prevFast"></button>
@@ -4463,12 +4465,21 @@ function setTick(it, s) {
   it.state = s;
   it.b.tick.textContent = { queued: '◷', wait: '◷', sending: '♪', sent: '✓', fail: '!' }[s] || '';
   it.b.tick.title = { queued: 'waiting to send', wait: 'waiting for the room to be quiet', sending: 'playing now', sent: 'played', fail: 'not played' }[s] || '';
+  if (it.resend) it.resend.hidden = s !== 'sent' && s !== 'fail';   // once played (or not), the picture can go again
 }
-function send(frame, b) {
-  const c = chatCfg(frame.chatMode), it = { frame, b, seq, desc: frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + 0.4 };
+function send(frame, b, pic = null) {   // pic (a picture): {file, w, h, again: the sequence number of the copy sent before, or null}
+  const again = pic && pic.again !== null, s = again ? pic.again : seq;
+  const c = chatCfg(frame.chatMode), it = { frame, b, seq: s, pic, desc: frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + 0.4 };
   setPhys(b, `${it.desc} · ${it.dur.toFixed(1)} s of sound`);
-  sentBySeq.set(seq, it); seq = (seq + 1) & 255; store.set('seq', seq);
+  sentBySeq.set(s, it); if (!again) { seq = (seq + 1) & 255; store.set('seq', seq); }
+  if (pic) resendBtn(it);
   setTick(it, 'queued'); queue.push(it); pump();
+}
+function resendBtn(it) {   // my picture: Resend opens the send sheet with it again, so it need not be picked again
+  const r = mk('button', 'resend', 'Resend'); r.type = 'button'; r.hidden = true;
+  r.setAttribute('aria-label', 'Send this picture again');
+  r.onclick = () => showPreview(it.pic.file, it.pic.w, it.pic.h, it.seq);
+  it.b.meta.prepend(r); it.resend = r;
 }
 const env = () => ({ group, id: myId, seq, nick: myNick() });
 function sendText() {
@@ -4497,7 +4508,17 @@ EMOJI.forEach(s => { const b = mk('button', '', s); b.type = 'button'; b.onclick
 $('emoBtn').onclick = () => { const nb = nearBottom(), h = $('emojiBar').classList.toggle('hidden'); $('emoBtn').setAttribute('aria-pressed', String(!h)); if (nb) chatEl.scrollTop = chatEl.scrollHeight; };
 
 // pictures: scaled so that the longest side is 160 (or 320) pixels, through the modem's own JPEG coder (quality 50)
-let prevFile = null;
+let prevFile = null, prevW = 0, prevH = 0, prevSeq = null;   // prevSeq: a picture sent again keeps its sequence number, so a phone that has it already shows it once
+function showPreview(file, w, h, again = null) {
+  prevFile = file; prevW = w; prevH = h; prevSeq = again;
+  $('prevTitle').textContent = again === null ? 'Send this picture?' : 'Send this picture again?';
+  $('prevImg').src = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' }));
+  const fast = mode === 'sc' || mode === 'close' ? mode : 'fast', dF = chatPictureFrame(env(), file, fast).dur + 0.4, dR = chatPictureFrame(env(), file, 'robust').dur + 0.4;
+  $('prevInfo').textContent = `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`;
+  $('prevFast').textContent = `Send (${CHAT_MODES[fast].label}, ${dF.toFixed(1)} s of sound)`; $('prevFast').dataset.m = fast;
+  $('prevRobust').textContent = `Send (Robust, ${dR.toFixed(1)} s of sound)`; $('prevRobust').dataset.m = 'robust';
+  $('prev').classList.remove('hidden');
+}
 $('picBtn').onclick = () => $('picIn').click();
 $('picIn').onchange = () => {
   const f = $('picIn').files[0]; $('picIn').value = ''; if (!f) return;
@@ -4507,13 +4528,8 @@ $('picIn').onchange = () => {
     const cv = mk('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.drawImage(im, 0, 0, w, h);
     let q = 50, file = jpegEncode(g.getImageData(0, 0, w, h).data, w, h, q);
     while (file.length > 24000 && q > 15) file = jpegEncode(g.getImageData(0, 0, w, h).data, w, h, q -= 10);
-    prevFile = file; URL.revokeObjectURL(im.src);
-    $('prevImg').src = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' }));
-    const fast = mode === 'sc' || mode === 'close' ? mode : 'fast', dF = chatPictureFrame(env(), file, fast).dur + 0.4, dR = chatPictureFrame(env(), file, 'robust').dur + 0.4;
-    $('prevInfo').textContent = `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`;
-    $('prevFast').textContent = `Send (${CHAT_MODES[fast].label}, ${dF.toFixed(1)} s of sound)`; $('prevFast').dataset.m = fast;
-    $('prevRobust').textContent = `Send (Robust, ${dR.toFixed(1)} s of sound)`; $('prevRobust').dataset.m = 'robust';
-    $('prev').classList.remove('hidden');
+    URL.revokeObjectURL(im.src);
+    showPreview(file, w, h);
   };
   im.onerror = () => sys('This browser cannot open that picture.');
   im.src = URL.createObjectURL(f);
@@ -4521,11 +4537,12 @@ $('picIn').onchange = () => {
 function sendPicture(m) {
   $('prev').classList.add('hidden'); if (!prevFile) return;
   const b = bubble({ mine: true }); setPicture(b, prevFile); add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
-  send(chatPictureFrame(env(), prevFile, m), b); prevFile = null;
+  const e = env(); if (prevSeq !== null) e.seq = prevSeq;
+  send(chatPictureFrame(e, prevFile, m), b, { file: prevFile, w: prevW, h: prevH, again: prevSeq }); prevFile = null; prevSeq = null;
 }
 $('prevFast').onclick = () => sendPicture($('prevFast').dataset.m);
 $('prevRobust').onclick = () => sendPicture('robust');
-$('prevCancel').onclick = () => { $('prev').classList.add('hidden'); prevFile = null; };
+$('prevCancel').onclick = () => { $('prev').classList.add('hidden'); prevFile = null; prevSeq = null; };
 
 // ---------- join, settings, invite ----------
 $('nickIn').value = nick; $('nickIn').placeholder = defNick;
