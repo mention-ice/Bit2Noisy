@@ -2,6 +2,21 @@
 <!-- Bit2Noisy, data over sound (built on Acoustic Modem v7). © 2026 Sheng Yang. All rights reserved. -->
 <html lang="en">
 <head>
+<script>
+// View: "simple" (the default: write, send, listen) or "lab" (every modem setting and measurement).
+// ?view=lab or ?view=simple wins; a link that carries modem settings opens the lab; then the last choice on this device.
+(function () {
+  var v = 'simple';
+  try {
+    var p = new URLSearchParams(location.search), q = p.get('view');
+    if (q === 'lab' || q === 'simple') v = q;
+    else if (['mod', 'tones', 'rate', 'pre', 'code', 'guard', 'map', 'train', 'band', 'det', 'effort', 'est', 'img', 'pic', 'q', 'ctl'].some(function (k) { return p.has(k); })) v = 'lab';
+    else { var s = localStorage.getItem('b2nView'); if (s === 'lab' || s === 'simple') v = s; }
+  } catch (e) {}
+  window.B2N_VIEW = v;
+  if (v === 'simple') document.documentElement.classList.add('simple');
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bit2Noisy</title>
@@ -135,6 +150,22 @@ details .row{margin:8px 0}
 .faxis span{position:absolute;left:0;font-size:10px;line-height:1;color:#fff;opacity:.75;transform:translateY(-50%);font-variant-numeric:tabular-nums}
 .faxis span::before{content:'';display:inline-block;width:5px;height:1px;background:#fff;margin-right:3px;vertical-align:middle}
 .rawtext{font-size:15px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word;margin-top:4px}
+/* simple view: what is hidden, and what only it shows */
+html.simple .lab,html.simple #txOpts,html.simple #txRate,html.simple #wavBtn,html.simple #picRow,html.simple #jqRow,
+html.simple #msgSeg button[data-v="sound"],html.simple #rxFs,html.simple #stats,html.simple #statsHelp,
+html.simple #ofdmOut,html.simple #scOut,html.simple #sndOut,html.simple #hist,html.simple #histLegend,
+html.simple #irBtn,html.simple #recBtn,html.simple #corr,html.simple #corr+.legend,html.simple #rxCard>details{display:none!important}
+html:not(.simple) .simpleonly{display:none!important}
+header .seg{border-color:rgba(255,255,255,.55)}
+header .seg button{color:var(--brand-ink);padding:9px 14px;font-size:inherit}
+header .seg button[aria-pressed="true"]{background:#fff;color:#86144f}
+.steps{max-width:1200px;margin:0 auto 12px;padding:0 16px}
+.steps ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;counter-reset:step}
+.steps li{counter-increment:step;display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;line-height:1.3}
+.steps li::before{content:counter(step);flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.steps b{display:block}
+.linkbtn{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}
+@media (max-width:860px){.steps ol{grid-template-columns:1fr;gap:6px}.steps li{padding:8px 12px}.steps li span{display:none}}
 </style>
 </head>
 <body>
@@ -150,11 +181,16 @@ details .row{margin:8px 0}
 </div></div>
 <div class="hd">
   <div>
-    <p class="sub">Data over sound: one device plays a frame through its speaker, and every device in the room decodes it through its microphone, with FSK, OFDM or a single carrier with SMAP detection.</p>
+    <p class="sub">Data over sound: one device plays a frame through its speaker, and every device in the room decodes it through its microphone<span class="lab">, with FSK, OFDM or a single carrier with SMAP detection</span>.</p>
   </div>
-  <div class="hdbtns"><a class="btn" href="chat/">Bit2Noisy Chat</a><button class="btn" id="qrBtn">QR code for phones</button></div>
+  <div class="hdbtns"><span class="seg" id="viewSeg" role="group" aria-label="View"><button data-v="simple">Simple</button><button data-v="lab">Lab</button></span><a class="btn" href="chat/">Bit2Noisy Chat</a><button class="btn" id="qrBtn">QR code for phones</button></div>
 </div></header>
 <div id="qrOverlay" class="overlay hidden"><div class="qrbox"><canvas id="qrCanvas"></canvas><p id="qrUrl"></p><p>Scan to open the receiver. It needs no settings. Click to close.</p></div></div>
+<div class="steps simpleonly"><ol>
+  <li><div><b>Open this page on a second device</b><span class="muted">The QR code button gives its address.</span></div></li>
+  <li><div><b>Press Start listening there</b><span class="muted">Allow the microphone when the browser asks.</span></div></li>
+  <li><div><b>Write a message here and press Send</b><span class="muted">Turn the volume up: the message travels as sound.</span></div></li>
+</ol></div>
 <div class="roles"><span class="seg" id="roleSeg"><button data-v="tx">Transmit</button><button data-v="rx">Receive</button></span></div>
 
 <main id="main" data-role="rx">
@@ -166,7 +202,7 @@ details .row{margin:8px 0}
     <div class="imgbox">
       <canvas id="txCanvas" class="pix" width="80" height="54"></canvas>
       <div>
-        <div class="row"><span class="muted">Size</span><span class="seg" id="sizeSeg"><button data-v="1">Normal</button><button data-v="2">Large, 2×</button><button data-v="4">Huge, 4×</button><button class="big" data-v="8">8×</button><button class="big" data-v="16">16×</button></span></div>
+        <div class="row lab"><span class="muted">Size</span><span class="seg" id="sizeSeg"><button data-v="1">Normal</button><button data-v="2">Large, 2×</button><button data-v="4">Huge, 4×</button><button class="big" data-v="8">8×</button><button class="big" data-v="16">16×</button></span></div>
         <div class="row" id="picRow"><span class="muted">Picture</span><span class="seg" id="picSeg"><button data-v="bits">1 bit per pixel</button><button data-v="jpeg">JPEG</button><button class="pf" data-v="file">File as it is</button></span></div>
         <div class="row hidden" id="jqRow"><span class="muted">JPEG quality</span><span class="seg" id="jqSeg"><button data-v="25">25</button><button data-v="50">50</button><button data-v="75">75</button></span></div>
         <div id="drawTools" class="hidden">
@@ -208,6 +244,7 @@ details .row{margin:8px 0}
   <div class="progress"><div id="txProg"></div></div>
   <p class="muted" id="txStatus">Start listening on the receiver first, then press Send.</p>
   <p class="muted hidden" id="teleTx"></p>
+  <p class="muted simpleonly">Curious about what happens underneath? The <button class="linkbtn" id="labLink">lab view</button> lets you choose the error-correcting code, the modulation and the rate, and shows what the receiver measures.</p>
   <details>
     <summary>How it works</summary>
     <p class="muted">A frame has two parts. The <b>control part</b> is sent at 400 bit/s, at 4 / 8 kHz or hopping, two modes every receiver knows in advance: 0.1 s warm-up · MLS preamble · header (OFDM and the single carrier have a shorter one by default since v6: see below). The <b>message part</b> uses the tones and rate chosen on the transmitter: coded and scrambled message · MLS postamble (the same sequence as the preamble).
@@ -4114,9 +4151,8 @@ function seg(el, value, onPick) {
 function ctx() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; }
 function syncUrl() { const u = new URL(location.href); u.searchParams.set('mod', cfg.mod); u.searchParams.set('tones', cfg.tones); u.searchParams.set('rate', cfg.rate); u.searchParams.set('pre', cfg.pre); u.searchParams.set('code', cfg.code); if (cfg.mod === 'ofdm') u.searchParams.set('guard', cfg.guard); else u.searchParams.delete('guard'); if (cfg.mod === 'ofdm' || cfg.mod === 'sc') u.searchParams.set('map', cfg.map); else u.searchParams.delete('map'); if (cfg.mod === 'sc') u.searchParams.set('train', cfg.train); else u.searchParams.delete('train'); if ((cfg.mod === 'sc' || cfg.mod === 'ofdm') && cfg.band !== 'usual') u.searchParams.set('band', cfg.band); else u.searchParams.delete('band'); if (imgScale > 1) u.searchParams.set('img', { 2: 'large', 4: 'huge', 8: 'x8', 16: 'x16' }[imgScale]); else u.searchParams.delete('img'); if (picFmt !== 'bits') { u.searchParams.set('pic', picFmt); u.searchParams.set('q', jpegQ); } else { u.searchParams.delete('pic'); u.searchParams.delete('q'); } if ((cfg.mod === 'ofdm' || cfg.mod === 'sc') && cfg.control === 'long') u.searchParams.set('ctl', 'long'); else u.searchParams.delete('ctl'); history.replaceState(null, '', u); }
 // QR code: the online copy of this page (also when the laptop runs it from a local file); receivers need no settings
-function phoneUrl() {   // from a local file: the published page
-  if (location.protocol === 'https:') return location.origin + location.pathname;
-  return PAGE_SITE;
+function phoneUrl() {   // from a local file: the published page; from the lab view, phones open the lab view too
+  return (location.protocol === 'https:' ? location.origin + location.pathname : PAGE_SITE) + (view === 'lab' ? '?view=lab' : '');
 }
 $('qrBtn').onclick = () => { const u = phoneUrl(); drawQR($('qrCanvas'), u); $('qrUrl').textContent = u; $('qrOverlay').classList.remove('hidden'); };
 $('qrOverlay').onclick = () => $('qrOverlay').classList.add('hidden');
@@ -4178,6 +4214,20 @@ guardLabels(); trainLabels();
 const role = matchMedia('(max-width:860px)').matches && params.get('role') === 'tx' ? 'tx' : 'rx';
 $('main').dataset.role = role;
 seg($('roleSeg'), role, v => { $('main').dataset.role = v; });
+
+// ---------- view: simple or lab (decided in the head, before the first paint) ----------
+let view = window.B2N_VIEW === 'lab' ? 'lab' : 'simple';
+function setView(v) {   // the user's choice: kept on this device and in the address
+  view = v; document.documentElement.classList.toggle('simple', v === 'simple');
+  $('viewSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  try { localStorage.setItem('b2nView', v); } catch (e) {}
+  const u = new URL(location.href); u.searchParams.set('view', v); history.replaceState(null, '', u);
+  if (v === 'simple' && msgMode === 'sound') $('msgSeg').querySelector('[data-v="text"]').click();   // room sounding is a lab tool
+  if (v === 'lab') { const r = $('logBody').querySelector('tr'); if (r) r.click(); }   // the plots of the last frame were not drawn while hidden: show it again
+}
+$('viewSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === view)));
+$('viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+$('labLink').onclick = () => setView('lab');
 
 // ---------- transmitter ----------
 const pad = { h: 32 * sc4(), w: 32 * sc4(), pixels: new Uint8Array(1024 * sc4() * sc4()).fill(1) };
