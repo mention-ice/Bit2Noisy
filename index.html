@@ -2,6 +2,21 @@
 <!-- Bit2Noisy, data over sound (built on Acoustic Modem v7). © 2026 Sheng Yang. All rights reserved. -->
 <html lang="en">
 <head>
+<script>
+// View: "simple" (the default: write, send, listen) or "lab" (every modem setting and measurement).
+// ?view=lab or ?view=simple wins; a link that carries modem settings opens the lab; then the last choice on this device.
+(function () {
+  var v = 'simple';
+  try {
+    var p = new URLSearchParams(location.search), q = p.get('view');
+    if (q === 'lab' || q === 'simple') v = q;
+    else if (['mod', 'tones', 'rate', 'pre', 'code', 'guard', 'map', 'train', 'band', 'det', 'effort', 'est', 'img', 'pic', 'q', 'ctl'].some(function (k) { return p.has(k); })) v = 'lab';
+    else { var s = localStorage.getItem('b2nView'); if (s === 'lab' || s === 'simple') v = s; }
+  } catch (e) {}
+  window.B2N_VIEW = v;
+  if (v === 'simple') document.documentElement.classList.add('simple');
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bit2Noisy</title>
@@ -48,12 +63,12 @@ h1{font:700 23px/1.25 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",s
 .b2n{margin:0;line-height:0}.b2n svg{height:58px;width:auto;display:block}
 .inst{display:flex;align-items:center;gap:18px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.ice{display:flex;align-items:center;gap:12px;color:#1c1722}
+.ice{display:flex;align-items:center;gap:12px;color:#1c1722;text-decoration:none}
 .ice svg{height:44px;width:auto;display:block;flex:none}
 .ice span{font:700 15px/1.2 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
 .cs{height:60px;width:auto;display:block}
 @media (max-width:520px){.b2n svg{height:46px}.inst{gap:10px}.ice svg{height:30px}.ice{gap:8px}.ice span{font-size:12px}.cs{height:42px}}
-.sub{color:var(--brand-ink);opacity:.9;margin:0;font-size:16px}.hd>div{flex:1 1 420px}
+.sub{color:var(--brand-ink);opacity:.9;margin:0;font-size:16px}.hd>div{flex:1 1 420px}.hd>.hdbtns{flex:0 1 auto;display:flex;flex-wrap:wrap;gap:10px}.hdbtns a.btn{text-decoration:none;display:inline-block}
 header .btn{background:transparent;color:var(--brand-ink);border-color:rgba(255,255,255,.55)}
 .opts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px}
 .opts>.muted:nth-child(odd){max-width:8.5em}
@@ -135,26 +150,47 @@ details .row{margin:8px 0}
 .faxis span{position:absolute;left:0;font-size:10px;line-height:1;color:#fff;opacity:.75;transform:translateY(-50%);font-variant-numeric:tabular-nums}
 .faxis span::before{content:'';display:inline-block;width:5px;height:1px;background:#fff;margin-right:3px;vertical-align:middle}
 .rawtext{font-size:15px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word;margin-top:4px}
+/* simple view: what is hidden, and what only it shows */
+html.simple .lab,html.simple #txOpts,html.simple #txRate,html.simple #wavBtn,html.simple #picRow,html.simple #jqRow,
+html.simple #msgSeg button[data-v="sound"],html.simple #rxFs,html.simple #stats,html.simple #statsHelp,
+html.simple #ofdmOut,html.simple #scOut,html.simple #sndOut,html.simple #hist,html.simple #histLegend,
+html.simple #irBtn,html.simple #recBtn,html.simple #corr,html.simple #corr+.legend,html.simple #rxCard>details{display:none!important}
+html:not(.simple) .simpleonly{display:none!important}
+header .seg{border-color:rgba(255,255,255,.55)}
+header .seg button{color:var(--brand-ink);padding:9px 14px;font-size:inherit}
+header .seg button[aria-pressed="true"]{background:#fff;color:#86144f}
+.steps{max-width:1200px;margin:0 auto 12px;padding:0 16px}
+.steps ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;counter-reset:step}
+.steps li{counter-increment:step;display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;line-height:1.3}
+.steps li::before{content:counter(step);flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.steps b{display:block}
+.linkbtn{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}
+@media (max-width:860px){.steps ol{grid-template-columns:1fr;gap:6px}.steps li{padding:8px 12px}.steps li span{display:none}}
 </style>
 </head>
 <body>
 <header><div class="logos"><div>
   <h1 class="b2n"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="206 0 655 220"><g transform="translate(206,0)"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></g></svg></h1>
   <div class="inst">
-  <div class="ice" role="img" aria-label="Mention ICE, Information &amp; Communication Engineering">
+  <a class="ice" href="https://mention-ice.github.io/" aria-label="Mention ICE, Information &amp; Communication Engineering: home page">
     <svg viewBox="226 116 444 230" aria-hidden="true"><circle cx="253.5" cy="142.5" r="22.5" fill="#86144F"/><path d="M253.5 207V315" stroke="#1C1722" stroke-width="42" stroke-linecap="round"/><path d="M487.1 161.2A92 92 0 1 0 487.1 302.2" fill="none" stroke="#86144F" stroke-width="36" stroke-linecap="round"/><path d="M454.2 198.2A42.5 42.5 0 1 0 454.2 265.2" fill="none" stroke="#706A7F" stroke-width="19" stroke-linecap="round"/><circle cx="428" cy="231.7" r="11" fill="#1C1722"/><path d="M573.3 146H645.7M573.3 317.5H645.7" stroke="#1C1722" stroke-width="38.5" stroke-linecap="round"/><path d="M573.3 232H608.7" stroke="#706A7F" stroke-width="38.5" stroke-linecap="round"/></svg>
     <span aria-hidden="true">Information &amp;<br>Communication Engineering</span>
-  </div>
+  </a>
   <img class="cs" alt="CentraleSupélec" width="390" height="200" src="data:image/png;base64,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">
   </div>
 </div></div>
 <div class="hd">
   <div>
-    <p class="sub">Data over sound: one device plays a frame through its speaker, and every device in the room decodes it through its microphone, with FSK, OFDM or a single carrier with SMAP detection.</p>
+    <p class="sub">Data over sound: one device plays a frame through its speaker, and every device in the room decodes it through its microphone<span class="lab">, with FSK, OFDM or a single carrier with SMAP detection</span>.</p>
   </div>
-  <button class="btn" id="qrBtn">QR code for phones</button>
+  <div class="hdbtns"><span class="seg" id="viewSeg" role="group" aria-label="View"><button data-v="simple">Simple</button><button data-v="lab">Lab</button></span><a class="btn" href="chat/">Bit2Noisy Chat</a><button class="btn" id="qrBtn">QR code for phones</button></div>
 </div></header>
 <div id="qrOverlay" class="overlay hidden"><div class="qrbox"><canvas id="qrCanvas"></canvas><p id="qrUrl"></p><p>Scan to open the receiver. It needs no settings. Click to close.</p></div></div>
+<div class="steps simpleonly"><ol>
+  <li><div><b>Open this page on a second device</b><span class="muted">The QR code button gives its address.</span></div></li>
+  <li><div><b>Press Start listening there</b><span class="muted">Allow the microphone when the browser asks.</span></div></li>
+  <li><div><b>Write a message here and press Send</b><span class="muted">Turn the volume up: the message travels as sound.</span></div></li>
+</ol></div>
 <div class="roles"><span class="seg" id="roleSeg"><button data-v="tx">Transmit</button><button data-v="rx">Receive</button></span></div>
 
 <main id="main" data-role="rx">
@@ -166,7 +202,7 @@ details .row{margin:8px 0}
     <div class="imgbox">
       <canvas id="txCanvas" class="pix" width="80" height="54"></canvas>
       <div>
-        <div class="row"><span class="muted">Size</span><span class="seg" id="sizeSeg"><button data-v="1">Normal</button><button data-v="2">Large, 2×</button><button data-v="4">Huge, 4×</button><button class="big" data-v="8">8×</button><button class="big" data-v="16">16×</button></span></div>
+        <div class="row lab"><span class="muted">Size</span><span class="seg" id="sizeSeg"><button data-v="1">Normal</button><button data-v="2">Large, 2×</button><button data-v="4">Huge, 4×</button><button class="big" data-v="8">8×</button><button class="big" data-v="16">16×</button></span></div>
         <div class="row" id="picRow"><span class="muted">Picture</span><span class="seg" id="picSeg"><button data-v="bits">1 bit per pixel</button><button data-v="jpeg">JPEG</button><button class="pf" data-v="file">File as it is</button></span></div>
         <div class="row hidden" id="jqRow"><span class="muted">JPEG quality</span><span class="seg" id="jqSeg"><button data-v="25">25</button><button data-v="50">50</button><button data-v="75">75</button></span></div>
         <div id="drawTools" class="hidden">
@@ -208,6 +244,7 @@ details .row{margin:8px 0}
   <div class="progress"><div id="txProg"></div></div>
   <p class="muted" id="txStatus">Start listening on the receiver first, then press Send.</p>
   <p class="muted hidden" id="teleTx"></p>
+  <p class="muted simpleonly">Curious about what happens underneath? The <button class="linkbtn" id="labLink">lab view</button> lets you choose the error-correcting code, the modulation and the rate, and shows what the receiver measures.</p>
   <details>
     <summary>How it works</summary>
     <p class="muted">A frame has two parts. The <b>control part</b> is sent at 400 bit/s, at 4 / 8 kHz or hopping, two modes every receiver knows in advance: 0.1 s warm-up · MLS preamble · header (OFDM and the single carrier have a shorter one by default since v6: see below). The <b>message part</b> uses the tones and rate chosen on the transmitter: coded and scrambled message · MLS postamble (the same sequence as the preamble).
@@ -4114,9 +4151,8 @@ function seg(el, value, onPick) {
 function ctx() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; }
 function syncUrl() { const u = new URL(location.href); u.searchParams.set('mod', cfg.mod); u.searchParams.set('tones', cfg.tones); u.searchParams.set('rate', cfg.rate); u.searchParams.set('pre', cfg.pre); u.searchParams.set('code', cfg.code); if (cfg.mod === 'ofdm') u.searchParams.set('guard', cfg.guard); else u.searchParams.delete('guard'); if (cfg.mod === 'ofdm' || cfg.mod === 'sc') u.searchParams.set('map', cfg.map); else u.searchParams.delete('map'); if (cfg.mod === 'sc') u.searchParams.set('train', cfg.train); else u.searchParams.delete('train'); if ((cfg.mod === 'sc' || cfg.mod === 'ofdm') && cfg.band !== 'usual') u.searchParams.set('band', cfg.band); else u.searchParams.delete('band'); if (imgScale > 1) u.searchParams.set('img', { 2: 'large', 4: 'huge', 8: 'x8', 16: 'x16' }[imgScale]); else u.searchParams.delete('img'); if (picFmt !== 'bits') { u.searchParams.set('pic', picFmt); u.searchParams.set('q', jpegQ); } else { u.searchParams.delete('pic'); u.searchParams.delete('q'); } if ((cfg.mod === 'ofdm' || cfg.mod === 'sc') && cfg.control === 'long') u.searchParams.set('ctl', 'long'); else u.searchParams.delete('ctl'); history.replaceState(null, '', u); }
 // QR code: the online copy of this page (also when the laptop runs it from a local file); receivers need no settings
-function phoneUrl() {   // from a local file: the published page
-  if (location.protocol === 'https:') return location.origin + location.pathname;
-  return PAGE_SITE;
+function phoneUrl() {   // from a local file: the published page; from the lab view, phones open the lab view too
+  return (location.protocol === 'https:' ? location.origin + location.pathname : PAGE_SITE) + (view === 'lab' ? '?view=lab' : '');
 }
 $('qrBtn').onclick = () => { const u = phoneUrl(); drawQR($('qrCanvas'), u); $('qrUrl').textContent = u; $('qrOverlay').classList.remove('hidden'); };
 $('qrOverlay').onclick = () => $('qrOverlay').classList.add('hidden');
@@ -4178,6 +4214,20 @@ guardLabels(); trainLabels();
 const role = matchMedia('(max-width:860px)').matches && params.get('role') === 'tx' ? 'tx' : 'rx';
 $('main').dataset.role = role;
 seg($('roleSeg'), role, v => { $('main').dataset.role = v; });
+
+// ---------- view: simple or lab (decided in the head, before the first paint) ----------
+let view = window.B2N_VIEW === 'lab' ? 'lab' : 'simple';
+function setView(v) {   // the user's choice: kept on this device and in the address
+  view = v; document.documentElement.classList.toggle('simple', v === 'simple');
+  $('viewSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  try { localStorage.setItem('b2nView', v); } catch (e) {}
+  const u = new URL(location.href); u.searchParams.set('view', v); history.replaceState(null, '', u);
+  if (v === 'simple' && msgMode === 'sound') $('msgSeg').querySelector('[data-v="text"]').click();   // room sounding is a lab tool
+  if (v === 'lab') { const r = $('logBody').querySelector('tr'); if (r) r.click(); }   // the plots of the last frame were not drawn while hidden: show it again
+}
+$('viewSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === view)));
+$('viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+$('labLink').onclick = () => setView('lab');
 
 // ---------- transmitter ----------
 const pad = { h: 32 * sc4(), w: 32 * sc4(), pixels: new Uint8Array(1024 * sc4() * sc4()).fill(1) };

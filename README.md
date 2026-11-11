@@ -3,6 +3,8 @@
 Send text and pictures through the air: one device plays the message through its speaker, and every phone in the room decodes it through its microphone. One web page, no app, no settings.
 
 - `index.html`: the page. Its modem is the one of AudioComm's `acoustic_modem_v4.html`, line for line, so the two pages read each other's frames.
+  It opens in a **simple view** (write, send, listen); the **Lab** switch in the header shows every modem setting and measurement. The choice is kept on the device. `?view=lab` or `?view=simple` forces one; a link that carries modem settings (`?mod=…`, `?code=…`) opens the lab, and the QR code made from the lab view opens the lab on the phones.
+- `chat/index.html`: Bit2Noisy Chat, a group chat through sound.
 - `favicon.ico`, `apple-touch-icon.png`: browser and home-screen icons.
 - `logo/`: the lockup (icon + name), the wordmark and the icon as SVG, and the icon as a 512 px PNG.
 
