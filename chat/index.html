@@ -308,7 +308,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <label for="nickIn2">Nickname</label>
     <input type="text" id="nickIn2" maxlength="24" autocapitalize="words">
     <label>How my messages sound</label>
-    <div class="seg" id="modeSeg"><button data-v="robust">Robust</button><button data-v="fast">Fast</button><button data-v="close">Close by</button><button data-v="max">Max speed</button><button data-v="sc">Single carrier</button></div>
+    <div class="seg" id="modeSeg"><button data-v="auto">Automatic</button><button data-v="robust">Robust</button><button data-v="fast">Fast</button><button data-v="close">Close by</button><button data-v="max">Max speed</button><button data-v="sc">Single carrier</button></div>
     <div class="hint" id="modeHint"></div>
     <label>Pictures I send</label>
     <div class="seg" id="picSeg"><button data-v="small">Small · 160 px</button><button data-v="medium">Medium · 320 px</button></div>
@@ -316,6 +316,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <input type="number" id="groupIn" min="0" max="255" step="1" inputmode="numeric">
     <div class="hint">Phones with another code ignore your messages: two groups can share a room.</div>
     <label class="check"><input type="checkbox" id="physChk"> <span>Show the physics under each message: mode, SNR, seconds of sound</span></label>
+    <label class="check"><input type="checkbox" id="rcptChk"> <span>Answer each message with a receipt by sound: its sender sees ✓✓ and how well it arrived</span></label>
     <button class="primary" id="setDone">Done</button>
   </div></div>
 </div>
@@ -4088,7 +4089,7 @@ if (typeof module !== 'undefined') module.exports = { PILOT, NP, NHC, CTRL, RATE
 // length and nickname (UTF-8, at most 16 bytes), then the body, then a CRC-32 of all of it. A voice message is a v7
 // file frame whose whole file is the envelope (see chatVoiceBody).
 const CHAT_MARK = 0xB2, CHAT_VER = 1;
-const CHAT_KIND = { text: 1, picture: 2, voice: 3 };
+const CHAT_KIND = { text: 1, picture: 2, voice: 3, receipt: 4 };   // receipt (chat 1.2): see the end of this file
 const CHAT_NICK_MAX = 16;      // bytes of the nickname (UTF-8)
 const CHAT_TEXT_MAX = 600;     // bytes of a text (UTF-8); a v7 text frame carries at most 1023 bytes, envelope included
 // The sender's choice of frame. Robust: OFDM with the long guard (21 ms), QPSK, LDPC 1/2, decoded in a fraction of a
@@ -4231,6 +4232,141 @@ function chatRead(res) {
   if (h.type === 'image') return { from: 'page', image: { w: h.w, h: h.h, bits: res.bits } };   // 1 bit per pixel, by columns, 1 = white
   return { from: 'other' };
 }
+
+// ---- receipts by sound and automatic mode (chat 1.2) ----
+// A phone that read a message answers with a receipt, as an ACK does in a radio network, and one that read its header
+// but not its content answers "not read" (a NACK). Either way the receipt carries how well the message arrived: the
+// effective SNR for QPSK, 16QAM, 64QAM and 256QAM, as a phone's channel quality report does. The sender shows two ticks
+// and, in automatic mode, picks the fastest mode that the weakest phone that answered can still read.
+// The receipt is a text frame of its own kind (4): OFDM, QPSK, LDPC 1/3 (no chat message uses that code, so its header
+// alone tells a receipt from a message), as long as a short text. Its envelope has the group code with the top bit
+// flipped, so that a chat page older than 1.2 takes it for another group's message and shows nothing, the id and the
+// nickname of the phone that answers, the sequence number of the message answered, and a body of 10 bytes: flags (1:
+// read, 2: the sender's id follows), the sender's id, the message's mode (mapping, code, band), the four effective SNRs
+// (steps of 0.5 dB from -10 dB, 255: not measured) and the message's length in bytes (16 bits), by which the sender of
+// a message that was not read recognises it. With flag 4 the frame is not an answer but the sender asking again (a poll):
+// see RCPT below.
+const CHAT_RCPT_CFG = { mod: 'ofdm', map: 'qpsk', guard: 'long', code: 'ldpc3' };
+const RCPT_MAPS = ['qpsk', '16qam', '64qam', '256qam'], RCPT_CODES = ['ldpc4', 'ldpc3', 'ldpc', 'ldpc23', 'ldpc34', 'ldpc56'];   // the codes in the order of SC_NEED_RATES
+const chatIsReceiptHdr = h => !!h && h.type === 'text' && h.ofdm === 'long' && h.map === 'qpsk' && h.code === 'ldpc3' && h.len <= 48;
+// The effective SNR. An OFDM frame is received at one SNR per group of 32 subcarriers; a code that spans them all works
+// as on a flat channel whose SNR gives the same mutual information per coded bit as their average. CHAT_MI: that
+// information for each mapping (Gray labels, bit-interleaved coded modulation, Gaussian noise) at -10, -9, ... 36 dB,
+// computed by numerical integration. It agrees with the modem's table of needs (SC_NEED: rate + 0.06) within 0.01.
+const CHAT_MI_DB0 = -10;
+const CHAT_MI = {
+  qpsk: [0.0687, 0.0855, 0.1061, 0.1311, 0.1614, 0.1977, 0.2407, 0.291, 0.3489, 0.4141, 0.4859, 0.5628, 0.6421, 0.7207, 0.7944, 0.8592, 0.9119, 0.9507, 0.976, 0.9902, 0.9968, 0.9992, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  "16qam": [0.0282, 0.0353, 0.044, 0.0549, 0.0681, 0.0843, 0.1039, 0.1273, 0.155, 0.1874, 0.2248, 0.2673, 0.3149, 0.3671, 0.4234, 0.4829, 0.5445, 0.607, 0.6696, 0.7313, 0.7909, 0.8463, 0.8949, 0.9343, 0.9633, 0.9821, 0.9927, 0.9976, 0.9994, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  "64qam": [0.0179, 0.0224, 0.0279, 0.0347, 0.0431, 0.0533, 0.0655, 0.0802, 0.0974, 0.1175, 0.1406, 0.1666, 0.1957, 0.2277, 0.2626, 0.3004, 0.341, 0.3843, 0.4302, 0.4783, 0.5281, 0.5789, 0.63, 0.6808, 0.7308, 0.7797, 0.8267, 0.8708, 0.91, 0.9425, 0.9669, 0.9833, 0.9929, 0.9975, 0.9993, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  "256qam": [0.0132, 0.0166, 0.0207, 0.0257, 0.0319, 0.0394, 0.0485, 0.0592, 0.0719, 0.0867, 0.1036, 0.1227, 0.1439, 0.1672, 0.1924, 0.2195, 0.2484, 0.279, 0.311, 0.3444, 0.3789, 0.4146, 0.4517, 0.4902, 0.5302, 0.5715, 0.6136, 0.656, 0.6982, 0.7398, 0.7805, 0.8201, 0.8581, 0.8937, 0.9256, 0.9521, 0.9722, 0.9859, 0.9939, 0.9978, 0.9994, 0.9999, 1, 1, 1, 1, 1],
+};
+function chatMi(map, db) { const T = CHAT_MI[map], x = Math.max(0, Math.min(T.length - 1, db - CHAT_MI_DB0)), i = Math.min(T.length - 2, Math.floor(x)); return T[i] + (x - i) * (T[i + 1] - T[i]); }
+function chatMiDb(map, mi) {   // the SNR at which the mapping gives mi; no higher than where the table reaches 0.999 (11, 18, 24, 30 dB)
+  const T = CHAT_MI[map]; let i = 0;
+  while (i < T.length - 2 && T[i + 1] < mi && T[i + 1] < 0.999) i++;
+  return mi <= T[i] ? CHAT_MI_DB0 + i : mi >= T[i + 1] ? CHAT_MI_DB0 + i + 1 : CHAT_MI_DB0 + i + (mi - T[i]) / (T[i + 1] - T[i]);
+}
+const chatMiCap = map => chatMiDb(map, 1);
+function chatEff(snrs, map) { let s = 0; for (const v of snrs) s += chatMi(map, v); return chatMiDb(map, s / snrs.length); }
+// a header (or a frame as built) -> its mode: {map: index in RCPT_MAPS (-1: another), code: index in RCPT_CODES (7: another), fam: 0 OFDM's usual band, 1 wide OFDM, 2 single carrier}
+function chatFrameMode(h) { const code = RCPT_CODES.indexOf(h.code); return { map: RCPT_MAPS.indexOf(h.map), code: code < 0 ? 7 : code, fam: h.sc ? 2 : h.ofdm && h.ofdm[0] === 'w' ? 1 : 0 }; }
+const chatNeedOf = m => m.map >= 0 && m.code < 6 ? SC_NEED[RCPT_MAPS[m.map]][m.code] : null;   // the SNR a mode needs, dB
+const chatLen16 = h => (h.n0 >> 3) & 0xffff;
+function chatHeard(res) {   // how well a frame arrived, read or not: {mode, e: the effective SNR per mapping (dB) or null, need, margin: e of its own mapping - need, n8}
+  const h = res.hdr, mode = chatFrameMode(h); let e = null;
+  try {
+    if (h.sc && res.sc && Number.isFinite(res.sc.snrEq)) e = RCPT_MAPS.map(() => res.sc.snrEq);   // the single carrier: the SNR after its equalizer
+    else if (h.ofdm && res.ofdm && res.ofdm.snr && res.ofdm.snr.length) e = RCPT_MAPS.map(m => chatEff(res.ofdm.snr, m));
+  } catch (err) {}
+  const need = chatNeedOf(mode);
+  return { mode, e, need, n8: chatLen16(h), margin: e && need !== null ? e[mode.map] - need : null };
+}
+const chatE2b = v => v === null || v === undefined || !Number.isFinite(v) ? 255 : Math.max(0, Math.min(254, Math.round(2 * v) + 20));
+const chatB2e = b => b === 255 ? null : (b - 20) / 2;
+function chatReceiptFrame(me, r) {   // me: {group, id, nick}, the phone that answers; r: {ok, id (the sender's, or null), seq, mode, e, n8}, or a poll: {poll: 1 to 7, seq, n8}
+  const m = r.mode || { map: 0, code: 0, fam: 0 }, known = r.id !== null && r.id !== undefined, e = r.e || [];
+  const body = Uint8Array.from([(r.ok ? 1 : 0) | (known ? 2 : 0) | (r.poll ? 4 : 0), known ? (r.id >> 8) & 255 : 0, known ? r.id & 255 : 0,
+    (m.map & 3) | (m.code & 7) << 2 | (m.fam & 3) << 5 | (m.map < 0 ? 128 : 0), r.poll ? r.poll : chatE2b(e[0]), chatE2b(e[1]), chatE2b(e[2]), chatE2b(e[3]), (r.n8 >> 8) & 255, r.n8 & 255]);
+  const env = chatPack({ kind: CHAT_KIND.receipt, group: me.group ^ 128, id: me.id, seq: r.seq & 255, nick: me.nick, body });
+  const f = buildFrame({ type: 'text', text: chatBytesText(env) }, { tones: 'low', rate: 400, pre: 127, control: 'short', soft: 'cal', ...CHAT_RCPT_CFG });
+  f.chatMode = 'receipt'; return f;
+}
+function chatReceiptParse(env) {   // an envelope of kind receipt whose CRC holds -> {by, nick, group, ok, id, seq, mode, e, n8, need, margin}, a poll {by, nick, group, poll, seq, n8}, or null
+  const b = env.body; if (env.kind !== CHAT_KIND.receipt || !b || b.length < 10) return null;
+  if (b[0] & 4) return { by: env.id, nick: env.nick, group: env.group ^ 128, poll: Math.max(1, Math.min(7, b[4])), seq: env.seq, n8: (b[8] << 8) | b[9] };
+  const mode = { map: b[3] & 128 ? -1 : b[3] & 3, code: (b[3] >> 2) & 7, fam: (b[3] >> 5) & 3 }, e = [b[4], b[5], b[6], b[7]].map(chatB2e), need = chatNeedOf(mode);
+  return { by: env.id, nick: env.nick, group: env.group ^ 128, ok: !!(b[0] & 1), id: b[0] & 2 ? (b[1] << 8) | b[2] : null, seq: env.seq, mode, e, n8: (b[8] << 8) | b[9], need,
+           margin: need !== null && e[mode.map] !== null ? e[mode.map] - need : null };
+}
+// When a phone answers. Time counts only while the room is quiet, from the end of the message: RCPT.t0 ms for the
+// phones to decode it, then places of RCPT.slot ms (longer than a phone takes to hear that another one started). A "not
+// read" answer takes place 0; the phones that read it take one place each from place 1 on, in the order of their ids
+// (turning with the sequence number, so the same phone is not always first); a phone that knows no other takes place 0.
+// A phone that hears a receipt for the same message drops its own, unless the message reached it RCPT.tol dB worse and
+// it has not said so to this sender in the last minute: then it answers after that receipt, in its turn. So the sender
+// gets one receipt per message, plus the weak phones' once a minute.
+// Phones that do not know of each other (they never sent anything) take the same place and collide. The sender hears
+// that as sound it cannot read where receipts go, and when no receipt follows it asks again with a poll: a frame like a
+// receipt that names the message and a number k. Every phone that heard the message answers again, now with
+// boost = 2^k: in a place drawn at random among boost times as many (up to RCPT.slots; beyond that many, each phone
+// answers with a probability). Up to three polls per message, with boost RCPT.polls: 4 places, then 8 places and one
+// phone in two, then 8 places and one phone in eight (a full classroom). Once one receipt is read every phone knows
+// that phone, which then answers in its turn: no more collisions.
+// A busy room has no time for receipts: when a message is the RCPT.busyN-th heard within RCPT.busyT ms, no phone
+// answers that it read it and nobody waits for receipts (its sender keeps the single tick).
+const RCPT = { t0: 450, slot: 350, slots: 8, tol: 3, life: 8000, polls: [4, 16, 64], late: 170, busyN: 4, busyT: 10000 };
+function chatReceiptPlan(o) {   // o: {ok, n: phones that may answer (me included), rank: mine among them, seq, boost (1 unless polled), r1, r2: random in [0, 1)} -> {send, slot, wait: ms of quiet, cyc: ms from a place to the same place of the next round}
+  const ne = Math.max(1, o.n * o.boost), S = Math.max(1, Math.min(RCPT.slots, Math.ceil(ne)));
+  const slot = o.boost > 1 ? Math.min(S - 1, Math.floor(o.r1 * S)) : (o.rank + o.seq) % S;
+  const pos = ne <= 1 || (!o.ok && o.boost <= 1) ? 0 : 1 + slot;
+  return { send: o.r2 < Math.min(1, RCPT.slots / ne), slot, wait: RCPT.t0 + RCPT.slot * pos, cyc: RCPT.slot * (ne <= 1 ? 1 : 1 + S) };
+}
+function chatReceiptHold(n, boost) {   // ms of quiet after a message during which receipts may still start: other messages wait that long
+  const ne = Math.max(1, n * boost), S = Math.max(1, Math.min(RCPT.slots, Math.ceil(ne)));
+  return RCPT.t0 + RCPT.slot * (ne <= 1 ? 1 : S) + RCPT.late + 100;   // the last place, started late; alone: one more place for a phone slow to decode
+}
+// Automatic mode: texts go Robust; a picture or a voice message goes in the fastest of Robust, Fast, Close by and Max
+// speed that every phone that answered my last messages (within AUTO.fresh ms) can read with AUTO.margin dB over the
+// modem's own rule (need + SC_SPARE). A phone's report counts for the band it was measured in; for the wide band, when
+// only the usual band was measured, AUTO.wide0 dB are taken off (the wide modes play 3 dB quieter over a wider band),
+// plus creep: 0.5 dB more after every picture or voice message read while the wide band is unmeasured, so that it is
+// tried in the end, and 2 dB less each time it then fails. A mode that fails though the reports allowed it is charged
+// AUTO.pen dB, which wears off by AUTO.unpen per message read in it. A mode that a phone has just read stays allowed for
+// it without the margin, as long as its SNR is within AUTO.proven dB of what it was then. No phone answered yet: Fast.
+const CHAT_LADDER = ['robust', 'fast', 'close', 'max'];
+const AUTO = { margin: 2, proven: 1, wide0: -3, creep: 0.5, creepMax: 8, creepMin: -6, pen: 2, unpen: 0.25, fresh: 180000 };
+const chatAutoNew = () => ({ rep: new Map(), pen: {}, creep: 0 });
+function chatAutoHear(A, r, mode, data, now) {   // a receipt r for a frame of mine sent in mode; data: a picture or a voice message
+  let q = A.rep.get(r.by); if (!q) A.rep.set(r.by, q = { u: null, w: null, t: 0, nick: '', okAt: {} });
+  q.t = now; q.nick = r.nick || q.nick;
+  const wideKnown = [...A.rep.values()].some(p => p.w && now - p.w.t < AUTO.fresh);
+  if (r.e && r.e.some(v => v !== null)) { if (r.mode.fam === 1) q.w = { t: now, e: r.e }; else q.u = { t: now, e: r.e }; }
+  if (!CHAT_MODES[mode]) return;
+  const wide = chatCfg(mode).band === 'wide', v = r.e ? r.e[RCPT_MAPS.indexOf(chatCfg(mode).map)] : null;
+  if (r.ok && v !== null && v !== undefined) q.okAt[mode] = { t: now, v }; else if (!r.ok) delete q.okAt[mode];
+  if (r.ok) { A.pen[mode] = Math.max(0, (A.pen[mode] || 0) - AUTO.unpen); if (data && !wide && !wideKnown) A.creep = Math.min(AUTO.creepMax, A.creep + AUTO.creep); }
+  else { A.pen[mode] = (A.pen[mode] || 0) + AUTO.pen; if (wide && !wideKnown) A.creep = Math.max(AUTO.creepMin, A.creep - 2); }
+}
+function chatAutoPredict(A, q, mode, now) {   // the effective SNR the phone q would report for a frame in mode, dB (null: no fresh report)
+  const c = chatCfg(mode), k = RCPT_MAPS.indexOf(c.map), u = q.u && now - q.u.t < AUTO.fresh ? q.u.e[k] : null, w = q.w && now - q.w.t < AUTO.fresh ? q.w.e[k] : null;
+  const v = c.band === 'wide' ? (w !== null ? w : u !== null ? u + AUTO.wide0 + A.creep : null) : u !== null ? u : w;
+  return v === null ? null : v - (A.pen[mode] || 0);
+}
+function chatAutoPick(A, now) {   // -> {mode, none: no phone answered lately} or {mode, by: the weakest phone's nickname, snr: what it would get in that mode, need}
+  const qs = [...A.rep.values()].filter(q => now - q.t < AUTO.fresh && (q.u || q.w));
+  if (!qs.length) return { mode: 'fast', none: true };
+  for (let i = CHAT_LADDER.length - 1; i >= 0; i--) {
+    const mode = CHAT_LADDER[i], need = chatNeedOf(chatFrameMode({ ...chatCfg(mode), ofdm: chatCfg(mode).band === 'wide' ? 'wlong' : 'long' }));
+    let worst = null, by = '';
+    let ok = true;
+    for (const q of qs) {
+      const v = chatAutoPredict(A, q, mode, now), p = q.okAt[mode]; if (v === null) { worst = null; ok = false; break; }
+      if (worst === null || v < worst) { worst = v; by = q.nick; }
+      if (!(v >= need + SC_SPARE + AUTO.margin || (p && now - p.t < AUTO.fresh && v >= need && v >= p.v - AUTO.proven))) ok = false;
+    }
+    if (i === 0 || ok) return { mode, by, snr: worst, need };
+  }
+}
 </script>
 <script>
 (() => {
@@ -4245,7 +4381,9 @@ if (!(myId >= 0 && myId < 65536)) { myId = crypto.getRandomValues(new Uint16Arra
 const defNick = chatDefaultNick(myId);
 let nick = chatClip(store.get('nick', ''), CHAT_NICK_MAX);
 const myNick = () => nick || defNick;
-let mode = CHAT_MODES[params.get('mode')] ? params.get('mode') : store.get('mode', 'robust'); if (!CHAT_MODES[mode]) mode = 'robust';
+const okMode = m => m === 'auto' || !!CHAT_MODES[m];   // auto (chat 1.2): the mode follows the receipts
+let mode = okMode(params.get('mode')) ? params.get('mode') : store.get('mode', 'auto'); if (!okMode(mode)) mode = 'auto';
+let receiptsOn = params.get('receipts') === 'off' ? false : store.get('receipts', '1') === '1';   // I answer messages with a receipt
 let picSize = CHAT_PIC[store.get('pic', 'small')] ? store.get('pic', 'small') : 'small';
 let group = Math.max(0, Math.min(255, parseInt(params.get('group') || store.get('group', '0'), 10) || 0));
 let physics = store.get('physics', '0') === '1';
@@ -4354,8 +4492,14 @@ function unlockOutput() {
   outEl = new Audio(); outEl.setAttribute('playsinline', ''); outEl.src = URL.createObjectURL(wavBlob(new Float32Array(2400), FS_TX));
   try { const r = outEl.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
 }
-function play(x) {   // -> a promise of true once the frame has played, false if no way played it
-  const dur = x.length / FS_TX;
+// The modem puts 0.2 s of silence before and after a frame. Through Web Audio the chat plays only 0.03 s of the first
+// (the others hear the frame start sooner after I found the room quiet) and 0.05 s of the second; an audio element
+// (iPhones) keeps both, as it may need them to start, unless the address says ?lead=seconds (then both ways keep that much).
+const PAD = Math.round(0.2 * FS_TX), LEAD = params.has('lead') ? Math.max(0, Math.min(0.2, +params.get('lead') || 0)) : null;
+const PADS = LEAD === null ? (OUT_WAYS[0] === 'element' ? 0.4 : 0.08) : LEAD + 0.05;   // s of silence played around a frame
+const trim = (x, way) => LEAD === null && way === 'element' ? x : x.subarray(PAD - Math.round((LEAD === null ? 0.03 : LEAD) * FS_TX), x.length - PAD + Math.round(0.05 * FS_TX));
+function play(x0) {   // -> a promise of true once the frame has played, false if no way played it
+  let x = x0; const dur = x.length / FS_TX;
   return new Promise(done => {
     let k = -1, way = null, url = null, src = null, t0 = 0, fin = false;
     const pos = () => way === 'element' ? outEl.currentTime : outCtx ? outCtx.currentTime - t0 : 0;
@@ -4372,7 +4516,7 @@ function play(x) {   // -> a promise of true once the frame has played, false if
     const start = () => {
       if (way === 'element') {
         if (!outEl) { outEl = new Audio(); outEl.setAttribute('playsinline', ''); }
-        if (!url) url = URL.createObjectURL(wavBlob(x, FS_TX));
+        if (!url) { x = trim(x0, 'element'); url = URL.createObjectURL(wavBlob(x, FS_TX)); }
         outEl.src = url; outEl.onended = () => finish(true);
         let r; try { r = outEl.play(); } catch (e) { r = Promise.reject(e); }
         if (r && r.catch) r.catch(() => { if (!fin && way === 'element') next(); });
@@ -4380,7 +4524,7 @@ function play(x) {   // -> a promise of true once the frame has played, false if
         try {
           if (!outCtx || outCtx.state === 'closed') outCtx = new (window.AudioContext || window.webkitAudioContext)();
           outCtx.resume().catch(() => {});
-          const buf = outCtx.createBuffer(1, x.length, FS_TX); buf.copyToChannel(x, 0);
+          x = trim(x0, 'webaudio'); const buf = outCtx.createBuffer(1, x.length, FS_TX); buf.copyToChannel(x, 0);
           src = outCtx.createBufferSource(); src.buffer = buf; src.connect(outCtx.destination); src.onended = () => finish(true);
           src.start(); t0 = outCtx.currentTime;
         } catch (e) { next(); return; }
@@ -4395,15 +4539,69 @@ function play(x) {   // -> a promise of true once the frame has played, false if
 
 // ---------- sound in ----------
 let actx = null, stream = null, proc = null, analyser = null, rx = null;
-const TAP = `class Tap extends AudioWorkletProcessor {
-  constructor() { super(); this.b = new Float32Array(4096); this.k = 0; }
+// Carrier sense (chat 1.2): the level above 8 kHz (a 4th-order high-pass: most of a voice stays under it, every mode of the modem
+// reaches over it), in windows of 10 ms. It is measured in the worklet, so the page hears that someone started within
+// 20 to 30 ms, while the samples themselves arrive in blocks of 85 ms and a header is read only 0.3 s into a frame.
+function hiLevel(fs) {   // -> feed(samples, on): on(mean square) once per window
+  const w = 2 * Math.PI * 8000 / fs, c = Math.cos(w), al = Math.sin(w) / Math.SQRT2, a0 = 1 + al;
+  const b0 = (1 + c) / 2 / a0, b1 = -(1 + c) / a0, a1 = -2 * c / a0, a2 = (1 - al) / a0, W = Math.round(fs / 100);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0, u1 = 0, u2 = 0, v1 = 0, v2 = 0, e = 0, m = 0;
+  return (s, on) => {
+    for (let i = 0; i < s.length; i++) {
+      const x = s[i], y = b0 * (x + x2) + b1 * x1 - a1 * y1 - a2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y;
+      const v = b0 * (y + u2) + b1 * u1 - a1 * v1 - a2 * v2; u2 = u1; u1 = y; v2 = v1; v1 = v;
+      e += v * v; if (++m === W) { on(e / W); e = 0; m = 0; }
+    }
+  };
+}
+const TAP = `${hiLevel}
+class Tap extends AudioWorkletProcessor {
+  constructor() { super(); this.b = new Float32Array(4096); this.k = 0; this.lv = hiLevel(sampleRate); }
   process(inputs) {
     const c = inputs[0] && inputs[0][0];
-    if (c) for (let i = 0; i < c.length; i++) { this.b[this.k++] = c[i]; if (this.k === 4096) { this.port.postMessage(this.b, [this.b.buffer]); this.b = new Float32Array(4096); this.k = 0; } }
+    if (c) {
+      for (let i = 0; i < c.length; i++) { this.b[this.k++] = c[i]; if (this.k === 4096) { this.port.postMessage(this.b, [this.b.buffer]); this.b = new Float32Array(4096); this.k = 0; } }
+      this.lv(c, e => this.port.postMessage({ e, t: currentTime }));
+    }
     return true;
   }
 }
 registerProcessor('tap', Tap);`;
+// cs: what the carrier sense knows. floor: the room's noise (it follows the level down quickly, up slowly, and not
+// while a frame is read); on: sound now, 6 dB over the floor for 20 ms, until 3 windows under 4 dB; offAt: when it last
+// ended; t, wall: the audio time and the clock time of the last window; lag0: the usual delay of a window on its way
+// here (when a window is much later than that, the page was busy and knows nothing of the room: it waits); hdrT: the
+// audio time when a header was last read; quietFrom: the audio time since when there is neither a frame being read nor
+// sound that lasted (CS_LONG s or more; null: there is). A shorter sound (an s or a sh of someone talking, keys, a
+// cough) stops this phone from playing while it lasts, but it does not restart the quiet from which the places of the
+// receipts are counted. The quiet is counted in audio time, so a phone that was busy decoding a picture counts it from
+// the picture's end, as the phones that decoded faster do. before: how many seconds of quiet came before the sound now.
+// My own sound is neither noise nor someone else. Sound that goes on for 1.5 s with no frame in it (a fan, a hiss)
+// becomes the floor. Sound of 0.3 s or more with no frame in it, while receipts are expected, is taken for receipts
+// that collided.
+const CS_LONG = 0.25;
+const cs = { floor: 0, on: false, hi: 0, lo: 0, onAt: 0, offAt: -1, ref: 0, t: -1, wall: 0, lag0: Infinity, hdrT: -1, sum: 0, cnt: 0, judge: null, quietFrom: null, before: 9 };
+function csWin(e, t) {
+  e += 1e-12; cs.t = t; cs.wall = Date.now();
+  cs.lag0 = Math.min(actx.currentTime - t, cs.lag0 + 0.0005);
+  if (cs.judge && t >= cs.judge.at) { if (cs.hdrT < cs.judge.t0) trouble(); cs.judge = null; }
+  if (playingNow || Date.now() < ownTail) { cs.on = false; cs.hi = cs.lo = 0; cs.quietFrom = cs.offAt = t; tick(); return; }
+  const reading = !!rx && rx.state !== 'search';
+  if (!cs.floor) cs.floor = e;
+  if (!cs.on) {
+    if (!reading) cs.floor = e < cs.floor ? cs.floor + 0.2 * (e - cs.floor) : cs.floor * 1.0005;
+    cs.hi = e > 4 * cs.floor ? cs.hi + 1 : 0;
+    if (cs.hi >= 2) { cs.on = true; cs.onAt = cs.ref = t - 0.02; cs.lo = 0; cs.sum = 0; cs.cnt = 0; }
+  } else {
+    if (reading || cs.hdrT > cs.ref) { cs.ref = t; cs.sum = 0; cs.cnt = 0; } else { cs.sum += e; cs.cnt++; }   // a frame is no floor
+    cs.lo = e < 2.5 * cs.floor ? cs.lo + 1 : 0;
+    if (cs.lo >= 3) { cs.on = false; cs.hi = 0; cs.offAt = t; if (t - cs.onAt >= 0.3) cs.judge = { t0: cs.onAt - 0.1, at: t + 0.35 }; }
+    else if (t - cs.ref > 1.5 && cs.cnt) { cs.floor = cs.sum / cs.cnt; cs.on = false; cs.hi = 0; cs.offAt = t; }
+  }
+  if (!(reading || (cs.on && t - cs.onAt >= CS_LONG))) { if (cs.quietFrom === null) cs.quietFrom = t; }
+  else if (cs.quietFrom !== null) { cs.before = Math.max(0, (cs.on ? Math.min(cs.onAt, t) : t) - cs.quietFrom); cs.quietFrom = null; }
+  tick();
+}
 async function tapNode(a) {
   try {
     if (!a.audioWorklet || typeof AudioWorkletNode === 'undefined') return null;
@@ -4429,8 +4627,8 @@ async function startMic() {   // -> true if listening
   // the samples come from an AudioWorklet (the audio thread) in blocks of 4096 posted to the page, so a decode here
   // only delays them; a ScriptProcessor (older browsers) loses audio then
   proc = await tapNode(a);
-  if (proc) proc.port.onmessage = e => heard(e.data);
-  else { proc = a.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = e => heard(e.inputBuffer.getChannelData(0)); }
+  if (proc) proc.port.onmessage = e => e.data.e !== undefined ? csWin(e.data.e, e.data.t) : heard(e.data);
+  else { const lv = hiLevel(a.sampleRate); proc = a.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = e => { const d = e.inputBuffer.getChannelData(0); lv(d, v => csWin(v, a.currentTime)); heard(d); }; }
   srcN.connect(proc); proc.connect(mute);
   stream.getTracks().forEach(t => t.onended = () => banner('The microphone stopped.', 'Listen again', retryMic));
   banner('');
@@ -4463,8 +4661,12 @@ function makeRx() {
     onState: (s, info) => {
       if (DEBUG) console.log('rx', s, info && (info.reason || info.type || info.t));
       if (s === 'header') {
-        const self = Date.now() < selfUntil, p = { hdr: info, self, b: null };
-        if (!self && info.type !== 'sound') {
+        cs.hdrT = cs.t;
+        // mine: heard while I play or just after, with the size and the mode of the frame I played; rc: a receipt, which shows no bubble
+        // calm: it came after 1.5 s of quiet, so if it cannot be read the room is the cause, not another phone sending over it
+        const self = Date.now() < selfUntil && sameFrame(info, lastOwn), rc = chatIsReceiptHdr(info), p = { hdr: info, self, rc, b: null, calm: !csLive() || cs.before >= 1.5 };
+        if (!self && !rc && info.type !== 'sound') recent.push(Date.now());
+        if (!self && !rc && info.type !== 'sound') {
           p.b = bubble({ pending: true });
           const r = mk('div', 'recv');
           if (info.type === 'jpeg' || info.type === 'image') {
@@ -4477,11 +4679,11 @@ function makeRx() {
       }
       if (s === 'decoding') { decoding++; const p = pendings.find(q => q.hdr === info); if (p) { p.sc = true; if (p.b) p.b.body.querySelector('.what').textContent = 'Decoding'; } }
       if (s === 'lost') {
-        quietUntil = Date.now() + 500;
         const sc = /^single carrier/.test(info.reason || ''), i = sc ? pendings.findIndex(q => q.sc) : pendings.findIndex(q => !q.sc);
         if (i >= 0) {
           const [p] = pendings.splice(i, 1); if (p.sc) decoding = Math.max(0, decoding - 1);
           if (p.b) { p.b.el.remove(); if (!p.self) sys('🔇 A message could not be read: too weak, or too much echo.'); }
+          if (!p.self) { if (p.rc) trouble(); else { jam(); if (p.calm) answer({ hdr: p.hdr }, null, false); if (!busyRoom()) openWin(); } }
         }
       }
     },
@@ -4489,7 +4691,6 @@ function makeRx() {
     onProgress: pr => { const p = pendings.find(q => q.hdr === pr.hdr); if (!p || !p.b) return; const f = pr.pass ? null : pr.frac !== undefined ? pr.frac : pr.done / pr.hdr.nc; if (f !== null && p.b.body.querySelector('.bar i')) p.b.body.querySelector('.bar i').style.width = (100 * Math.min(1, f)) + '%'; },
     onDone: res => {
       if (DEBUG) console.log('rx done', res.hdr && res.hdr.type, JSON.stringify(chatRead(res)).slice(0, 120));
-      quietUntil = Date.now() + 400;
       const i = pendings.findIndex(q => q.hdr === res.hdr), p = i >= 0 ? pendings.splice(i, 1)[0] : null;
       if (p && p.sc) decoding = Math.max(0, decoding - 1);
       shown(res, p);
@@ -4500,7 +4701,11 @@ function shown(res, p) {   // a frame decoded: into the chat
   const m = chatRead(res), b0 = p && p.b, desc = res.hdr ? frameDesc(res.hdr) + snrTxt(res) : '';
   const place = b => { if (b0) { const nb = nearBottom(); b0.el.replaceWith(b.el); link(b.el); if (nb) chatEl.scrollTop = chatEl.scrollHeight; } else add(b.el); };
   if (m.from === 'other') { if (b0) b0.el.remove(); return; }
-  if (m.from === 'damaged') { if (b0) b0.el.remove(); if (!(p && p.self)) sys('🔇 A message arrived damaged.'); return; }
+  const self = !!(p && p.self), rc = chatIsReceiptHdr(res.hdr);
+  const busy = busyRoom();   // a busy room has no time for receipts
+  if (!self && !rc && res.hdr && !res.sound && !busy) openWin();   // a message ended: receipts may follow
+  const calm = !p || p.calm;   // "not read" is answered only for a message that came out of a quiet room
+  if (m.from === 'damaged') { if (b0) b0.el.remove(); if (!self) { if (rc) trouble(); else { jam(); sys('🔇 A message arrived damaged.'); if (calm) answer(res, null, false); } } return; }
   if (m.from === 'page') {   // a frame of the Bit2Noisy page (or audiocomm_v7.py)
     const b = bubble({ who: 'Bit2Noisy page', color: PAGE_COLOR, key: 'page' });
     if (m.text !== undefined) setText(b, m.text);
@@ -4513,16 +4718,19 @@ function shown(res, p) {   // a frame decoded: into the chat
   const e = m.env;
   if (e && e.ok && e.id === myId) {   // my own frame, through my own microphone
     if (b0) b0.el.remove();
-    const it = sentBySeq.get(e.seq); if (it) { it.heard = true; setPhys(it.b, `${it.desc} · ${it.dur.toFixed(1)} s of sound · my microphone heard it${snrTxt(res)}`); }
+    const it = e.kind === CHAT_KIND.receipt ? null : sentBySeq.get(e.seq); if (it) { it.own = snrTxt(res); physMine(it); }
     volumeCheck(true); return;
   }
   if (!m.ok) {   // a chat frame whose CRC fails
-    if (p && p.self) { if (b0) b0.el.remove(); volumeCheck(false); return; }
+    if (self) { if (b0) b0.el.remove(); volumeCheck(false); return; }
     if (b0) b0.el.remove();
+    if (rc) { trouble(); return; }
     const what = e && e.kind === CHAT_KIND.voice ? 'voice message' : e && e.kind === CHAT_KIND.picture ? 'picture' : 'message';   // as the envelope says, though it fails its CRC
-    sys(`🔇 A ${what}${e && e.nick ? ' from ' + e.nick : ''} arrived damaged.`); return;
+    sys(`🔇 A ${what}${e && e.nick ? ' from ' + e.nick : ''} arrived damaged.`); jam(); if (calm) answer(res, null, false); return;
   }
+  if (e.kind === CHAT_KIND.receipt) { if (b0) b0.el.remove(); if ((e.group ^ 128) === group) gotReceipt(chatReceiptParse(e)); return; }
   if (e.group !== group) { if (b0) b0.el.remove(); return; }   // another group in the room
+  noteId(e.id, true); if (!busy) answer(res, e, true);   // also a copy I have already: its sender may have sent it again for want of a receipt
   const key = `${e.id}:${e.seq}`, now = Date.now();
   if (seen.has(key) && now - seen.get(key) < 600000) { if (b0) b0.el.remove(); return; }
   seen.set(key, now);
@@ -4539,63 +4747,196 @@ function volumeCheck(ok) {
   volBad++; if (!volOk && volBad === 1 && stream) banner('This device did not hear its own message clearly: check the volume, and keep the speaker and the microphone uncovered.');
 }
 
-// ---------- sending: wait for the room, then play ----------
-const queue = [];
-let pumping = false;
-const busy = () => playingNow || !!rec || !!vNow || (rx && rx.state !== 'search') || Date.now() < quietUntil;   // nor while I record or a voice message plays
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const SLOT = 250;   // ms: the random waits are whole slots
-async function waitForRoom(it) {
-  const t0 = Date.now();
-  await sleep(SLOT * Math.floor(3 * Math.random()));   // 0 to 2 slots: two phones that tap Send together rarely start together
-  while (busy() && Date.now() - t0 < 30000) {   // listen before talk: someone is sending; after them, 0 to 6 slots, then listen again
-    setTick(it, 'wait');
-    while (busy() && Date.now() - t0 < 30000) await sleep(100);
-    await sleep(SLOT * Math.floor(7 * Math.random()));
-  }
+// ---------- sending: wait for the room, then play (chat 1.2) ----------
+// One clock (tick: 100 times a second, driven by the level windows of the carrier sense, so that it also runs in a tab
+// in the background) decides what this phone plays, and when.
+//   - A receipt whose place has come goes first (chatReceiptPlan: so many ms of quiet after the message).
+//   - My next message goes when its countdown ends. The countdown is drawn once per message: up to 0.2 s when the room
+//     has been quiet for 1 s (nobody else waits), else up to 1 s times the number of phones heard sending in the last
+//     minute (at least 2; 2 s more for each message that arrived unreadable in the last 20 s, up to 6 s: phones are
+//     sending over each other), or up to 0.3 s when I am the only one who sent in that minute. It runs only while the room
+//     has been quiet for 0.1 s and no receipt is expected (win: the time after a message during which receipts may
+//     start); when someone else starts first, it is drawn again. It never plays into a busy room; after 30 s a banner
+//     offers to cancel.
+// The room is busy while I play, record or listen to a voice message, while the receiver reads a frame, and while the
+// carrier sense hears sound above 8 kHz. While its news is late (the page was busy decoding) nothing is played.
+// A receipt that finds a short sound on its place waits for it to end, RCPT.late ms at most; after that it takes the
+// same place one round later. In a busy room (busyRoom) no receipts are sent for messages read, and nobody waits for them.
+const queue = [], receipts = [];   // my messages, and my answers to the others' ({key, o, h, id, seq, wait, slot, cyc, t0}) or a poll of mine ({poll, seq, n8, it})
+const told = new Map();   // sender's id -> {t, e}: what my last receipt told it
+const recent = [];   // when the last messages in the room started (receipts apart), mine included
+const jams = [];   // when messages arrived unreadable in the last 20 s: phones sending over each other, most likely
+const jam = () => { jams.push(Date.now()); }, jamN = () => { const t = Date.now() - 20000; while (jams.length && jams[0] < t) jams.shift(); return Math.min(3, jams.length); };
+let lastRcpt = 0;   // when a receipt was last read: some phone in the room answers
+const busyRoom = () => { const t = Date.now() - RCPT.busyT; while (recent.length && recent[0] < t) recent.shift(); return recent.length >= RCPT.busyN; };
+const heardLog = new Map();   // the last messages heard, by key (read: a + id:seq; not read: n + length): {o, h, id, seq, t}, to answer again when their sender polls
+const ids = new Map();   // phones heard: id -> {t: when last heard, sent: when it last sent a message (not a receipt)}
+const A = chatAutoNew();   // automatic mode: what each phone reported about my frames
+let lastOwn = null, ownTail = 0, win = null, lastTick = 0, lastBusy = 0, waitTxt = '', lastMine = 0;
+const sameFrame = (h, f) => !!f && h.n0 === f.n0 && h.map === f.map && h.code === f.code && (h.ofdm || '') === (f.ofdm || '') && !!h.sc === !!f.sc;
+function noteId(id, sent) { const q = ids.get(id) || { t: 0, sent: 0 }; q.t = Date.now(); if (sent) q.sent = q.t; ids.set(id, q); }
+const others = not => [...ids.keys()].filter(id => id !== myId && id !== not && Date.now() - ids.get(id).t < 600000);   // heard in the last 10 minutes
+const senders = () => 1 + [...ids.values()].filter(q => Date.now() - q.sent < 60000).length;
+const csLive = () => !!stream && cs.wall > 0 && Date.now() - cs.wall < 5000;
+const openWin = (it = null, boost = 1) => { win = { hold: chatReceiptHold(Math.max(1, others().length), boost), it, coll: false }; };   // it: my own message; boost: after a poll
+function trouble() {   // sound that nobody could read while receipts were expected: several phones may have answered at once
+  if (win && !win.coll) { win.coll = true; if (!win.it) win.hold += 600; }   // the message's sender may ask again (a poll): leave it the time to start
+  if (DEBUG && win) console.log('unread sound among the receipts');
 }
-async function pump() {
-  if (pumping) return; pumping = true;
-  while (queue.length) {
-    const it = queue[0];
-    await waitForRoom(it);
-    const x = modulate(it.frame);
-    playingNow = true; selfUntil = Infinity; setTick(it, 'sending');
-    const ok = await play(x);
-    playingNow = false; selfUntil = Date.now() + 1500; quietUntil = Date.now() + 400;
-    queue.shift(); setTick(it, ok ? 'sent' : 'fail');
-    if (ok && stream) setTimeout(() => { if (!it.heard) volumeCheck(false); }, 2000 * it.dur + 6000);
-    if (!ok) banner('The browser played no sound. Check the volume and the output device, then send again.');
-  }
-  pumping = false;
+function planReceipt(key, boost = 1) {   // a place for my answer about the message heardLog has under key; boost: when its sender polled
+  const g = heardLog.get(key); if (!g) return;
+  const set = [myId, ...others(g.o.ok ? g.id : null)].sort((a, b) => a - b), o = { ...g.o, n: set.length, rank: set.indexOf(myId) }, pl = chatReceiptPlan({ ...o, boost, r1: Math.random(), r2: Math.random() });
+  const k = receipts.findIndex(r => r.key === key); if (k >= 0) receipts.splice(k, 1);
+  if (pl.send) receipts.push({ key, o, h: g.h, id: g.id, seq: g.seq, wait: pl.wait, slot: pl.slot, cyc: pl.cyc, t0: performance.now() });
+  if (DEBUG) console.log('receipt planned', key, pl.send ? `after ${pl.wait} ms of quiet` : 'not sent', 'margin', g.h.margin === null ? '?' : g.h.margin.toFixed(1), 'phones', set.length, 'boost', boost);
 }
+function answer(res, e, ok) {   // a receipt for the frame just read (ok; e: its envelope) or not read: it waits for its place
+  if (!receiptsOn || !stream) return;
+  const h = chatHeard(res), key = ok ? `a${e.id}:${e.seq}` : `n${h.n8}`;
+  for (const [k, g] of heardLog) if (Date.now() - g.t > 30000) heardLog.delete(k);
+  heardLog.set(key, { o: { ok, margin: h.margin, seq: ok ? e.seq : h.n8 }, h, id: ok ? e.id : null, seq: ok ? e.seq : 0, t: Date.now() });
+  planReceipt(key);
+}
+function gotPoll(r) {   // the sender of a message heard receipts collide: every phone that heard the message answers again, spread over more places
+  noteId(r.by, false); openWin(null, 2 ** r.poll);
+  if (DEBUG) console.log('poll read from', r.nick, 'boost', 2 ** r.poll);
+  if (!receiptsOn || !stream) return;
+  for (const [key, g] of heardLog) if (g.o.ok ? g.id === r.by && g.seq === r.seq : g.h.n8 === r.n8) planReceipt(key, 2 ** r.poll);
+}
+function poll(it) {   // my message got sound I could not read where receipts go, and no receipt: ask again
+  const k = Math.round(Math.log2(RCPT.polls[it.polls++]));
+  receipts.push({ key: 'p' + it.seq, poll: k, seq: it.seq, n8: it.n8, it, wait: 100, cyc: 0, t0: performance.now() });
+}
+function gotReceipt(r) {   // a receipt was read: mine to drop? about a message of mine?
+  if (!r) return;
+  if (r.poll) { gotPoll(r); return; }
+  noteId(r.by, false); lastRcpt = Date.now();
+  for (let i = receipts.length - 1; i >= 0; i--) {
+    const q = receipts[i]; if (q.poll) continue;
+    if (!(r.ok ? q.o.ok && q.id === r.id && q.seq === r.seq : !q.o.ok && q.h.n8 === r.n8)) continue;
+    // Mine still goes, in its turn, only if the message reached me clearly worse (RCPT.tol dB less for one of the mappings)
+    // and I have not told this sender about the same in the last minute
+    const worse = r.ok && !!q.h.e && q.h.e.some((v, k) => v !== null && r.e[k] !== null && v + RCPT.tol < r.e[k]), t = told.get(q.id);
+    const known = !!t && Date.now() - t.t < 60000 && t.e.every((v, k) => v === null || q.h.e[k] === null || Math.abs(v - q.h.e[k]) < RCPT.tol);
+    if (worse && !known) q.wait = RCPT.t0 + RCPT.slot * q.slot; else receipts.splice(i, 1);
+  }
+  if (win && r.ok) win = null;
+  let it = null;
+  if (r.ok) { if (r.id === myId) { it = sentBySeq.get(r.seq) || null; if (it && it.n8 !== r.n8) it = null; } }
+  else for (const q of sentBySeq.values()) if (q.played && Date.now() - q.played < 20000 && q.n8 === r.n8 && chatFrameMode(q.frame).map === r.mode.map && (!it || q.played > it.played)) it = q;
+  if (DEBUG) console.log('receipt read', r.ok ? 'read' : 'not read', 'by', r.nick, r.e.join('/'), it ? 'for my message ' + it.seq : 'not for me');
+  if (!it) return;
+  const list = r.ok ? it.acks : it.nacks, k = list.findIndex(a => a.by === r.by); if (k >= 0) list[k] = r; else list.push(r);
+  chatAutoHear(A, r, it.frame.chatMode, it.item.kind !== 'text', Date.now());
+  physMine(it); setTick(it, it.state);
+  if (!r.ok && !tipped) { tipped = true; sys('⚠ under a message of mine: a phone answered that it could not read it. ✓✓: a phone read it.'); }
+}
+let tipped = false;
+function rcptDb(r) {   // the SNR a receipt reports for the message's own mapping; where that mapping's scale ends, the next mapping's
+  const k = Math.max(0, r.mode.map);
+  for (let j = k; j < 4; j++) if (r.e[j] !== null && (j === 3 || r.e[j] < chatMiCap(RCPT_MAPS[j]) - 0.25)) return r.e[j];
+  return r.e[3];
+}
+const rcptWho = list => list.map(r => { const v = rcptDb(r); return (r.nick || chatDefaultNick(r.by)) + (v === null ? '' : ` at ${v.toFixed(0)} dB`); }).join(', ');
+function physMine(it) {   // the physics line of a message of mine
+  let s = `${it.desc} · ${it.dur.toFixed(1)} s of sound`;
+  if (it.own !== undefined) s += ` · my microphone heard it${it.own}`;
+  if (it.acks.length) s += ` · read by ${rcptWho(it.acks)}`;
+  if (it.nacks.length) s += ` · not read by ${rcptWho(it.nacks)}`;
+  if (it.unanswered && !it.acks.length && !it.nacks.length) s += ' · no phone answered';
+  const r = it.acks[0] || it.nacks[0]; if (r && r.need !== null) s += ` (it needs ${r.need.toFixed(0)})`;
+  setPhys(it.b, s);
+}
+async function transmit(frame) {   // play a frame now -> whether it played
+  const x = modulate(frame);
+  playingNow = true; selfUntil = Infinity; lastOwn = frame;
+  const ok = await play(x);
+  playingNow = false; selfUntil = Date.now() + 1500; ownTail = Date.now() + 250; quietUntil = Date.now() + 100;
+  return ok;
+}
+async function playItem(it) {
+  setTick(it, 'sending'); recent.push(Date.now()); if ($('bannerTxt').textContent.startsWith('The room has been busy')) banner('');
+  const ok = await transmit(it.frame);
+  it.played = lastMine = Date.now(); setTick(it, ok ? 'sent' : 'fail');
+  if (ok && !busyRoom()) openWin(it);
+  if (ok && stream) setTimeout(() => { if (it.own === undefined) volumeCheck(false); }, 2000 * it.dur + 6000);
+  if (!ok) banner('The browser played no sound. Check the volume and the output device, then send again.');
+}
+async function playReceipt(r) {
+  if (DEBUG) console.log(r.poll ? 'poll sent' : 'receipt sent', r.key);
+  const me = { group, id: myId, nick: myNick() };
+  if (r.poll) { await transmit(chatReceiptFrame(me, { poll: r.poll, seq: r.seq, n8: r.n8 })); openWin(r.it, 2 ** r.poll); return; }
+  await transmit(chatReceiptFrame(me, { ok: r.o.ok, id: r.id, seq: r.seq, mode: r.h.mode, e: r.h.e, n8: r.h.n8 }));
+  if (r.o.ok) { win = null; if (r.h.e) told.set(r.id, { t: Date.now(), e: r.h.e }); }
+}
+function tick() {
+  const now = performance.now(), dt = now - lastTick; if (dt < 8) return; lastTick = now;
+  const live = csLive(), late = live && actx.currentTime - cs.t - cs.lag0 > 0.15, reading = !!rx && rx.state !== 'search';
+  const mine = playingNow || !!rec || !!vNow || Date.now() < quietUntil;
+  if (mine || (!live && reading)) lastBusy = now;
+  const q = Math.min(now - lastBusy, live ? (cs.quietFrom === null ? 0 : 1000 * (cs.t - cs.quietFrom)) : Infinity);   // ms of quiet
+  const hot = live && cs.on;   // sound right now, even a short one
+  if (win && q >= win.hold && !hot) {   // the time for receipts is over; for a message of mine that got only unreadable sound: a poll (three at most)
+    const w = win; win = null;
+    if (w.it && !w.it.acks.length && !w.it.nacks.length && Date.now() - lastRcpt < 300000) { w.it.unanswered = true; physMine(w.it); setTick(w.it, w.it.state); }   // phones answer here, but none did: offer Resend
+    if (w.it && w.coll && receiptsOn && !queue.length && w.it.polls < RCPT.polls.length && !w.it.acks.length && !w.it.nacks.length) poll(w.it);
+  }
+  for (let i = receipts.length - 1; i >= 0; i--) if (now - receipts[i].t0 > RCPT.life) receipts.splice(i, 1);   // too late to matter
+  waitTxt = '';
+  if (playingNow) return;
+  const it = queue[0];
+  if (late) { if (it) waitTxt = 'Waiting for quiet'; return; }
+  // a receipt goes in its place; one that is late (the phone was decoding) takes the same place of the next round
+  const r = hot ? null : receipts.find(r => q >= r.wait && (!r.cyc || (q - r.wait) % r.cyc < RCPT.late));
+  if (r) { receipts.splice(receipts.indexOf(r), 1); playReceipt(r); return; }
+  if (!it) return;
+  const long = () => 1000 * (senders() === 1 && !jamN() && Date.now() - lastMine < 60000 ? 0.3 : Math.max(2, senders()) + 2 * jamN()) * Math.random();
+  if (it.count === null) { it.calm = q > 1000 && !win && !receipts.length; it.count = it.calm ? 200 * Math.random() : long(); it.q0 = now; }
+  if ((it.calm || it.due) && q < 100) { it.calm = it.due = false; it.count = long(); }   // someone started first: draw again
+  const held = !!win || receipts.length > 0, free = !held && q >= 100;
+  if (free) it.count -= Math.min(dt, 60);   // the countdown runs through short sounds (someone talking) ...
+  if (free && it.count <= 0) { if (!hot) { queue.shift(); playItem(it); return; } it.due = true; }   // ... and waits for them to end
+  const quiet = q >= 100 && !hot, st = quiet ? 'queued' : 'wait'; if (it.state !== st) setTick(it, st);
+  waitTxt = !quiet ? 'Waiting for quiet' : held ? 'After the receipts' : `Sending in ${(Math.max(0, it.count) / 1000).toFixed(1)} s`;
+  if (now - it.q0 > 30000 && !it.warned) { it.warned = true; banner('The room has been busy for 30 s: my message is still waiting.', 'Cancel', cancelWaiting); }
+}
+setInterval(tick, 50);   // without a microphone no level windows come
+if (DEBUG) window.b2nState = () => ({ cs, rx: rx && rx.state, lag: actx ? actx.currentTime - cs.t - cs.lag0 : null, win, receipts, queue, waitTxt, ids, A });   // ?debug: for tests
+function cancelWaiting() { for (const it of queue.splice(0)) setTick(it, 'cancel'); banner(''); }
 function setTick(it, s) {
   it.state = s;
-  it.b.tick.textContent = { queued: '◷', wait: '◷', sending: '♪', sent: '✓', fail: '!' }[s] || '';
-  it.b.tick.title = { queued: 'waiting to send', wait: 'waiting for the room to be quiet', sending: 'playing now', sent: 'played', fail: 'not played' }[s] || '';
-  if (it.resend) it.resend.hidden = s !== 'sent' && s !== 'fail';   // once played (or not), the picture can go again
+  const a = it.acks.length, n = it.nacks.length, got = s === 'sent' && a + n > 0;
+  it.b.tick.textContent = got ? (a ? '✓✓' : '') + (a && n ? ' ' : '') + (n ? '⚠' : '') : { queued: '◷', wait: '◷', sending: '♪', sent: '✓', fail: '!', cancel: '✕' }[s] || '';
+  it.b.tick.title = got ? [a ? `read by ${it.acks.map(r => r.nick || chatDefaultNick(r.by)).join(', ')}` : '', n ? `not read by ${it.nacks.map(r => r.nick || chatDefaultNick(r.by)).join(', ')}` : ''].filter(Boolean).join('; ')
+    : { queued: 'waiting to send', wait: 'waiting for the room to be quiet', sending: 'playing now', sent: 'played', fail: 'not played', cancel: 'not sent' }[s] || '';
+  // Resend: a picture or a voice message once played (or not); a text only when it was not played or a phone could not read it
+  if (it.resend) it.resend.hidden = it.item.kind === 'text' ? !(s === 'fail' || s === 'cancel' || (s === 'sent' && (n > 0 || (it.unanswered && !it.acks.length)))) : s !== 'sent' && s !== 'fail' && s !== 'cancel';
 }
-function send(frame, b, item = null) {   // item: a picture or a voice message as the send sheet had it (prevItem), its again the sequence number of the copy sent before, or null
-  const again = item && item.again !== null, s = again ? item.again : seq;
-  const c = chatCfg(frame.chatMode), it = { frame, b, seq: s, item, desc: (frame.note ? frame.note + ' · ' : '') + frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + 0.4 };
-  setPhys(b, `${it.desc} · ${it.dur.toFixed(1)} s of sound`);
+function send(frame, b, item) {   // item: what is sent ({kind: 'pic' | 'voice', ...} as the send sheet had it, or {kind: 'text', text}); its again: the sequence number of the copy sent before, or null
+  const again = item.again !== null, s = again ? item.again : seq;
+  const c = chatCfg(frame.chatMode), it = { frame, b, seq: s, item, n8: chatLen16(frame), acks: [], nacks: [], count: null, played: 0, polls: 0,
+    desc: (frame.note ? frame.note + ' · ' : '') + frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + PADS };
+  physMine(it);
   sentBySeq.set(s, it); if (!again) { seq = (seq + 1) & 255; store.set('seq', seq); }
-  if (item) resendBtn(it);
-  setTick(it, 'queued'); queue.push(it); pump();
+  resendBtn(it);
+  setTick(it, 'queued'); queue.push(it); tick();
 }
-function resendBtn(it) {   // my picture or voice message: Resend opens the send sheet with it again, so it need not be picked (or recorded) again
-  const voice = it.item.kind === 'voice', r = mk('button', 'resend', 'Resend'); r.type = 'button'; r.hidden = true;
-  r.setAttribute('aria-label', voice ? 'Send this voice message again' : 'Send this picture again');
-  r.onclick = () => voice ? showVoice({ ...it.item, again: it.seq }) : showPreview(it.item.file, it.item.w, it.item.h, it.seq);
+function resendBtn(it) {   // Resend sends my message again without picking, recording or typing it again: a picture or a voice message through the send sheet, a text at once
+  const k = it.item.kind, r = mk('button', 'resend', 'Resend'); r.type = 'button'; r.hidden = true;
+  r.setAttribute('aria-label', k === 'voice' ? 'Send this voice message again' : k === 'text' ? 'Send this message again' : 'Send this picture again');
+  r.onclick = () => k === 'voice' ? showVoice({ ...it.item, again: it.seq }) : k === 'text' ? postText(it.item.text, it.seq) : showPreview(it.item.file, it.item.w, it.item.h, it.seq);
   it.b.meta.prepend(r); it.resend = r;
 }
 const env = () => ({ group, id: myId, seq, nick: myNick() });
+function postText(text, again) {   // again: the sequence number of the copy sent before (phones that have it show it once), or null
+  const b = bubble({ mine: true }), e = env(); if (again !== null) e.seq = again;
+  setText(b, text); add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
+  send(chatTextFrame({ ...e, text }, mode === 'auto' ? 'robust' : mode), b, { kind: 'text', text, again });
+}
 function sendText() {
   const t = $('txt').value.replace(/\s+$/, '');
   if (!t.trim()) return;
-  const text = chatClip(t, CHAT_TEXT_MAX), b = bubble({ mine: true });
-  setText(b, text); add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
-  send(chatTextFrame({ ...env(), text }, mode), b);
+  postText(chatClip(t, CHAT_TEXT_MAX), null);
   $('txt').value = ''; grow(); $('emojiBar').classList.add('hidden'); $('emoBtn').setAttribute('aria-pressed', 'false');
 }
 
@@ -4634,13 +4975,20 @@ function usedMode(m) {
   modeUse[m] = (modeUse[m] || 0) + 1; store.set('use', JSON.stringify(modeUse));
 }
 function pinMode(m) { modeUse[m] = Object.values(modeUse).reduce((a, b) => Math.max(a, b), 0) + 1; store.set('use', JSON.stringify(modeUse)); }
-const modeBtn = (b, m, s) => { b.dataset.m = m; b.textContent = `Send (${CHAT_MODES[m].label}, ${s.toFixed(1)} s of sound)`; };
+const modeBtn = (b, m, s, auto = false) => { b.dataset.m = m; b.dataset.auto = auto ? '1' : ''; b.textContent = `Send (${auto ? 'Automatic: ' : ''}${CHAT_MODES[m].label}, ${s.toFixed(1)} s of sound)`; };
+function sheetModes() {   // the sheet's two buttons: [mode, mode, automatic mode's pick (the first one) or null]
+  const t = topModes(); if (mode !== 'auto') return [t[0], t[1], null];
+  const pk = chatAutoPick(A, Date.now()); return [pk.mode, t.find(m => m !== pk.mode), pk];
+}
+const autoWhy = pk => pk.none ? 'Automatic: Fast until a phone answers one of my messages.'
+  : pk.snr === null ? `Automatic: ${CHAT_MODES[pk.mode].label}, as the last receipts carried no measure.`
+  : `Automatic: ${pk.by || 'the weakest phone'} would get it at ${pk.snr.toFixed(0)} dB, ${CHAT_MODES[pk.mode].label} needs ${pk.need.toFixed(0)}.`;
 async function sheet(item, what, info) {
-  const [m1, m2] = topModes(), s1 = await item.secs(m1), s2 = await item.secs(m2);
+  const [m1, m2, pk] = sheetModes(), s1 = await item.secs(m1), s2 = await item.secs(m2);
   prevItem = item;
   $('prevTitle').textContent = `Send this ${what}${item.again === null ? '' : ' again'}?`;
-  $('prevInfo').textContent = info;
-  modeBtn($('prevFast'), m1, s1); modeBtn($('prevRobust'), m2, s2);
+  $('prevInfo').textContent = info + (pk ? ' ' + autoWhy(pk) : '');
+  modeBtn($('prevFast'), m1, s1, !!pk); modeBtn($('prevRobust'), m2, s2);
   $('prevMore').setAttribute('aria-expanded', 'false'); $('prevOther').classList.add('hidden'); $('prevOther').replaceChildren();
   $('prevImg').classList.toggle('hidden', item.kind !== 'pic'); $('prevVoice').classList.toggle('hidden', item.kind !== 'voice');
   $('prev').classList.remove('hidden');
@@ -4661,7 +5009,7 @@ function closeSheet() { $('prev').classList.add('hidden'); prevItem = null; if (
 // pictures: scaled so that the longest side is 160 (or 320) pixels, through the modem's own JPEG coder (quality 50)
 function showPreview(file, w, h, again = null) {
   $('prevImg').src = URL.createObjectURL(new Blob([file], { type: 'image/jpeg' }));
-  const secs = m => chatPictureFrame(env(), file, m).dur + 0.4;
+  const secs = m => chatPictureFrame(env(), file, m).dur + PADS;
   sheet({ kind: 'pic', file, w, h, again, secs }, 'picture', `${w} × ${h} pixels, ${(file.length / 1024).toFixed(1)} kB.`);
 }
 $('picBtn').onclick = () => $('picIn').click();
@@ -4679,9 +5027,9 @@ $('picIn').onchange = () => {
   im.onerror = () => sys('This browser cannot open that picture.');
   im.src = URL.createObjectURL(f);
 };
-async function sendPrev(m) {
+async function sendPrev(m, auto = false) {
   const it = prevItem; closeSheet(); if (!it) return;
-  usedMode(m);
+  if (!auto) usedMode(m);   // automatic mode's pick is not a habit of mine
   const v = it.kind === 'voice' ? await voiceVersion(it, voiceKbps(m)) : null;   // coded already, for the sheet
   const b = bubble({ mine: true }), e = env(); if (it.again !== null) e.seq = it.again;
   if (v) setVoice(b, { y: v.y, dur: it.dur }); else setPicture(b, it.file);
@@ -4689,7 +5037,7 @@ async function sendPrev(m) {
   if (!v) { send(chatPictureFrame(e, it.file, m), b, it); return; }
   const f = chatVoiceFrame(e, v.body, m); f.note = voiceNote(v.body.length, it.dur); send(f, b, it);
 }
-$('prevFast').onclick = () => sendPrev($('prevFast').dataset.m);
+$('prevFast').onclick = () => sendPrev($('prevFast').dataset.m, $('prevFast').dataset.auto === '1');
 $('prevRobust').onclick = () => sendPrev($('prevRobust').dataset.m);
 $('prevCancel').onclick = closeSheet;
 
@@ -4758,9 +5106,9 @@ async function voiceVersion(item, kbps) {   // the voice coded at kbps, once: {k
   return item.enc.get(kbps);
 }
 async function showVoice(item) {   // the sheet plays the voice as the first mode codes it
-  const m1 = topModes()[0]; let v;
-  item.secs = async m => chatVoiceFrame(env(), (await voiceVersion(item, voiceKbps(m))).body, m).dur + 0.4;
-  try { v = await voiceVersion(item, voiceKbps(m1)); await item.secs(topModes()[1]); }
+  const [m1, m2] = sheetModes(); let v;
+  item.secs = async m => chatVoiceFrame(env(), (await voiceVersion(item, voiceKbps(m))).body, m).dur + PADS;
+  try { v = await voiceVersion(item, voiceKbps(m1)); await item.secs(m2); }
   catch (e) { sys('This browser could not code the voice message.'); return; }
   const vm = setVoice({ box: $('prevVoice'), body: $('prevVoice') }, { y: v.y, dur: item.dur }); vm.sheet = true;
   sheet(item, 'voice message', `${item.dur.toFixed(1)} s of voice, Opus ${v.kbps} kbit/s: ${(v.body.length / 1024).toFixed(1)} kB.`);
@@ -4899,21 +5247,23 @@ function seg(el, value, onPick) {
   set(value); el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); onPick(b.dataset.v); });
 }
 const MODE_HINT = {
+  auto: 'Texts go Robust. A picture or a voice message goes in the fastest of Robust, Fast, Close by and Max speed that the weakest phone that answered my last messages can still read (Fast until one answers). The send sheet says which, and why.',
   robust: 'OFDM, QPSK, LDPC 1/2: about 0.4 s for a short text. Works in most rooms.',
   fast: 'OFDM, 16QAM, LDPC 1/2: twice the speed, for pictures when the phones are close.',
   close: 'Wide OFDM (v7.21), 2.3–20.5 kHz, 64QAM, LDPC 1/2: almost 3 times Fast, for phones within about 30 cm of each other. Texts go as Fast, which is as quick for them.',
   max: 'Wide OFDM, 256QAM, LDPC 3/4: the chat at its fastest, about 1.7 times Close by for pictures and voice messages. For phones side by side, lying still. Texts go as Fast.',
   sc: `Single carrier, 16QAM, LDPC 1/2, with training blocks: for rooms with long echo. Receivers use the ${DET === 'smap' ? 'SMAP' : 'linear MMSE'} detector.`,
 };
-seg($('modeSeg'), mode, v => { mode = v; store.set('mode', v); pinMode(v); $('modeHint').textContent = MODE_HINT[v]; });
+seg($('modeSeg'), mode, v => { mode = v; store.set('mode', v); if (v !== 'auto') pinMode(v); $('modeHint').textContent = MODE_HINT[v]; });
 $('modeHint').textContent = MODE_HINT[mode];
 seg($('picSeg'), picSize, v => { picSize = v; store.set('pic', v); });
-$('setBtn').onclick = () => { $('nickIn2').value = nick; $('nickIn2').placeholder = defNick; $('groupIn').value = group; $('physChk').checked = physics; $('settings').classList.remove('hidden'); };
+$('setBtn').onclick = () => { $('nickIn2').value = nick; $('nickIn2').placeholder = defNick; $('groupIn').value = group; $('physChk').checked = physics; $('rcptChk').checked = receiptsOn; $('settings').classList.remove('hidden'); };
 $('meBtn').onclick = $('setBtn').onclick;
 $('setDone').onclick = () => {
   const n = chatClip($('nickIn2').value.trim(), CHAT_NICK_MAX); if (n !== nick) { nick = n; store.set('nick', nick); sys(`You are now ${myNick()}.`); }
   const g = Math.max(0, Math.min(255, parseInt($('groupIn').value, 10) || 0)); if (g !== group) { group = g; store.set('group', g); sys(group ? `Group ${group}: you read and reach only phones with the same code.` : 'Group 0, the default.'); }
   physics = $('physChk').checked; store.set('physics', physics ? 1 : 0); showPhysics();
+  receiptsOn = $('rcptChk').checked; store.set('receipts', receiptsOn ? 1 : 0);
   showMe(); $('settings').classList.add('hidden');
 };
 const pageUrl = () => location.protocol === 'https:' ? location.origin + location.pathname + (group ? `?group=${group}` : '') : 'https://mention-ice.github.io/Bit2Noisy/chat/';
@@ -4929,7 +5279,7 @@ setInterval(() => {
   else if (rec) { t = 'Recording'; c = 'send'; }
   else if (rx && rx.state !== 'search') { t = 'Receiving'; c = 'hear'; }
   else if (decoding > 0) { t = 'Decoding'; c = 'decode'; }
-  else if (queue.length) { t = 'Waiting to send'; c = 'wait'; }
+  else if (queue.length) { t = waitTxt || 'Waiting to send'; c = 'wait'; }
   else if (stream) { t = 'Listening'; c = 'listen'; }
   const P = $('pill'); if (P.textContent !== t) P.textContent = t; $('status').dataset.state = c;
 }, 200);
