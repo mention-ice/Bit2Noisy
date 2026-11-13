@@ -316,7 +316,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <input type="number" id="groupIn" min="0" max="255" step="1" inputmode="numeric">
     <div class="hint">Phones with another code ignore your messages: two groups can share a room.</div>
     <label class="check"><input type="checkbox" id="physChk"> <span>Show the physics under each message: mode, SNR, seconds of sound</span></label>
-    <label class="check"><input type="checkbox" id="rcptChk"> <span>Answer each message with a receipt by sound: its sender sees ✓✓ and how well it arrived</span></label>
+    <label class="check"><input type="checkbox" id="rcptChk"> <span>Receipts by sound: answer each message with a short chirp, so its sender sees ✓✓ and how well it arrived (off by default)</span></label>
     <button class="primary" id="setDone">Done</button>
   </div></div>
 </div>
@@ -4383,7 +4383,7 @@ let nick = chatClip(store.get('nick', ''), CHAT_NICK_MAX);
 const myNick = () => nick || defNick;
 const okMode = m => m === 'auto' || !!CHAT_MODES[m];   // auto (chat 1.2): the mode follows the receipts
 let mode = okMode(params.get('mode')) ? params.get('mode') : store.get('mode', 'auto'); if (!okMode(mode)) mode = 'auto';
-let receiptsOn = params.get('receipts') === 'off' ? false : store.get('receipts', '1') === '1';   // I answer messages with a receipt
+let receiptsOn = params.has('receipts') ? params.get('receipts') !== 'off' : store.get('rcpt', '0') === '1';   // I answer messages with a receipt and leave time for the others'; off unless switched on (1.2.1: the chirps can be disturbing; a new key, so a phone that kept 1.2's setting starts off too)
 let picSize = CHAT_PIC[store.get('pic', 'small')] ? store.get('pic', 'small') : 'small';
 let group = Math.max(0, Math.min(255, parseInt(params.get('group') || store.get('group', '0'), 10) || 0));
 let physics = store.get('physics', '0') === '1';
@@ -4778,7 +4778,7 @@ function noteId(id, sent) { const q = ids.get(id) || { t: 0, sent: 0 }; q.t = Da
 const others = not => [...ids.keys()].filter(id => id !== myId && id !== not && Date.now() - ids.get(id).t < 600000);   // heard in the last 10 minutes
 const senders = () => 1 + [...ids.values()].filter(q => Date.now() - q.sent < 60000).length;
 const csLive = () => !!stream && cs.wall > 0 && Date.now() - cs.wall < 5000;
-const openWin = (it = null, boost = 1) => { win = { hold: chatReceiptHold(Math.max(1, others().length), boost), it, coll: false }; };   // it: my own message; boost: after a poll
+const openWin = (it = null, boost = 1) => { if (!receiptsOn) return; win = { hold: chatReceiptHold(Math.max(1, others().length), boost), it, coll: false }; };   // it: my own message; boost: after a poll
 function trouble() {   // sound that nobody could read while receipts were expected: several phones may have answered at once
   if (win && !win.coll) { win.coll = true; if (!win.it) win.hold += 600; }   // the message's sender may ask again (a poll): leave it the time to start
   if (DEBUG && win) console.log('unread sound among the receipts');
@@ -4980,7 +4980,7 @@ function sheetModes() {   // the sheet's two buttons: [mode, mode, automatic mod
   const t = topModes(); if (mode !== 'auto') return [t[0], t[1], null];
   const pk = chatAutoPick(A, Date.now()); return [pk.mode, t.find(m => m !== pk.mode), pk];
 }
-const autoWhy = pk => pk.none ? 'Automatic: Fast until a phone answers one of my messages.'
+const autoWhy = pk => pk.none ? `Automatic: Fast until a phone answers one of my messages${receiptsOn ? '' : ' (receipts are off in Settings)'}.`
   : pk.snr === null ? `Automatic: ${CHAT_MODES[pk.mode].label}, as the last receipts carried no measure.`
   : `Automatic: ${pk.by || 'the weakest phone'} would get it at ${pk.snr.toFixed(0)} dB, ${CHAT_MODES[pk.mode].label} needs ${pk.need.toFixed(0)}.`;
 async function sheet(item, what, info) {
@@ -5247,7 +5247,7 @@ function seg(el, value, onPick) {
   set(value); el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); onPick(b.dataset.v); });
 }
 const MODE_HINT = {
-  auto: 'Texts go Robust. A picture or a voice message goes in the fastest of Robust, Fast, Close by and Max speed that the weakest phone that answered my last messages can still read (Fast until one answers). The send sheet says which, and why.',
+  auto: 'Texts go Robust. A picture or a voice message goes in the fastest of Robust, Fast, Close by and Max speed that the weakest phone that answered my last messages can still read (Fast until one answers; phones answer only when receipts are switched on below). The send sheet says which, and why.',
   robust: 'OFDM, QPSK, LDPC 1/2: about 0.4 s for a short text. Works in most rooms.',
   fast: 'OFDM, 16QAM, LDPC 1/2: twice the speed, for pictures when the phones are close.',
   close: 'Wide OFDM (v7.21), 2.3–20.5 kHz, 64QAM, LDPC 1/2: almost 3 times Fast, for phones within about 30 cm of each other. Texts go as Fast, which is as quick for them.',
@@ -5263,7 +5263,7 @@ $('setDone').onclick = () => {
   const n = chatClip($('nickIn2').value.trim(), CHAT_NICK_MAX); if (n !== nick) { nick = n; store.set('nick', nick); sys(`You are now ${myNick()}.`); }
   const g = Math.max(0, Math.min(255, parseInt($('groupIn').value, 10) || 0)); if (g !== group) { group = g; store.set('group', g); sys(group ? `Group ${group}: you read and reach only phones with the same code.` : 'Group 0, the default.'); }
   physics = $('physChk').checked; store.set('physics', physics ? 1 : 0); showPhysics();
-  receiptsOn = $('rcptChk').checked; store.set('receipts', receiptsOn ? 1 : 0);
+  receiptsOn = $('rcptChk').checked; store.set('rcpt', receiptsOn ? 1 : 0); if (!receiptsOn) { win = null; receipts.length = 0; }
   showMe(); $('settings').classList.add('hidden');
 };
 const pageUrl = () => location.protocol === 'https:' ? location.origin + location.pathname + (group ? `?group=${group}` : '') : 'https://mention-ice.github.io/Bit2Noisy/chat/';
