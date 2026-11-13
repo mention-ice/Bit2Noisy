@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
-<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page b1f0e72e). -->
+<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page e217ca4b). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
 :root{
@@ -2640,6 +2640,7 @@ const SC_TAIL_LAZY = true;    // v7.20: the long echo (SC_TAIL) only if a first 
 const SC_REL = 1.0;           // ridge prior of a training block's room: the one before, give or take its own size (a weak
                                // pull; a tight one, -20 dB, cost 2 to 7 dB on our recordings when people moved)
 const SC_T0_FRAC = 0.5, SC_T0_BACK = 0.015;   // timing: the earliest arrival with half the strongest's correlation, up to 15 ms before it
+const SC_T0_KEEP = 64;   // v7.23: ... or as far before it as the first block's room holds, the strongest this many taps inside its end (scT0Back)
 const SC_MAX_PPM = 500;       // clock offset plus a moving phone
 const SC_EST = ['ls', 'mmse'];   // the receiver's estimate of the room on the first block: least squares (default) or MMSE with
                                // a prior power per tap learned from a least-squares pilot; on Sheng's recordings with noise
@@ -3113,13 +3114,19 @@ function scPeak(v, i) {   // the maximum near index i, by a parabola through the
 }
 const scArgmax = v => { let b = 0; for (let k = 1; k < v.length; k++) if (v[k] > v[b]) b = k; return b; };
 // The first strong arrival in the envelope correlation v: the earliest local peak at least SC_T0_FRAC of the strongest,
-// within SC_T0_BACK seconds before it. Where a later echo is as strong as the direct sound, the strongest peak would
-// put the early paths before the room's SC_PRE taps, where nothing is fitted.
-function scFirstArrival(v) {
+// within SC_T0_BACK seconds before it (v7.23: within back samples, if given). Where a later echo is as strong as the
+// direct sound, the strongest peak would put the early paths before the room's SC_PRE taps, where nothing is fitted.
+function scFirstArrival(v, back = null) {
   const i = scArgmax(v);
-  for (let j = Math.max(1, i - Math.round(SC_T0_BACK * SC_FS)); j < i; j++) if (v[j] >= SC_T0_FRAC * v[i] && v[j] >= v[j - 1] && v[j] > v[j + 1]) return j;
+  for (let j = Math.max(1, i - (back === null ? Math.round(SC_T0_BACK * SC_FS) : back)); j < i; j++) if (v[j] >= SC_T0_FRAC * v[i] && v[j] >= v[j - 1] && v[j] > v[j + 1]) return j;
   return i;
 }
+// v7.23: how far before the strongest arrival the first strong one is looked for, in samples of SC_FS: as far as the
+// first block's room of L taps still holds the strongest SC_T0_KEEP taps inside its end, and at least SC_T0_BACK.
+// Usual band: 40 ms with medium or long training (512 taps), 15 ms with short (256). In a small amphitheatre one
+// seat's strongest arrival came 26 ms after a direct sound 0.88 as strong: 15 ms back stopped at an echo 15 ms late,
+// the direct sound fell before the room's SC_PRE taps, and every usual-band frame failed there.
+const scT0Back = L => Math.max(Math.round(SC_T0_BACK * SC_FS), SC_SPS * (L - SC_PRE - SC_T0_KEEP));
 // MMSE room on the first block, on the rows that see the training only (as least squares; the rows before it would add
 // the control part's late echoes). Pilot: least squares on L taps; its residual gives N0 (echoes beyond L taps count as
 // noise). Prior power of tap l: the pilot's |c_l|^2 averaged over SC_SMOOTH taps, minus the pilot's estimation floor
@@ -3218,13 +3225,13 @@ function scClock0(y, fs, T0, nt, L) {
 // v5.1: a jump at sample u of the waveform p sent, which arrives near sample t of the recording y. The envelope of the
 // correlation of the recording with p's part before u, against that of its part after (cross-correlated, so the room
 // cancels): [the jump in samples of the recording, the first strong arrival of the part before].
-function scSplit(y, rho, t, p, u) {
-  const G = SC_GAP_MAX, lo = t - rho * (Math.round(SC_T0_BACK * SC_FS) + G), n = Math.round(2 * SC_T0_BACK * SC_FS) + 2 * G;
+function scSplit(y, rho, t, p, u, back = 0) {   // v7.23: back, the first arrival's reach (scT0Back); the window reaches as far
+  const G = SC_GAP_MAX, B = Math.max(Math.round(SC_T0_BACK * SC_FS), back || 0), lo = t - rho * (B + G), n = 2 * B + 2 * G;
   const at = (o, m) => Float64Array.from({ length: m }, (_, k) => o + rho * k), pb = p.subarray(0, u - SC_GAP_SPAN), pq = p.subarray(u + SC_GAP_SPAN);
   const cb = scEnvXcorr(scRead(y, at(lo, n + pb.length)), pb), cq = scEnvXcorr(scRead(y, at(lo + rho * (u + SC_GAP_SPAN), n + pq.length)), pq);
   const xc = new Float64Array(2 * G + 1);   // lags -G .. G
   for (let d = -G; d <= G; d++) { let a = 0; for (let i = Math.max(0, -d); i < Math.min(cb.length, cq.length - d); i++) a += cq[i + d] * cb[i]; xc[d + G] = a; }
-  return [(scPeak(xc, scArgmax(xc)) - G) * rho, lo + rho * scPeak(cb, scFirstArrival(cb))];
+  return [(scPeak(xc, scArgmax(xc)) - G) * rho, lo + rho * scPeak(cb, scFirstArrival(cb, B))];
 }
 // The single-carrier part of a frame whose control part ends near sample t0 of the recording y.
 // 1. Timing: the first strong arrival of the first training block (its correlation with the waveform sent): the
@@ -3378,14 +3385,14 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   const tr = { r: Float64Array.from([...ta.r, ...tc.r]), i: Float64Array.from([...ta.i, ...tc.i]) }, pa = scPassband(tr);
   const lo = t0 + SC_GAP * fs - 0.03 * fs, nz = pa.length + Math.round(0.09 * SC_FS), at = (o, k0, k1) => Float64Array.from({ length: k1 - k0 }, (_, k) => o + rho * (k0 + k));
   const env = scEnvXcorr(scRead(y, at(lo, 0, nz)), pa);
-  let T0 = lo + scPeak(env, scFirstArrival(env)) * rho;
+  let T0 = lo + scPeak(env, scFirstArrival(env, scT0Back(L))) * rho;   // v7.23: as far back as the room holds
   // v5.1: a jump inside the first block (its TC is every later block's reference): the arrival of the block's part before
   // the prediction error's peak against that of the part after (the envelopes of their correlations with what was sent,
   // cross-correlated; the room cancels)
   const sw = (i, w) => swap !== null && swap[0] === i && swap[1] === w;   // the second try: [gap, 'size' or 'place']
   const gaps0 = [], unsure = [], ub = P5 * (SC_NA + nt) + 2 * SC_DLY - SC_GAP_EDGE;   // unsure: [how unsure, [gap, what]]
   if (ub > P5 * L) {
-    const [tg] = scClick(y, T0 + rho * P5 * L, T0 + rho * ub), [raw, Tb] = scSplit(y, rho, T0, pa, Math.trunc((tg - T0) / rho));
+    const [tg] = scClick(y, T0 + rho * P5 * L, T0 + rho * ub), [raw, Tb] = scSplit(y, rho, T0, pa, Math.trunc((tg - T0) / rho), scT0Back(L));
     if (Math.abs(raw) > SC_GAP_MIN) {
       T0 = Tb;   // the arrival of the part before it
       let sz = Math.round(raw);
@@ -4102,7 +4109,7 @@ const CHAT_TEXT_MAX = 600;     // bytes of a text (UTF-8); a v7 text frame carri
 // Replayed through the 20 rooms recorded on 2026-10-24 with an iPhone next to a Mac, a 15 kB picture decoded in 18
 // (Close by: 20; the short guard at 256QAM 3/4: none), so it is for phones side by side, lying still.
 const CHAT_MODES = {
-  robust: { label: 'Robust', cfg: { mod: 'ofdm', map: 'qpsk', guard: 'long', code: 'ldpc' } },
+  robust: { label: 'Robust', cfg: { mod: 'ofdm', map: 'qpsk', guard: 'long', code: 'ldpc4' } },   // 1.2.2: LDPC 1/4 (1/2 before), for rooms with long echo: in a classroom, 1/2 was read at 1 spot of 8, 1/4 at 7 or 8
   fast: { label: 'Fast', cfg: { mod: 'ofdm', map: '16qam', guard: 'long', code: 'ldpc' } },
   close: { label: 'Close by', cfg: { mod: 'ofdm', band: 'wide', map: '64qam', guard: 'long', code: 'ldpc' } },
   max: { label: 'Max speed', cfg: { mod: 'ofdm', band: 'wide', map: '256qam', guard: 'long', code: 'ldpc34' } },
@@ -5248,8 +5255,8 @@ function seg(el, value, onPick) {
 }
 const MODE_HINT = {
   auto: 'Texts go Robust. A picture or a voice message goes in the fastest of Robust, Fast, Close by and Max speed that the weakest phone that answered my last messages can still read (Fast until one answers; phones answer only when receipts are switched on below). The send sheet says which, and why.',
-  robust: 'OFDM, QPSK, LDPC 1/2: about 0.4 s for a short text. Works in most rooms.',
-  fast: 'OFDM, 16QAM, LDPC 1/2: twice the speed, for pictures when the phones are close.',
+  robust: 'OFDM, QPSK, LDPC 1/4: about 0.4 s for a short text, 0.6 s for 100 characters. Works in most rooms, also in a classroom with long echo.',
+  fast: 'OFDM, 16QAM, LDPC 1/2: 4 times the speed of Robust, for pictures when the phones are close (not in a room with long echo).',
   close: 'Wide OFDM (v7.21), 2.3–20.5 kHz, 64QAM, LDPC 1/2: almost 3 times Fast, for phones within about 30 cm of each other. Texts go as Fast, which is as quick for them.',
   max: 'Wide OFDM, 256QAM, LDPC 3/4: the chat at its fastest, about 1.7 times Close by for pictures and voice messages. For phones side by side, lying still. Texts go as Fast.',
   sc: `Single carrier, 16QAM, LDPC 1/2, with training blocks: for rooms with long echo. Receivers use the ${DET === 'smap' ? 'SMAP' : 'linear MMSE'} detector.`,

@@ -294,6 +294,7 @@ header .seg button[aria-pressed="true"]{background:#fff;color:#86144f}
     OFDM needs no equalizer passes, so it decodes in a fraction of the single carrier's time: for files sent close by. Through the recorded rooms of v7.19's test it decoded 1024QAM 2/3 there (105 kbit/s, the single carrier's rate), while a metre or more away, in a room with echo, the single carrier stays far ahead. Receivers older than v7.21 ignore these frames.</p>
     <p class="muted"><b>The longer echo in wide OFDM's room (v7.22).</b> The receiver smooths its estimate of the room as if the echo stopped at the guard, and counts the rest as noise. With an iPhone next to a Mac the sound arriving more than 5 ms after the first was only 16.5 dB under the signal (21 dB after 21 ms): the short guard saw 15 dB, and 256QAM 5/6 needs about 22. Long symbols suffer little from such an echo itself, since most of it only changes each subcarrier's gain, which the pilots and the reference symbols measure; the smoothing threw it away. Since v7.22, when the code finds no codeword in a wide OFDM frame, the receiver learns the room again keeping its echo up to half a symbol (43 ms with the short guard, 85 ms with the long one) and decodes once more: the received frame then says <i>second try</i>.
     Through the recorded rooms of v7.21's test (364 frames, 13 spots) the second estimate gave 0.5 to 10 dB more SNR (5.8 in the median, 0.5 to 2 close by) and lost no frame the first one decoded: 57 frames decoded instead of 40. Through the room measured next to the Mac the long guard then decodes 1024QAM 2/3 and 256QAM 5/6 (SNR 21 → 25.5 dB), the short one 256QAM 2/3 (15.5 → 19.4 dB). Only the receiver changed: the frames are the same.</p>
+    <p class="muted"><b>The first strong arrival (v7.23).</b> The single carrier times a frame on the first strong arrival of its first training block: the earliest echo at least half as strong as the strongest one, looked for up to 15 ms before it, so that the room's taps start just before the direct sound. In a small amphitheatre, at one seat the strongest sound came 26 ms after a direct sound nearly as strong (a reflection about 9 m longer): the receiver stopped at an echo 15 ms late, the direct sound and the early echoes fell before the room's taps, and every usual-band frame failed there (SNR on the training 1 to 2 dB). Since v7.23 it looks as far back as the room it fits can hold, the strongest arrival still well inside it: 40 ms with medium or long training (42 to 44 ms on the wide bands), about 15 ms with short training as before. That seat's frame now decodes (11 dB after the equalizer instead of 0.4), and none of the 188 single-carrier frames recorded before is timed differently. Only the receiver changed: the frames are the same.</p>
     <p class="muted"><b>1024QAM (v7.5).</b> The single carrier can put 10 bits on each symbol, 32 levels on each axis, instead of 256QAM's 8: 25 % more bits per second before the code. The levels are half as far apart, so it needs about 6 dB more signal than 256QAM at the same code rate; at the same information rate, 1024QAM with LDPC 2/3 carries 11 % more than 256QAM with LDPC 3/4 for about 3 dB more signal, and 1024QAM with LDPC 1/2 is no better than 256QAM with LDPC 2/3. Replaying the room and noise of one of the best recordings (phones close together and still, 29 dB on this page) with 1024QAM frames put LDPC 2/3 at the edge, and 3/4 needed about 2 dB more signal. Take it with LDPC 2/3, for phones close together in a quiet room. The header marks it with the mask of 8PSK, which the single carrier never used, so receivers older than v7.5 ignore it.</p>
     <p class="muted"><b>LDPC 5/6 (v7.6).</b> The highest rate: 5 message bits in every 6 sent, 11 % more than 3/4, for 1.5 to 2.5 dB more signal (in plain noise: 64QAM 15.5 dB with 3/4, 17 dB with 5/6; 256QAM 20 and 22.5 dB; 1024QAM 25 and 27.5 dB). 256QAM with LDPC 5/6 carries as much as 1024QAM with LDPC 2/3 for a little less signal (22.5 against 22.9 dB in plain noise), and replaying the room and noise of one of the best recordings, it still decoded with the noise 2 dB louder than 1024QAM 2/3 could take: take it rather than 1024QAM 2/3. 64QAM with LDPC 5/6 carries as much as 1024QAM with LDPC 1/2, for 1 dB less. 1024QAM with LDPC 5/6 failed in that replay even with the noise 8 dB quieter. It works with every modulation except OFDM with 64QAM or 256QAM: OFDM's own noise (its clipping, about 21 dB below the signal) leaves 64QAM 3 to 5 % of wrong bits on a short message even in a quiet room, more than 5/6 can correct, and 256QAM with 5/6 needs 22.5 dB. The header marks it as a text or an image with code 7, which receivers older than v7.6 ignore.</p>
   </details>
@@ -2671,6 +2672,7 @@ const SC_TAIL_LAZY = true;    // v7.20: the long echo (SC_TAIL) only if a first 
 const SC_REL = 1.0;           // ridge prior of a training block's room: the one before, give or take its own size (a weak
                                // pull; a tight one, -20 dB, cost 2 to 7 dB on our recordings when people moved)
 const SC_T0_FRAC = 0.5, SC_T0_BACK = 0.015;   // timing: the earliest arrival with half the strongest's correlation, up to 15 ms before it
+const SC_T0_KEEP = 64;   // v7.23: ... or as far before it as the first block's room holds, the strongest this many taps inside its end (scT0Back)
 const SC_MAX_PPM = 500;       // clock offset plus a moving phone
 const SC_EST = ['ls', 'mmse'];   // the receiver's estimate of the room on the first block: least squares (default) or MMSE with
                                // a prior power per tap learned from a least-squares pilot; on Sheng's recordings with noise
@@ -3144,13 +3146,19 @@ function scPeak(v, i) {   // the maximum near index i, by a parabola through the
 }
 const scArgmax = v => { let b = 0; for (let k = 1; k < v.length; k++) if (v[k] > v[b]) b = k; return b; };
 // The first strong arrival in the envelope correlation v: the earliest local peak at least SC_T0_FRAC of the strongest,
-// within SC_T0_BACK seconds before it. Where a later echo is as strong as the direct sound, the strongest peak would
-// put the early paths before the room's SC_PRE taps, where nothing is fitted.
-function scFirstArrival(v) {
+// within SC_T0_BACK seconds before it (v7.23: within back samples, if given). Where a later echo is as strong as the
+// direct sound, the strongest peak would put the early paths before the room's SC_PRE taps, where nothing is fitted.
+function scFirstArrival(v, back = null) {
   const i = scArgmax(v);
-  for (let j = Math.max(1, i - Math.round(SC_T0_BACK * SC_FS)); j < i; j++) if (v[j] >= SC_T0_FRAC * v[i] && v[j] >= v[j - 1] && v[j] > v[j + 1]) return j;
+  for (let j = Math.max(1, i - (back === null ? Math.round(SC_T0_BACK * SC_FS) : back)); j < i; j++) if (v[j] >= SC_T0_FRAC * v[i] && v[j] >= v[j - 1] && v[j] > v[j + 1]) return j;
   return i;
 }
+// v7.23: how far before the strongest arrival the first strong one is looked for, in samples of SC_FS: as far as the
+// first block's room of L taps still holds the strongest SC_T0_KEEP taps inside its end, and at least SC_T0_BACK.
+// Usual band: 40 ms with medium or long training (512 taps), 15 ms with short (256). In a small amphitheatre one
+// seat's strongest arrival came 26 ms after a direct sound 0.88 as strong: 15 ms back stopped at an echo 15 ms late,
+// the direct sound fell before the room's SC_PRE taps, and every usual-band frame failed there.
+const scT0Back = L => Math.max(Math.round(SC_T0_BACK * SC_FS), SC_SPS * (L - SC_PRE - SC_T0_KEEP));
 // MMSE room on the first block, on the rows that see the training only (as least squares; the rows before it would add
 // the control part's late echoes). Pilot: least squares on L taps; its residual gives N0 (echoes beyond L taps count as
 // noise). Prior power of tap l: the pilot's |c_l|^2 averaged over SC_SMOOTH taps, minus the pilot's estimation floor
@@ -3249,13 +3257,13 @@ function scClock0(y, fs, T0, nt, L) {
 // v5.1: a jump at sample u of the waveform p sent, which arrives near sample t of the recording y. The envelope of the
 // correlation of the recording with p's part before u, against that of its part after (cross-correlated, so the room
 // cancels): [the jump in samples of the recording, the first strong arrival of the part before].
-function scSplit(y, rho, t, p, u) {
-  const G = SC_GAP_MAX, lo = t - rho * (Math.round(SC_T0_BACK * SC_FS) + G), n = Math.round(2 * SC_T0_BACK * SC_FS) + 2 * G;
+function scSplit(y, rho, t, p, u, back = 0) {   // v7.23: back, the first arrival's reach (scT0Back); the window reaches as far
+  const G = SC_GAP_MAX, B = Math.max(Math.round(SC_T0_BACK * SC_FS), back || 0), lo = t - rho * (B + G), n = 2 * B + 2 * G;
   const at = (o, m) => Float64Array.from({ length: m }, (_, k) => o + rho * k), pb = p.subarray(0, u - SC_GAP_SPAN), pq = p.subarray(u + SC_GAP_SPAN);
   const cb = scEnvXcorr(scRead(y, at(lo, n + pb.length)), pb), cq = scEnvXcorr(scRead(y, at(lo + rho * (u + SC_GAP_SPAN), n + pq.length)), pq);
   const xc = new Float64Array(2 * G + 1);   // lags -G .. G
   for (let d = -G; d <= G; d++) { let a = 0; for (let i = Math.max(0, -d); i < Math.min(cb.length, cq.length - d); i++) a += cq[i + d] * cb[i]; xc[d + G] = a; }
-  return [(scPeak(xc, scArgmax(xc)) - G) * rho, lo + rho * scPeak(cb, scFirstArrival(cb))];
+  return [(scPeak(xc, scArgmax(xc)) - G) * rho, lo + rho * scPeak(cb, scFirstArrival(cb, B))];
 }
 // The single-carrier part of a frame whose control part ends near sample t0 of the recording y.
 // 1. Timing: the first strong arrival of the first training block (its correlation with the waveform sent): the
@@ -3409,14 +3417,14 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   const tr = { r: Float64Array.from([...ta.r, ...tc.r]), i: Float64Array.from([...ta.i, ...tc.i]) }, pa = scPassband(tr);
   const lo = t0 + SC_GAP * fs - 0.03 * fs, nz = pa.length + Math.round(0.09 * SC_FS), at = (o, k0, k1) => Float64Array.from({ length: k1 - k0 }, (_, k) => o + rho * (k0 + k));
   const env = scEnvXcorr(scRead(y, at(lo, 0, nz)), pa);
-  let T0 = lo + scPeak(env, scFirstArrival(env)) * rho;
+  let T0 = lo + scPeak(env, scFirstArrival(env, scT0Back(L))) * rho;   // v7.23: as far back as the room holds
   // v5.1: a jump inside the first block (its TC is every later block's reference): the arrival of the block's part before
   // the prediction error's peak against that of the part after (the envelopes of their correlations with what was sent,
   // cross-correlated; the room cancels)
   const sw = (i, w) => swap !== null && swap[0] === i && swap[1] === w;   // the second try: [gap, 'size' or 'place']
   const gaps0 = [], unsure = [], ub = P5 * (SC_NA + nt) + 2 * SC_DLY - SC_GAP_EDGE;   // unsure: [how unsure, [gap, what]]
   if (ub > P5 * L) {
-    const [tg] = scClick(y, T0 + rho * P5 * L, T0 + rho * ub), [raw, Tb] = scSplit(y, rho, T0, pa, Math.trunc((tg - T0) / rho));
+    const [tg] = scClick(y, T0 + rho * P5 * L, T0 + rho * ub), [raw, Tb] = scSplit(y, rho, T0, pa, Math.trunc((tg - T0) / rho), scT0Back(L));
     if (Math.abs(raw) > SC_GAP_MIN) {
       T0 = Tb;   // the arrival of the part before it
       let sz = Math.round(raw);
