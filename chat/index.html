@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
-<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page e217ca4b). -->
+<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page f71f55cd). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
 :root{
@@ -211,6 +211,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
 #modeSeg{flex-wrap:wrap}#modeSeg button{flex:1 1 calc(50% - 2px)}
 .hint,.card p.hint{font-size:13px;color:var(--muted);margin-top:6px}
 .small,.card p.small{font-size:11.5px;color:var(--muted);margin-top:14px;text-align:center}.small a{color:inherit}
+.small .ver{display:block;margin-top:3px}
 #qrCanvas{display:block;margin:12px auto;background:#fff;padding:10px;border-radius:14px;max-width:100%}
 .prev img{display:block;max-width:100%;max-height:50vh;margin:4px auto 0;border-radius:14px}
 .more{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:4px;border:0;background:transparent;color:var(--accent);font-size:15px;font-weight:600;min-height:44px;cursor:pointer}
@@ -297,7 +298,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
       <div class="hint" id="nickHint"></div>
       <button class="primary" id="joinBtn">Join the chat</button>
       <p class="hint">Allow the microphone, turn the volume up, and keep this page open on the screen.</p>
-      <p class="small">© 2026 Sheng Yang. All rights reserved. Modem: <a href="../">Bit2Noisy</a> v7, <a href="https://mention-ice.github.io/">Mention ICE</a>, CentraleSupélec.</p>
+      <p class="small">© 2026 Sheng Yang. All rights reserved. Modem: <a href="../">Bit2Noisy</a> v7, <a href="https://mention-ice.github.io/">Mention ICE</a>, CentraleSupélec.<span class="ver" id="joinVer"></span></p>
     </div>
   </div>
 </div>
@@ -318,6 +319,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <label class="check"><input type="checkbox" id="physChk"> <span>Show the physics under each message: mode, SNR, seconds of sound</span></label>
     <label class="check"><input type="checkbox" id="rcptChk"> <span>Receipts by sound: answer each message with a short chirp, so its sender sees ✓✓ and how well it arrived (off by default)</span></label>
     <button class="primary" id="setDone">Done</button>
+    <p class="small" id="setVer"></p>
   </div></div>
 </div>
 
@@ -347,6 +349,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
 
 <script id="modem-core">
 // ---- modem core (no DOM): shared by the page and the offline tests ----
+const MODEM_VERSION = 'v7.24', MODEM_DATE = '13 November 2026';   // shown at the foot of the pages (v7.24)
 // © 2026 Sheng Yang. All rights reserved.
 const PILOT = Array.from("0000000111111011111001111010111000011011101001100010101100000101111000111011011001001010010000100111001011010001000110011010101", Number);
 // Longer preambles for longer distances: maximum-length sequences of 255 and 511 bits (the 127-bit one is unchanged)
@@ -2099,6 +2102,24 @@ function qamAxisLlr(ax, h, z, g, llr, q, nc) {
 }
 // y at the positions t0 + (m0 + i) step, i = 0 .. n - 1 (sample t is y[t - off], valid for t - off < len): band-limited
 // interpolation, a sinc with a Hann window, A samples each side
+// v7.24: the stretch [a, b) of the recording (sample t is y[t - off], valid for t - off < len) with only f0 to f1 Hz
+// kept (raised-cosine edges, edge Hz wide, outside them), as a new { y, off, len }. A room's rumble below the band
+// (ventilation, traffic) leaks through the FFT windows' side lobes into the subcarriers, and the search for samples
+// lost or repeated (ofdmGaps) compares raw samples.
+function bandOnly(y, off, len, a, b, fs, f0, f1, edge = 400) {
+  a = Math.max(off, Math.floor(a)); b = Math.min(off + len, Math.ceil(b));
+  if (b - a < 64) return { y, off, len };
+  const n = b - a, N = scN(n), re = new Float64Array(N), im = new Float64Array(N);
+  for (let i = 0; i < n; i++) re[i] = y[a - off + i];
+  fft(re, im);
+  for (let k = 0; k <= N / 2; k++) {
+    const f = k * fs / N, w = Math.min(1, Math.max(0, Math.min(f - (f0 - edge), f1 + edge - f) / edge)), g = 0.5 - 0.5 * Math.cos(Math.PI * w);
+    re[k] *= g; im[k] *= g;
+    if (k > 0 && k < N / 2) { re[N - k] *= g; im[N - k] *= g; }
+  }
+  fft(re, im, true);
+  return { y: re.subarray(0, n), off: a, len: n };
+}
 function fracRead(y, off, len, t0, step, m0, n, A = 16) {
   const out = new Float64Array(n), cb = new Float64Array(2 * A), sb = new Float64Array(2 * A);
   for (let k = -A + 1; k <= A; k++) { cb[k + A - 1] = Math.cos(Math.PI * k / A); sb[k + A - 1] = Math.sin(Math.PI * k / A); }
@@ -2134,6 +2155,9 @@ function fracRead(y, off, len, t0, step, m0, n, A = 16) {
 // which the two reference symbols agree best at their best time scale (the fewest gaps when several agree as well).
 function ofdmReceive(y, off, len, fs, t0, m, ns, nc, map = 'dqpsk') {
   const { N, CP } = m, kk = ofdmCarriers(N), K = kk.length, L = N + CP, th = ofdmReference(K), sc = fs / FS_TX, pad = N / 2, nb = L + 2 * pad;
+  // v7.24: the part's stretch of the recording in the band only (bandOnly); in a small amphitheatre the ventilation's
+  // rumble, 22 to 31 dB stronger than the noise in the band, cost the chat's Robust a seat of 8 with the Mac 10 dB quieter
+  ({ y, off, len } = bandOnly(y, off, len, t0 - 2 * N * sc, t0 + ((ns + 2) * L + 2 * N) * sc * (1 + 1e-3), fs, kk[0] * FS_TX / N, kk[K - 1] * FS_TX / N));
   const cr = th.map(Math.cos), ci = th.map(Math.sin), re = new Float64Array(N), im = new Float64Array(N);
   // each symbol read on its own (grid position i L + n is r[i][n + pad]), shifted by S[i]: the samples lost (< 0) or repeated before it
   const read = (eps, S) => Array.from({ length: ns + 2 }, (_, i) => fracRead(y, off, len, t0 + sc * (S ? S[i] : 0), sc * (1 + eps * 1e-6), i * L - pad, nb));
@@ -3096,11 +3120,16 @@ function scRead(y, t, a = 8) {   // band-limited values of y at the (fractional)
   }
   return out;
 }
-function scEnvXcorr(z, p) {   // |analytic cross-correlation| of z with p (both real) at lags 0 .. len(z) - len(p)
+// |analytic cross-correlation| of z with p (both real, at SC_FS) at lags 0 .. len(z) - len(p). v7.24: in the frame's
+// band only, SC_FC +- SC_RS (1 + SC_BETA) / 2. The blocks' delays (the clock) correlate two recorded stretches, so a
+// rumble below the band correlated with itself: in a small amphitheatre (ventilation 22 to 31 dB stronger than the
+// noise in the band) and the Mac 10 dB quieter, it outweighed the frame there.
+function scEnvXcorr(z, p) {
   const N = scN(z.length + p.length), P = scPlan(N), zr = new Float64Array(N), zi = new Float64Array(N), pr = new Float64Array(N), pq = new Float64Array(N);
   zr.set(z); pr.set(p); scFFT(zr, zi, P); scFFT(pr, pq, P);
+  const hb = SC_RS * (1 + SC_BETA) / 2;
   for (let k = 0; k < N; k++) {
-    const f = k === 0 ? 1 : k < N / 2 ? 2 : 0, a = zr[k], b = zi[k];
+    const f = k >= N / 2 || Math.abs(k * SC_FS / N - SC_FC) > hb ? 0 : k === 0 ? 1 : 2, a = zr[k], b = zi[k];   // v7.24: the band only
     zr[k] = f * (a * pr[k] + b * pq[k]); zi[k] = f * (b * pr[k] - a * pq[k]);
   }
   scFFT(zr, zi, P, true);
@@ -4406,6 +4435,11 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CHAT_RELEASE = '1.2.3', CHAT_DATE = '13 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+{   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
+  const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
+  $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
+}
 
 // ---------- the chat screen ----------
 const chatEl = $('chat');
