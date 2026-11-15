@@ -4435,7 +4435,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.2.3', CHAT_DATE = '13 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.2.4', CHAT_DATE = '15 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
@@ -4706,6 +4706,7 @@ function makeRx() {
         // mine: heard while I play or just after, with the size and the mode of the frame I played; rc: a receipt, which shows no bubble
         // calm: it came after 1.5 s of quiet, so if it cannot be read the room is the cause, not another phone sending over it
         const self = Date.now() < selfUntil && sameFrame(info, lastOwn), rc = chatIsReceiptHdr(info), p = { hdr: info, self, rc, b: null, calm: !csLive() || cs.before >= 1.5 };
+        rxSelf = self;   // 1.2.4: my next message does not wait for my own frame
         if (!self && !rc && info.type !== 'sound') recent.push(Date.now());
         if (!self && !rc && info.type !== 'sound') {
           p.b = bubble({ pending: true });
@@ -4792,15 +4793,14 @@ function volumeCheck(ok) {
 // One clock (tick: 100 times a second, driven by the level windows of the carrier sense, so that it also runs in a tab
 // in the background) decides what this phone plays, and when.
 //   - A receipt whose place has come goes first (chatReceiptPlan: so many ms of quiet after the message).
-//   - My next message goes when its countdown ends. The countdown is drawn once per message: up to 0.2 s when the room
-//     has been quiet for 1 s (nobody else waits), else up to 1 s times the number of phones heard sending in the last
-//     minute (at least 2; 2 s more for each message that arrived unreadable in the last 20 s, up to 6 s: phones are
-//     sending over each other), or up to 0.3 s when I am the only one who sent in that minute. It runs only while the room
-//     has been quiet for 0.1 s and no receipt is expected (win: the time after a message during which receipts may
-//     start); when someone else starts first, it is drawn again. It never plays into a busy room; after 30 s a banner
-//     offers to cancel.
-// The room is busy while I play, record or listen to a voice message, while the receiver reads a frame, and while the
-// carrier sense hears sound above 8 kHz. While its news is late (the page was busy decoding) nothing is played.
+//   - My next message goes at once (chat 1.2.4, nowTick; until 1.2.3 it waited for a countdown, up to 2 s in a two-phone
+//     chat and longer while someone talked, and the chat felt slow). In any group it waits only for my own sounds (my
+//     message before it, a recording, a voice message playing), for a frame from another phone that my receiver is
+//     taking in (as in 1.1: playing into it loses both; then up to AFTER_RX ms more, drawn at random, so that the phones
+//     that waited for the same frame rarely start together), and, with receipts on, for the receipts (win, and mine
+//     first). No carrier sense and no countdown for messages: a class that taps Send together collides more than in 1.2.3.
+// For receipts, the room is busy while I play, record or listen to a voice message, while the receiver reads a frame, and
+// while the carrier sense hears sound above 8 kHz. While its news is late (the page was busy decoding) no receipt is played.
 // A receipt that finds a short sound on its place waits for it to end, RCPT.late ms at most; after that it takes the
 // same place one round later. In a busy room (busyRoom) no receipts are sent for messages read, and nobody waits for them.
 const queue = [], receipts = [];   // my messages, and my answers to the others' ({key, o, h, id, seq, wait, slot, cyc, t0}) or a poll of mine ({poll, seq, n8, it})
@@ -4814,6 +4814,8 @@ const heardLog = new Map();   // the last messages heard, by key (read: a + id:s
 const ids = new Map();   // phones heard: id -> {t: when last heard, sent: when it last sent a message (not a receipt)}
 const A = chatAutoNew();   // automatic mode: what each phone reported about my frames
 let lastOwn = null, ownTail = 0, win = null, lastTick = 0, lastBusy = 0, waitTxt = '', lastMine = 0;
+let rxSelf = false, lastRx = 0;   // 1.2.4: the frame my receiver takes in is my own (its header said so); when it last took in another's
+const AFTER_RX = 300;   // 1.2.4: ms, the most my message waits after a frame from another phone, drawn at random once per message
 const sameFrame = (h, f) => !!f && h.n0 === f.n0 && h.map === f.map && h.code === f.code && (h.ofdm || '') === (f.ofdm || '') && !!h.sc === !!f.sc;
 function noteId(id, sent) { const q = ids.get(id) || { t: 0, sent: 0 }; q.t = Date.now(); if (sent) q.sent = q.t; ids.set(id, q); }
 const others = not => [...ids.keys()].filter(id => id !== myId && id !== not && Date.now() - ids.get(id).t < 600000);   // heard in the last 10 minutes
@@ -4915,6 +4917,7 @@ function tick() {
   const live = csLive(), late = live && actx.currentTime - cs.t - cs.lag0 > 0.15, reading = !!rx && rx.state !== 'search';
   const mine = playingNow || !!rec || !!vNow || Date.now() < quietUntil;
   if (mine || (!live && reading)) lastBusy = now;
+  if (!reading) rxSelf = false; else if (!rxSelf) lastRx = now;   // 1.2.4
   const q = Math.min(now - lastBusy, live ? (cs.quietFrom === null ? 0 : 1000 * (cs.t - cs.quietFrom)) : Infinity);   // ms of quiet
   const hot = live && cs.on;   // sound right now, even a short one
   if (win && q >= win.hold && !hot) {   // the time for receipts is over; for a message of mine that got only unreadable sound: a poll (three at most)
@@ -4925,20 +4928,22 @@ function tick() {
   for (let i = receipts.length - 1; i >= 0; i--) if (now - receipts[i].t0 > RCPT.life) receipts.splice(i, 1);   // too late to matter
   waitTxt = '';
   if (playingNow) return;
-  const it = queue[0];
-  if (late) { if (it) waitTxt = 'Waiting for quiet'; return; }
+  const it = queue[0];   // 1.2.4: a page late with its news holds receipts only; my messages go at once (nowTick)
   // a receipt goes in its place; one that is late (the phone was decoding) takes the same place of the next round
-  const r = hot ? null : receipts.find(r => q >= r.wait && (!r.cyc || (q - r.wait) % r.cyc < RCPT.late));
+  const r = hot || late ? null : receipts.find(r => q >= r.wait && (!r.cyc || (q - r.wait) % r.cyc < RCPT.late));
   if (r) { receipts.splice(receipts.indexOf(r), 1); playReceipt(r); return; }
-  if (!it) return;
-  const long = () => 1000 * (senders() === 1 && !jamN() && Date.now() - lastMine < 60000 ? 0.3 : Math.max(2, senders()) + 2 * jamN()) * Math.random();
-  if (it.count === null) { it.calm = q > 1000 && !win && !receipts.length; it.count = it.calm ? 200 * Math.random() : long(); it.q0 = now; }
-  if ((it.calm || it.due) && q < 100) { it.calm = it.due = false; it.count = long(); }   // someone started first: draw again
-  const held = !!win || receipts.length > 0, free = !held && q >= 100;
-  if (free) it.count -= Math.min(dt, 60);   // the countdown runs through short sounds (someone talking) ...
-  if (free && it.count <= 0) { if (!hot) { queue.shift(); playItem(it); return; } it.due = true; }   // ... and waits for them to end
-  const quiet = q >= 100 && !hot, st = quiet ? 'queued' : 'wait'; if (it.state !== st) setTick(it, st);
-  waitTxt = !quiet ? 'Waiting for quiet' : held ? 'After the receipts' : `Sending in ${(Math.max(0, it.count) / 1000).toFixed(1)} s`;
+  if (it) nowTick(it, now);
+}
+// 1.2.4: my message goes at once (see the notes above, sending). It waits only for my own sounds, for a frame from another
+// phone that my receiver is taking in (then AFTER_RX ms at most, drawn once), and, with receipts on, for the receipts.
+function nowTick(it, now) {
+  const other = !!rx && rx.state !== 'search' && !rxSelf, held = !!win || receipts.length > 0;
+  if (it.q0 == null) it.q0 = now;
+  if (other && it.after == null) it.after = AFTER_RX * Math.random();
+  const wait = held || other || !!rec || !!vNow || Date.now() < quietUntil || (it.after != null && now - lastRx < it.after);
+  if (!wait) { queue.shift(); playItem(it); return; }
+  if (it.state !== 'wait') setTick(it, 'wait');
+  waitTxt = held ? 'After the receipts' : other ? 'After the message coming in' : vNow ? 'After the voice message' : '';
   if (now - it.q0 > 30000 && !it.warned) { it.warned = true; banner('The room has been busy for 30 s: my message is still waiting.', 'Cancel', cancelWaiting); }
 }
 setInterval(tick, 50);   // without a microphone no level windows come
