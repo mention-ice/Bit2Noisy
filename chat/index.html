@@ -140,7 +140,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line)}
 
 /* the composer */
 footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
-.emoji{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;padding:0 2px 8px;max-height:162px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.emoji{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;padding:8px 2px 0;max-height:162px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
 .emoji button{border:0;background:transparent;font-size:26px;height:44px;border-radius:12px;cursor:pointer;padding:0;min-width:0}
 .emoji button:hover,.emoji button:active{background:var(--soft)}
 .row{display:flex;align-items:flex-end;gap:2px}
@@ -251,7 +251,6 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
   <main id="chat" role="log" aria-live="polite" aria-label="Messages"></main>
   <div class="banner hidden" id="banner"><span id="bannerTxt"></span><button id="bannerBtn" class="hidden"></button></div>
   <footer>
-    <div class="emoji hidden" id="emojiBar"></div>
     <div class="count hidden" id="count"></div>
     <div class="row" id="row">
       <button class="round" id="emoBtn" aria-label="Smileys" aria-pressed="false"><svg class="i"><use href="#i-smile"/></svg></button>
@@ -260,6 +259,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
       <button class="round" id="sendBtn" aria-label="Send" disabled><svg class="i"><use href="#i-send"/></svg></button>
       <button class="round hidden" id="micBtn" aria-label="Record a voice message" title="Record a voice message"><svg class="i"><use href="#i-mic"/></svg></button>
     </div>
+    <div class="emoji hidden" id="emojiBar"></div>
     <div class="recbar hidden" id="recBar">
       <button class="round" id="recCancel" aria-label="Delete the recording" title="Delete"><svg class="i"><use href="#i-trash"/></svg></button>
       <span class="dot" aria-hidden="true"></span><span id="recTime">0:00</span>
@@ -4435,7 +4435,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.2.4', CHAT_DATE = '15 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.2.5', CHAT_DATE = '15 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
@@ -4533,6 +4533,33 @@ function unlockOutput() {
   outEl = new Audio(); outEl.setAttribute('playsinline', ''); outEl.src = URL.createObjectURL(wavBlob(new Float32Array(2400), FS_TX));
   try { const r = outEl.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
 }
+// 1.2.5: the first frame after a pause could go unheard. An output silent for a while may be asleep (a browser stops a
+// silent Web Audio output; a laptop's or a Bluetooth speaker powers down) and wake only when sound comes, which can take
+// longer than a short frame lasts. So when someone touches the page or types, a quiet sound (noise at -80 dBFS for
+// SPK_WAKE_S s, far under any room's noise) goes out the way the frames take, unless I play, record or a voice message
+// plays: the frame tapped a moment later finds the output awake. Through Web Audio it loops (tests do not take it for a frame).
+const SPK_WAKE_S = 2;
+let spkWoken = 0, spkUrl = null, spkSrc = null;
+const spkNoise = () => { const x = new Float32Array(Math.round(SPK_WAKE_S * FS_TX)); for (let i = 0; i < x.length; i++) x[i] = 1.7e-4 * (2 * Math.random() - 1); return x; };   // rms 1e-4
+function wakeSpeaker() {
+  const now = Date.now();
+  if ((!outEl && !outCtx) || playingNow || rec || vNow || now - spkWoken < 1000 * (SPK_WAKE_S - 0.5)) return;
+  spkWoken = now;
+  try {
+    if (OUT_WAYS[0] === 'element' && outEl) {
+      if (!spkUrl) spkUrl = URL.createObjectURL(wavBlob(spkNoise(), FS_TX));
+      outEl.onended = null; outEl.src = spkUrl;
+      const r = outEl.play(); if (r && r.catch) r.catch(() => {});
+    } else if (outCtx) {
+      outCtx.resume().catch(() => {});
+      const x = spkNoise(), b = outCtx.createBuffer(1, x.length, FS_TX); b.copyToChannel(x, 0);
+      if (spkSrc) { try { spkSrc.stop(); } catch (e) {} }
+      spkSrc = outCtx.createBufferSource(); spkSrc.buffer = b; spkSrc.loop = true; spkSrc.connect(outCtx.destination);
+      spkSrc.start(); spkSrc.stop(outCtx.currentTime + SPK_WAKE_S);
+    }
+  } catch (e) {}
+}
+for (const ev of ['pointerdown', 'keydown', 'focusin', 'input']) document.addEventListener(ev, () => wakeSpeaker(), { capture: true, passive: true });
 // The modem puts 0.2 s of silence before and after a frame. Through Web Audio the chat plays only 0.03 s of the first
 // (the others hear the frame start sooner after I found the room quiet) and 0.05 s of the second; an audio element
 // (iPhones) keeps both, as it may need them to start, unless the address says ?lead=seconds (then both ways keep that much).
@@ -5275,7 +5302,7 @@ let wakeLock = null;
 async function wake() { try { if ('wakeLock' in navigator && !document.hidden) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (e) {} }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { recStop(true); return; }   // a recording ends with the page hidden (the microphone may stop)
-  wake();
+  wake(); wakeSpeaker();   // 1.2.5
   if (actx && actx.state !== 'running') actx.resume().catch(() => {});
   if (stream && stream.getTracks().some(t => t.readyState === 'ended')) banner('The microphone stopped while the page was hidden.', 'Listen again', retryMic);
 });
