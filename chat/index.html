@@ -62,6 +62,8 @@ header{background:var(--surface);border-bottom:1px solid var(--line)}
 .icon:hover{background:var(--soft)}
 .status{display:flex;align-items:center;gap:10px;padding:2px 10px 8px 14px;font-size:14px}
 .pill{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink);white-space:nowrap;flex:none;min-width:6.8em;overflow:visible}
+button.pill{font:inherit;font-weight:600;border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 11px 4px 9px;margin-left:-6px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button.pill:active{background:var(--soft)}
 .pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .status[data-state="listen"] .pill::before{background:var(--accent);animation:ping 2.4s infinite}
 .status[data-state="hear"] .pill::before,.status[data-state="send"] .pill::before{background:var(--accent);animation:ping .9s infinite}
@@ -246,7 +248,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
       <h1 class="b2n"><span class="vh">Bit2Noisy</span><svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="206 0 655 220"><g transform="translate(206,0)"><rect x="24.9" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="94.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="24.9" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="42.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="59.8" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="77.3" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="122.7" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="45.6" width="15.7" height="15.7" fill="#1C1722"/><rect x="150.6" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="63.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="80.5" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="98.0" width="15.7" height="15.7" fill="#1C1722"/><rect x="168.1" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><rect x="185.5" y="115.4" width="15.7" height="15.7" fill="#1C1722"/><path d="M221.08203125 132.0H285.41796875V115.30078125H249.79296875V114.71484375L260.6328125 104.63671875C279.5 88.171875 284.3046875 79.79296875 284.3046875 69.83203125C284.3046875 54.1875 271.58984375 43.5234375 251.90234375 43.5234375C232.7421875 43.5234375 219.91015625 54.65625 219.91015625 72.29296875H239.59765625C239.59765625 64.3828125 244.4609375 59.75390625 251.84375 59.75390625C259.05078125 59.75390625 264.265625 64.1484375 264.265625 71.4140625C264.265625 78.03515625 260.046875 82.546875 252.83984375 89.109375L221.08203125 117.17578125Z" fill="#86144F"/><path d="M296.6984375 132.0H317.909375V95.84765625C317.909375 90.33984375 317.3234375 80.84765625 316.6203125 70.4765625C321.48359375 80.90625 324.70625 87.46875 329.8625 95.84765625L352.18671875 132.0H374.9796875V44.6953125H353.76875V81.84375C353.76875 87.9375 354.41328125 97.95703125 354.99921875 106.6875C351.3078125 97.1953125 347.675 90.57421875 343.8078125 84.12890625L319.4328125 44.6953125H296.6984375Z" fill="#1C1722"/><path d="M417.725 133.23046875C438.17421875 133.23046875 450.59609375 119.63671875 450.59609375 99.48046875C450.59609375 79.265625 438.17421875 65.671875 417.725 65.671875C397.2171875 65.671875 384.7953125 79.265625 384.7953125 99.48046875C384.7953125 119.63671875 397.2171875 133.23046875 417.725 133.23046875ZM417.725 117.5859375C409.8734375 117.5859375 405.6546875 110.26171875 405.6546875 99.36328125C405.6546875 88.40625 409.8734375 81.31640625 417.725 81.31640625C425.5765625 81.31640625 429.7953125 88.40625 429.7953125 99.36328125C429.7953125 110.26171875 425.5765625 117.5859375 417.725 117.5859375Z" fill="#1C1722"/><path d="M461.61171875 132.0H482.0609375V66.4921875H461.61171875ZM471.80703125 58.81640625C477.66640625 58.81640625 482.4125 54.421875 482.4125 48.97265625C482.4125 43.5234375 477.66640625 39.12890625 471.80703125 39.12890625C466.00625 39.12890625 461.26015625 43.5234375 461.26015625 48.97265625C461.26015625 54.421875 466.00625 58.81640625 471.80703125 58.81640625Z" fill="#1C1722"/><path d="M523.19375 133.23046875C541.06484375 133.23046875 553.896875 124.55859375 553.896875 111.08203125C553.896875 101.58984375 547.62734375 95.84765625 534.61953125 93.38671875L522.08046875 91.04296875C516.45546875 89.9296875 514.69765625 87.87890625 514.69765625 85.2421875C514.69765625 81.90234375 518.56484375 79.734375 523.48671875 79.734375C528.99453125 79.734375 532.74453125 82.3125 533.975 86.70703125L552.021875 83.8359375C549.73671875 72.5859375 539.54140625 65.671875 523.13515625 65.671875C505.55703125 65.671875 494.30703125 73.40625 494.30703125 86.47265625C494.30703125 96.4921875 500.75234375 102.87890625 513.7015625 105.33984375L525.12734375 107.56640625C530.5765625 108.6796875 533.1546875 110.37890625 533.1546875 113.42578125C533.1546875 116.765625 529.69765625 118.875 523.95546875 118.875C516.9828125 118.875 513.29140625 115.9453125 511.65078125 110.26171875L492.66640625 113.25C494.9515625 125.7890625 506.4359375 133.23046875 523.19375 133.23046875Z" fill="#1C1722"/><path d="M563.009375 154.96875C566.05625 156.140625 570.978125 156.9609375 576.0171875 156.9609375C590.72421875 156.9609375 597.87265625 149.51953125 601.85703125 138.9140625L629.3375 66.4921875H608.009375L597.52109375 98.54296875C595.76328125 104.109375 594.2984375 109.67578125 592.95078125 115.59375C591.8375 109.67578125 590.7828125 104.16796875 589.08359375 98.54296875L579.2984375 66.4921875H557.7359375L582.16953125 132.1171875L582.228125 134.87109375C582.52109375 140.203125 577.540625 142.72265625 570.1578125 140.73046875L567.5796875 140.02734375Z" fill="#1C1722"/><path d="M28.0,173.0 L62.2,173.0 L62.2,199.0 L96.4,199.0 L96.4,173.0 L130.6,173.0 L130.6,173.0 L164.8,173.0 L164.8,199.0 L199.0,199.0 L199.0,173.0 L233.2,173.0 L233.2,199.0 L267.5,199.0 L267.5,185.2 L272.5,185.9 L277.5,189.2 L282.5,189.7 L287.5,190.1 L292.5,188.7 L297.5,181.9 L302.5,183.5 L307.5,189.3 L312.5,186.4 L317.5,183.4 L322.5,184.5 L327.5,188.6 L332.5,189.1 L337.5,183.8 L342.5,188.2 L347.5,192.1 L352.5,194.1 L357.5,195.6 L362.5,195.8 L367.5,193.5 L372.5,191.5 L377.5,189.7 L382.5,184.4 L387.5,186.1 L392.5,196.4 L397.5,196.7 L402.5,188.3 L407.5,185.7 L412.5,191.7 L417.5,194.2 L422.5,192.1 L427.5,193.5 L432.5,184.9 L437.5,184.9 L442.5,189.7 L447.5,182.2 L452.5,184.7 L457.5,189.1 L462.5,186.0 L467.5,185.2 L472.5,191.4 L477.5,191.4 L482.5,179.2 L487.5,186.9 L492.5,189.3 L497.5,181.4 L502.5,188.5 L507.5,179.6 L512.5,173.0 L517.5,188.1 L522.5,191.3 L527.5,182.9 L532.5,184.2 L537.5,183.7 L542.5,183.1 L547.5,183.2 L552.5,176.0 L557.5,182.4 L562.5,188.2 L567.5,187.2 L572.5,187.6 L577.5,191.0 L582.5,194.4 L587.5,189.7 L592.5,182.7 L597.5,176.3 L602.5,186.8 L607.5,196.0 L612.5,186.7 L617.5,192.4 L622.5,197.6" fill="none" stroke="#86144F" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/></g></svg><span class="tag" aria-hidden="true">Chat</span></h1>
       <div class="tb"><button class="icon" id="inviteBtn" aria-label="Invite: QR code of this page" title="Invite"><svg class="i"><use href="#i-qr"/></svg></button><button class="icon" id="setBtn" aria-label="Settings" title="Settings"><svg class="i"><use href="#i-gear"/></svg></button></div>
     </div>
-    <div class="status" id="status" data-state="off"><span class="pill" id="pill">Not listening</span><canvas id="spec" aria-hidden="true"></canvas><button class="me" id="meBtn" aria-label="Change nickname"><span class="av" id="meAv"></span><span class="pen" aria-hidden="true"><svg><use href="#i-pen"/></svg></span></button></div>
+    <div class="status" id="status" data-state="off"><button class="pill" id="pill" type="button" aria-pressed="false" title="Listen: the microphone turns on">Not listening</button><canvas id="spec" aria-hidden="true"></canvas><button class="me" id="meBtn" aria-label="Change nickname"><span class="av" id="meAv"></span><span class="pen" aria-hidden="true"><svg><use href="#i-pen"/></svg></span></button></div>
   </header>
   <main id="chat" role="log" aria-live="polite" aria-label="Messages"></main>
   <div class="banner hidden" id="banner"><span id="bannerTxt"></span><button id="bannerBtn" class="hidden"></button></div>
@@ -4435,7 +4437,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.2.5', CHAT_DATE = '15 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.2.6', CHAT_DATE = '15 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
@@ -4606,7 +4608,7 @@ function play(x0) {   // -> a promise of true once the frame has played, false i
 }
 
 // ---------- sound in ----------
-let actx = null, stream = null, proc = null, analyser = null, rx = null;
+let actx = null, stream = null, proc = null, analyser = null, rx = null, micSrc = null;
 // Carrier sense (chat 1.2): the level above 8 kHz (a 4th-order high-pass: most of a voice stays under it, every mode of the modem
 // reaches over it), in windows of 10 ms. It is measured in the worklet, so the page hears that someone started within
 // 20 to 30 ms, while the samples themselves arrive in blocks of 85 ms and a header is read only 0.3 s into a frame.
@@ -4673,7 +4675,7 @@ function csWin(e, t) {
 async function tapNode(a) {
   try {
     if (!a.audioWorklet || typeof AudioWorkletNode === 'undefined') return null;
-    const u = URL.createObjectURL(new Blob([TAP], { type: 'text/javascript' })); await a.audioWorklet.addModule(u); URL.revokeObjectURL(u);
+    if (!a.tapLoaded) { const u = URL.createObjectURL(new Blob([TAP], { type: 'text/javascript' })); await a.audioWorklet.addModule(u); URL.revokeObjectURL(u); a.tapLoaded = true; }   // 1.2.6: once per context (listening again)
     return new AudioWorkletNode(a, 'tap', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
   } catch (e) { return null; }
 }
@@ -4688,7 +4690,7 @@ async function startMic() {   // -> true if listening
     stream = null; banner('No microphone: this device can send but not receive. Allow the microphone (the page must be opened over https), then', 'Try again', retryMic);
     return false;
   }
-  const a = actx, srcN = a.createMediaStreamSource(stream);
+  const a = actx, srcN = a.createMediaStreamSource(stream); micSrc = srcN;
   analyser = a.createAnalyser(); analyser.fftSize = 2048; analyser.minDecibels = -110; analyser.maxDecibels = -40; analyser.smoothingTimeConstant = 0.6; srcN.connect(analyser);
   const mute = a.createGain(); mute.gain.value = 0; mute.connect(a.destination);
   makeRx();
@@ -4703,6 +4705,30 @@ async function startMic() {   // -> true if listening
   return true;
 }
 async function retryMic() { banner(''); await startMic(); }
+// 1.2.6: the status at the top turns listening off and on. Off, the microphone is released: nothing is received, the
+// carrier sense and the receipts are deaf, and an iPhone, which treats a page with an open microphone as a call (call
+// volume, the phone icon in Control Center), plays the frames as media. Sending works either way. Each visit starts listening.
+let listenBusy = false;
+async function setListening(on) {   // -> whether listening is now as asked
+  if (listenBusy) return !!stream === on;
+  listenBusy = true;
+  try {
+    if (!on) { stopMic(); sys('Listening off: this phone sends but receives nothing. Tap \u201cNot listening\u201d at the top to listen again.'); return true; }
+    const ok = await startMic(); if (ok) sys('Listening again.'); return ok;
+  } finally { listenBusy = false; }
+}
+function stopMic() {
+  if (rec) recStop(false);
+  if (stream) { stream.getTracks().forEach(t => { t.onended = null; t.stop(); }); stream = null; }
+  if (proc) { try { proc.disconnect(); } catch (e) {} if (proc.port) proc.port.onmessage = null; proc = null; }
+  if (micSrc) { try { micSrc.disconnect(); } catch (e) {} micSrc = null; }
+  analyser = null; rx = null; rxSelf = false; cs.on = false; cs.quietFrom = null; cs.lag0 = Infinity;
+  for (let i = pendings.length - 1; i >= 0; i--) if (!pendings[i].sc) { const [p] = pendings.splice(i, 1); if (p.b) p.b.el.remove(); }   // half heard: gone
+  if (actx && actx.state === 'running') actx.suspend().catch(() => {});
+  try { spec.getContext('2d').clearRect(0, 0, spec.width, spec.height); } catch (e) {}
+  banner('');
+}
+$('pill').onclick = () => { if ($('join').classList.contains('hidden')) setListening(!stream); };
 
 // single-carrier frames are decoded in a worker (a copy of the modem core), so that listening goes on meanwhile
 let scWorker = null, scId = 0;
@@ -4929,7 +4955,7 @@ async function playItem(it) {
   const ok = await transmit(it.frame);
   it.played = lastMine = Date.now(); setTick(it, ok ? 'sent' : 'fail');
   if (ok && !busyRoom()) openWin(it);
-  if (ok && stream) setTimeout(() => { if (it.own === undefined) volumeCheck(false); }, 2000 * it.dur + 6000);
+  if (ok && stream) setTimeout(() => { if (it.own === undefined && stream) volumeCheck(false); }, 2000 * it.dur + 6000);
   if (!ok) banner('The browser played no sound. Check the volume and the output device, then send again.');
 }
 async function playReceipt(r) {
@@ -5192,6 +5218,7 @@ let rec = null;   // {chunks, n, fs, acc, k, lo, hi}
 function heard(d) { if (rec) recAdd(d); rx.push(d); }
 function recStart() {
   if (rec) return;
+  if (!stream && !listenBusy && $('join').classList.contains('hidden')) { setListening(true).then(ok => { if (ok) recStart(); }); return; }   // 1.2.6: listening on again
   if (!stream || !actx) { sys('Voice messages need the microphone: allow it, then try again.'); return; }
   vStop();
   rec = { chunks: [], n: 0, fs: actx.sampleRate, acc: 0, k: 0, lo: Infinity, hi: -Infinity };
@@ -5303,7 +5330,7 @@ async function wake() { try { if ('wakeLock' in navigator && !document.hidden) {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { recStop(true); return; }   // a recording ends with the page hidden (the microphone may stop)
   wake(); wakeSpeaker();   // 1.2.5
-  if (actx && actx.state !== 'running') actx.resume().catch(() => {});
+  if (actx && stream && actx.state !== 'running') actx.resume().catch(() => {});   // 1.2.6: not while listening is off
   if (stream && stream.getTracks().some(t => t.readyState === 'ended')) banner('The microphone stopped while the page was hidden.', 'Listen again', retryMic);
 });
 $('joinBtn').onclick = async () => {
@@ -5355,6 +5382,7 @@ setInterval(() => {
   else if (queue.length) { t = waitTxt || 'Waiting to send'; c = 'wait'; }
   else if (stream) { t = 'Listening'; c = 'listen'; }
   const P = $('pill'); if (P.textContent !== t) P.textContent = t; $('status').dataset.state = c;
+  const on = String(!!stream); if (P.getAttribute('aria-pressed') !== on) { P.setAttribute('aria-pressed', on); P.title = stream ? 'Stop listening: the microphone turns off' : 'Listen: the microphone turns on'; }   // 1.2.6
 }, 200);
 // the live spectrogram beside it: what the microphone hears above the room's own noise, 0.5 to 16 kHz (log scale, low at
 // the bottom), the last 2.5 s or so. Each row follows its noise floor (quickly down, slowly up), so a frame lights up and silence stays dark.
