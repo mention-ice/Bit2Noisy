@@ -4429,6 +4429,23 @@ let seq = (parseInt(store.get('seq', '0'), 10) || 0) & 255;
 const DEBUG = params.has('debug');
 let voiceOk = false;   // this browser has an Opus coder (WebCodecs): the microphone button shows when the text box is empty
 const DET = params.get('det') === 'smap' ? 'smap' : 'lmmse';   // the single carrier's detector: linear MMSE unless asked
+// 1.2.7, tests for an iPhone (Sheng, 2026-11-15: the loudspeaker while the microphone is open). A WebKit bug report
+// (326286, iOS 27) says Safari plays through the earpiece, much quieter, while a microphone without echo cancellation
+// is open (as the chat opens it, to hear the frames unaltered), keeps the loudspeaker but crackles when echo cancellation
+// is on, and stays so after the microphone is released. Two switches in the address, off by default:
+//   ?ec=1  the microphone with echo cancellation (the phone then no longer hears its own frames: no volume check after a send)
+//   ?as=1  Safari's audio session (navigator.audioSession): play-and-record before the microphone opens, playback when
+//          listening is turned off
+// With either, a line in the chat says what the microphone and the session report.
+const EC_ON = params.get('ec') === '1', AS_ON = params.get('as') === '1';
+function setSession(t) { try { if (AS_ON && navigator.audioSession) navigator.audioSession.type = t; } catch (e) {} }
+function testLine() {
+  if (!EC_ON && !AS_ON) return;
+  let ec = 'not reported', as = 'no audio session setting in this browser';
+  try { const tr = stream && stream.getAudioTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {}; if (st.echoCancellation !== undefined) ec = st.echoCancellation ? 'on' : 'off'; } catch (e) {}
+  try { if (navigator.audioSession) as = `audio session ${AS_ON ? 'set by the page' : 'left to Safari'}, now ${navigator.audioSession.type}`; } catch (e) {}
+  sys(`Speaker test: echo cancellation asked ${EC_ON ? 'on' : 'off'}, the microphone says ${ec}; ${as}.`);
+}
 // the others' colours (magenta is mine): [name and avatar in light mode, name in dark mode], each name at least 4.5:1 on its bubble
 const COLORS = [['#0d7275', '#3fc1c4'], ['#4a4ab3', '#9d9df5'], ['#a3500b', '#f0995a'], ['#2a7448', '#5ccf8c'], ['#7a3fb0', '#c59cf2'], ['#1f6fb2', '#6cb4f2'], ['#6b6a00', '#d6cf5a'], ['#b3261e', '#ff8a80']];
 const PAGE_COLOR = ['#706a7f', '#b9b3c4'];
@@ -4437,7 +4454,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.2.6', CHAT_DATE = '15 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.2.8', CHAT_DATE = '16 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
@@ -4685,7 +4702,8 @@ async function startMic() {   // -> true if listening
     if (proc) { try { proc.disconnect(); } catch (e) {} if (proc.port) proc.port.onmessage = null; proc = null; }
     if (!actx || actx.state === 'closed') actx = new (window.AudioContext || window.webkitAudioContext)();
     actx.resume().catch(() => {});
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    setSession('play-and-record');   // 1.2.7 test (?as=1)
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: EC_ON, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });   // 1.2.7: on only with ?ec=1
   } catch (e) {
     stream = null; banner('No microphone: this device can send but not receive. Allow the microphone (the page must be opened over https), then', 'Try again', retryMic);
     return false;
@@ -4701,7 +4719,11 @@ async function startMic() {   // -> true if listening
   else { const lv = hiLevel(a.sampleRate); proc = a.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = e => { const d = e.inputBuffer.getChannelData(0); lv(d, v => csWin(v, a.currentTime)); heard(d); }; }
   srcN.connect(proc); proc.connect(mute);
   stream.getTracks().forEach(t => t.onended = () => banner('The microphone stopped.', 'Listen again', retryMic));
+  stream.getTracks().forEach(t => { t.onmute = () => { if (stream && stream.getTracks().includes(t)) banner('The phone has taken the microphone away (a call, Siri or another app?): nothing is received until it gives it back.', 'Listen again', retryMic); }; t.onunmute = () => { if ($('bannerTxt').textContent.startsWith('The phone has taken')) banner(''); }; });   // 1.2.8
+  micStartAt = performance.now(); micAt = 0; micZeroFrom = 0; meter = null;   // 1.2.8: the watchdog counts from here; the band meter follows the new rate
   banner('');
+  testLine();   // 1.2.7
+  micCheck();   // 1.2.8
   return true;
 }
 async function retryMic() { banner(''); await startMic(); }
@@ -4727,6 +4749,7 @@ function stopMic() {
   if (actx && actx.state === 'running') actx.suspend().catch(() => {});
   try { spec.getContext('2d').clearRect(0, 0, spec.width, spec.height); } catch (e) {}
   banner('');
+  setSession('playback');   // 1.2.7 test (?as=1): out of the call state, if Safari kept it
 }
 $('pill').onclick = () => { if ($('join').classList.contains('hidden')) setListening(!stream); };
 
@@ -4835,12 +4858,92 @@ function shown(res, p) {   // a frame decoded: into the chat
   setPhys(b, (m.voice ? voiceNote(m.voice.bytes, m.voice.dur) + ' · ' : '') + desc); place(b);
   if (document.hidden && navigator.vibrate) try { navigator.vibrate(60); } catch (err) {}
 }
-// this device should hear its own frames: if the first ones go unheard, the volume is probably too low
-let volOk = 0, volBad = 0;
-function volumeCheck(ok) {
+// this device should hear its own frames: if the first ones go unheard, the volume is probably too low.
+// 1.2.8 (Sheng, 2026-11-16: in a noisy café the page said it had not heard its own message, and it read no message; it
+// could not say why). Now it says why. heard() keeps the level of the frames' band (3.2 to 16 kHz, where the usual band
+// and every header lie) for each block of samples; when my own message goes unread, its level while it played, over
+// the level just before, tells whether its sound reached my microphone at all (headphones, the volume down, an iPhone
+// playing it at the call volume) or reached it too weak for the room's noise. While no message of mine has been read,
+// every such miss gets a line (one in 30 s at most); the first one is also the banner.
+let volOk = 0, volBad = 0, volSaid = 0, lastPlay = null;
+function volumeCheck(ok, w) {
   if (ok) { volOk++; if ($('bannerTxt').textContent.startsWith('This device')) banner(''); return; }
-  volBad++; if (!volOk && volBad === 1 && stream) banner('This device did not hear its own message clearly: check the volume, and keep the speaker and the microphone uncovered.');
+  volBad++;
+  if (volOk || !stream) return;
+  const t = ownMissed(w || lastPlay);
+  if (volBad === 1) banner(t); else if (Date.now() - volSaid > 30000) { volSaid = Date.now(); sys(t); }
 }
+function ownMissed(w) {   // -> why my own message went unread, in words (room: the band's level before it, dB re full scale)
+  const r = w ? bandRise(w.t0, w.t1) : null;
+  if (!r) return 'This device did not hear its own message clearly: check the volume, and keep the speaker and the microphone uncovered.';
+  const room = `the room at ${r.room.toFixed(0)} dBFS in the message's band`;
+  if (r.rise < 3) {   // the sound did not stand out: a quiet room means it did not reach the microphone, a loud one may have buried it
+    const why = r.room < -60 ? 'The room is quiet, so the sound is not reaching the microphone: is the volume up? Are headphones or AirPods connected?'
+      : r.room > -45 ? 'The room is very loud: turn the volume up, or bring the phones closer together.'
+      : 'Either the room is too loud for this volume, or the sound is not reaching the microphone (the volume down, headphones or AirPods connected).';
+    return `This device did not hear its own message: its microphone heard almost nothing more while the message played (${r.rise >= 0 ? '+' : ''}${r.rise.toFixed(1)} dB, ${room}). ${why}`;
+  }
+  if (r.snr < 10) return `This device heard its own message only ${r.snr.toFixed(0)} dB above the room's noise (${room}), too weak to read: the room is too loud for this volume. Turn the volume up, or bring the phones closer together.`;
+  return `This device heard its own message ${r.snr.toFixed(0)} dB above the room's noise (${room}), but could not read it.`;
+}
+function bandMeter(fs) {   // -> the mean square of a block of samples in the frames' band: two high-pass sections at 3.2 kHz, one low-pass at 16 kHz
+  const sec = (hp, f) => { const w = 2 * Math.PI * Math.min(f, 0.45 * fs) / fs, c = Math.cos(w), al = Math.sin(w) / Math.SQRT2, a0 = 1 + al, g = (hp ? 1 + c : 1 - c) / 2 / a0;
+    return Float64Array.of(g, hp ? -2 * g : 2 * g, g, -2 * c / a0, (1 - al) / a0, 0, 0, 0, 0); };   // b0 b1 b2 a1 a2, then x1 x2 y1 y2
+  const S = [sec(true, 3200), sec(true, 3200), sec(false, 16000)];
+  return d => {
+    let e = 0;
+    for (let i = 0; i < d.length; i++) {
+      let v = d[i];
+      for (let j = 0; j < 3; j++) { const s = S[j], y = s[0] * v + s[1] * s[5] + s[2] * s[6] - s[3] * s[7] - s[4] * s[8]; s[6] = s[5]; s[5] = v; s[8] = s[7]; s[7] = y; v = y; }
+      e += v * v;
+    }
+    return e / d.length;
+  };
+}
+function bandRise(t0, t1) {   // -> {rise, snr, room} in dB: the band's loudest blocks while my sound played (t0 to t1, ms) over its median in the 3 s before, and that median
+  const before = [], during = [];
+  for (let i = 0; i < lv.length; i += 2) { const t = lv[i]; if (t > t0 - 3000 && t < t0 - 100) before.push(lv[i + 1]); else if (t > t0 + 50 && t < t1 + 300) during.push(lv[i + 1]); }
+  if (before.length < 4 || !during.length) return null;
+  before.sort((a, b) => a - b); during.sort((a, b) => b - a);
+  const k = Math.min(3, during.length), top = during.slice(0, k).reduce((a, b) => a + b, 0) / k, nf = before[before.length >> 1];
+  const rise = 10 * Math.log10((top + 1e-20) / (nf + 1e-20));
+  return { rise, snr: 10 * Math.log10(Math.max(10 ** (rise / 10) - 1, 1e-3)), room: 10 * Math.log10(nf + 1e-20) };
+}
+// The microphone's health. A phone can stop giving a page sound without telling it (iOS, when a call, Siri or another
+// app takes the microphone, or after an interruption; a track that ended gives zeros): then nothing is read, not even my
+// own messages. heard() notes when samples last came and since when they have all been zero. Once a second, while
+// listening with the page in view, a microphone silent for 2.5 s is woken (its context resumed); at 5 s it is opened
+// again, with a line in the chat (three times in 2 minutes at most, then a banner). A microphone in headphones is
+// named in the chat: it hears its wearer, not the room.
+let meter = null, lv = [], micAt = 0, micZeroFrom = 0, micStartAt = 0, micFixes = [], micWarned = '';
+function micNote(d) {
+  const now = performance.now(); micAt = now;
+  let m = 0; for (let i = 0; i < d.length; i++) { const a = d[i] < 0 ? -d[i] : d[i]; if (a > m) m = a; }
+  if (m > 0) micZeroFrom = 0; else if (!micZeroFrom) micZeroFrom = now;
+  if (!meter) meter = bandMeter(actx.sampleRate);
+  lv.push(now, meter(d)); if (lv.length > 800) lv.splice(0, lv.length - 800);   // about 35 s of blocks
+}
+setInterval(() => {
+  if (!stream || listenBusy || document.hidden || !micStartAt) return;
+  const now = performance.now(), off = now - Math.max(micStartAt, micAt), zero = micZeroFrom ? now - micZeroFrom : 0, gone = Math.max(off, zero);
+  if (gone > 2500 && actx && actx.state !== 'running') actx.resume().catch(() => {});
+  if (gone < 5000) return;
+  micFixes = micFixes.filter(t => now - t < 120000);
+  if (micFixes.length >= 3) { if (!$('bannerTxt').textContent.startsWith('The microphone keeps')) banner('The microphone keeps going silent: a call, Siri or another app may be using it.', 'Listen again', retryMic); return; }
+  micFixes.push(now);
+  sys(off >= zero ? 'The microphone had stopped sending sound: listening again.' : 'The microphone gave only silence: listening again.');
+  listenBusy = true; startMic().finally(() => { listenBusy = false; });
+}, 1000);
+function micCheck() {
+  try {
+    const tr = stream && stream.getAudioTracks()[0]; if (!tr) return;
+    const st = tr.getSettings ? tr.getSettings() : {}, lab = tr.label || '', fs = st.sampleRate;
+    if (!/airpods|bluetooth|headset|headphone|earbud|earphone|buds|beats|hands-?free/i.test(lab) && !(fs && fs < 32000)) { micWarned = ''; return; }
+    if (micWarned === lab + fs) return; micWarned = lab + fs;
+    sys(`This device is listening through ${lab || 'a headset'}${fs ? ` (${fs / 1000} kHz)` : ''}. With headphones connected, the chat plays and listens in them, not in the room: disconnect them to chat through the air.`);
+  } catch (e) {}
+}
+try { navigator.mediaDevices.addEventListener('devicechange', () => setTimeout(() => { if (stream) micCheck(); }, 500)); } catch (e) {}
 
 // ---------- sending: wait for the room, then play (chat 1.2) ----------
 // One clock (tick: 100 times a second, driven by the level windows of the carrier sense, so that it also runs in a tab
@@ -4946,16 +5049,17 @@ function physMine(it) {   // the physics line of a message of mine
 async function transmit(frame) {   // play a frame now -> whether it played
   const x = modulate(frame);
   playingNow = true; selfUntil = Infinity; lastOwn = frame;
-  const ok = await play(x);
+  const t0 = performance.now(), ok = await play(x);
+  lastPlay = { t0, t1: performance.now() };   // 1.2.8: when my sound played, for the volume check
   playingNow = false; selfUntil = Date.now() + 1500; ownTail = Date.now() + 250; quietUntil = Date.now() + 100;
   return ok;
 }
 async function playItem(it) {
   setTick(it, 'sending'); recent.push(Date.now()); if ($('bannerTxt').textContent.startsWith('The room has been busy')) banner('');
   const ok = await transmit(it.frame);
-  it.played = lastMine = Date.now(); setTick(it, ok ? 'sent' : 'fail');
+  it.played = lastMine = Date.now(); setTick(it, ok ? 'sent' : 'fail'); it.lv = lastPlay;
   if (ok && !busyRoom()) openWin(it);
-  if (ok && stream) setTimeout(() => { if (it.own === undefined && stream) volumeCheck(false); }, 2000 * it.dur + 6000);
+  if (ok && stream && !EC_ON) setTimeout(() => { if (it.own === undefined && stream) volumeCheck(false, it.lv); }, 2000 * it.dur + 6000);   // 1.2.7: not with echo cancellation
   if (!ok) banner('The browser played no sound. Check the volume and the output device, then send again.');
 }
 async function playReceipt(r) {
@@ -5215,7 +5319,7 @@ async function showVoice(item) {   // the sheet plays the voice as the first mod
 
 // recording: every block the microphone gives also goes to the recording while one is under way
 let rec = null;   // {chunks, n, fs, acc, k, lo, hi}
-function heard(d) { if (rec) recAdd(d); rx.push(d); }
+function heard(d) { micNote(d); if (rec) recAdd(d); rx.push(d); }
 function recStart() {
   if (rec) return;
   if (!stream && !listenBusy && $('join').classList.contains('hidden')) { setListening(true).then(ok => { if (ok) recStart(); }); return; }   // 1.2.6: listening on again
