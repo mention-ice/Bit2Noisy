@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+<!-- Anonymous visit counter (Bit2Noisy telemetry v3, chat 1.2.9): no cookie, nothing stored on the phone; not counted with Do Not Track, Global Privacy Control or ?tele=off. -->
+<script defer src="https://bit2noisy-telemetry.sheng-yang-e9e.workers.dev/v.js" data-site="chat"></script>
 <!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page f71f55cd). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
@@ -300,7 +302,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
       <div class="hint" id="nickHint"></div>
       <button class="primary" id="joinBtn">Join the chat</button>
       <p class="hint">Allow the microphone, turn the volume up, and keep this page open on the screen.</p>
-      <p class="small">© 2026 Sheng Yang. All rights reserved. Modem: <a href="../">Bit2Noisy</a> v7, <a href="https://mention-ice.github.io/">Mention ICE</a>, CentraleSupélec.<span class="ver" id="joinVer"></span></p>
+      <p class="small">© 2026 Sheng Yang. All rights reserved. Modem: <a href="../">Bit2Noisy</a> v7, <a href="https://mention-ice.github.io/">Mention ICE</a>, CentraleSupélec. Visits are counted anonymously, without cookies (add ?tele=off to the address to opt out).<span class="ver" id="joinVer"></span></p>
     </div>
   </div>
 </div>
@@ -4454,7 +4456,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.2.8', CHAT_DATE = '16 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.2.9', CHAT_DATE = '16 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
