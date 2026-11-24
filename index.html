@@ -4487,39 +4487,18 @@ const APPLE = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Safari\//.test(nav
 const OUT_WAYS = { element: ['element'], webaudio: ['webaudio'] }[params.get('out')] || (APPLE ? ['element', 'webaudio'] : ['webaudio', 'element']);
 // Bind the output before Send so play() still runs directly in the user's tap.
 const speakerSelect = $('speakerOutput'), mediaDevices = navigator.mediaDevices;
-const canRoute = typeof HTMLMediaElement !== 'undefined' &&
+// An iPhone or iPad offers no output choice here: while the page listens it plays through the earpiece whatever the
+// choice (see Send).
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const canRoute = !IOS && typeof HTMLMediaElement !== 'undefined' &&
   typeof HTMLMediaElement.prototype.setSinkId === 'function' && typeof mediaDevices?.enumerateDevices === 'function';
 const PICK_SPEAKER = ':choose-output:';
 let speakerPlayer = null, speakerId = '', speakerLabel = '', speakerBusy = false;
 let speakerListVersion = 0, routeGraceUntil = 0;
-// Safari, and every browser on an iPhone or iPad, changes the output only while a tap is being handled, and on an iPhone a
-// choice in a list does not count as one (it was refused as "cancelled or denied"). There the outputs are buttons.
+// Safari changes the output only while a tap is being handled, and a choice in a list does not always count as one (on
+// an iPhone it was refused as "cancelled or denied"). So in Safari the outputs are buttons.
 const SPEAKER_TAPS = APPLE, speakerSeg = $('speakerSeg');
 let speakerKey = '';
-// On an iPhone or iPad, Safari applies the chosen output only to sound from a live stream, as in a video call; a sound
-// file played by an <audio> element ignores it (the frames stayed on the earpiece). So there the choice goes to a silent
-// stream from Web Audio, playing in an element of its own. Safari then routes all of the page's sound, frames included,
-// to that output.
-const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-let routeKeeper = null;
-function keepRoute() {   // in the tap: plays the silent stream (made once) that carries the output choice on an iPhone
-  if (!routeKeeper) {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)(), dest = ctx.createMediaStreamDestination();
-    const zero = ctx.createConstantSource();   // a stream destination produces samples only while something feeds it
-    zero.offset.value = 0;
-    zero.connect(dest);
-    zero.start();
-    const el = new Audio();
-    el.srcObject = dest.stream;
-    routeKeeper = { ctx, el };
-  }
-  if (routeKeeper.ctx.state !== 'running') routeKeeper.ctx.resume().catch(() => {});
-  routeKeeper.el.play().catch(() => {});
-  return routeKeeper.el;
-}
-document.addEventListener('visibilitychange', () => {   // back on the page: the silent stream plays on
-  if (!document.hidden && routeKeeper) { routeKeeper.ctx.resume().catch(() => {}); routeKeeper.el.play().catch(() => {}); }
-});
 
 function speakerControls() {
   if (!canRoute) return;
@@ -4589,11 +4568,11 @@ if (canRoute) {
     try {
       const device = choice === PICK_SPEAKER ? await mediaDevices.selectAudioOutput() : null;
       const id = device?.deviceId === 'default' ? '' : (device?.deviceId ?? choice);
-      const player = IOS ? keepRoute() : (speakerPlayer || new Audio());
+      const player = speakerPlayer || new Audio();
       routeGraceUntil = performance.now() + 2000;
       await player.setSinkId(id);
       routeGraceUntil = performance.now() + 2000;
-      speakerPlayer = id && !IOS ? player : null;   // on an iPhone the frames play as usual and follow the new route
+      speakerPlayer = id ? player : null;
       speakerId = id;
       speakerLabel = id ? (device?.label || (device ? 'Selected output' : label)) : 'System default';
       if (![...speakerSelect.options].some(o => o.value === id)) speakerSelect.add(new Option(speakerLabel, id));
@@ -4621,11 +4600,22 @@ if (canRoute) {
 
 $('sendBtn').onclick = () => {
   if (playing) { playing.stop(); return; }
+  // An iPhone plays through its earpiece, much more quietly, while the page captures the microphone without echo
+  // cancellation (WebKit bug 326286). So there listening pauses while a frame plays, the audio session is set to
+  // playback (the loudspeaker), and listening resumes after the frame.
+  const pauseMic = IOS && !!mic, audioSess = navigator.audioSession, audioType = audioSess?.type;
+  if (pauseMic) {
+    stopMic(mic, 'Paused while sending');
+    $('listenBtn').disabled = true; $('listenBtn').textContent = 'Paused while sending…';   // it comes back by itself
+    try { if (audioSess) audioSess.type = 'playback'; } catch (e) {}
+  }
   const routedPlayer = speakerPlayer;
   const ways = routedPlayer ? ['element'] : OUT_WAYS;
   const a = routedPlayer ? null : new (window.AudioContext || window.webkitAudioContext)();
   a?.resume().catch(() => {});
-  lastHb = null; const x = modulate(txFrame()), teleHdr = lastHb && parseHeader(lastHb), dur = x.length / FS_TX;
+  lastHb = null; let x = modulate(txFrame()); const teleHdr = lastHb && parseHeader(lastHb);
+  if (pauseMic) { const y = new Float32Array(x.length + Math.round(0.4 * FS_TX)); y.set(x, y.length - x.length); x = y; }   // time for the switch
+  const dur = x.length / FS_TX;
   let way = null, el = null, url = null, src = null, t0 = 0;
   const p = { stop: () => finish('Stopped.') }, pos = () => way === 'element' ? el.currentTime : way === 'webaudio' ? a.currentTime - t0 : 0;
   const halt = () => {   // silences the way in use
@@ -4635,6 +4625,10 @@ $('sendBtn').onclick = () => {
   const finish = msg => {
     if (playing !== p) return;
     playing = null; halt(); speakerControls(); $('sendBtn').textContent = '▶ Send'; $('txProg').style.width = '0'; $('txStatus').textContent = msg;
+    if (pauseMic) setTimeout(() => {   // the audio session as it was, then listening again
+      try { if (audioSess) audioSess.type = audioType || 'auto'; } catch (e) {}
+      if (!mic) $('listenBtn').onclick();
+    }, 300);
     // The speaker may still be playing the end of the buffer (output latency, up to a few tenths of a second with
     // Bluetooth): closing the context now would cut it off, and the postamble with it. So wait before closing.
     setTimeout(() => {
@@ -4671,7 +4665,8 @@ $('sendBtn').onclick = () => {
       if (pos() < 0.1) next(k); else if (way === 'element') a?.close().catch(() => {});   // the element plays: no need for the AudioContext
     }, 1500);
   };
-  playing = p; speakerControls(); $('sendBtn').textContent = '■ Stop'; $('txStatus').textContent = `Sending ${dur.toFixed(1)} s… turn the volume up.`;
+  playing = p; speakerControls(); $('sendBtn').textContent = '■ Stop'; $('txStatus').textContent = `Sending ${dur.toFixed(1)} s… turn the volume up.`
+    + (pauseMic ? ' Listening is paused meanwhile, so that the sound comes out of the loudspeaker.' : '');
   start(0);
   const tick = () => { if (playing !== p) return; $('txProg').style.width = Math.min(100, 100 * pos() / dur) + '%'; requestAnimationFrame(tick); };
   tick();
