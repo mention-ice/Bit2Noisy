@@ -168,6 +168,8 @@ header .seg button[aria-pressed="true"]{background:#fff;color:#86144f}
 a.help-link { color:var(--accent); text-underline-offset:.17em; }
 #textPreview { flex-basis:100%; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
 #textPreview:empty { display:none; }
+#speakerControl { display:inline-flex; align-items:center; flex-wrap:wrap; gap:.45rem; max-width:100%; }
+#speakerOutput { max-width:100%; }
 #micHelp { margin:.4rem 0; }
 #txRate dl { margin:0; }
 #txRate dt { font-weight:600; }
@@ -227,6 +229,10 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
       </div>
     </div>
   </div>
+  <div class="row" id="presetRow"><span class="muted">Transmission preset</span>
+    <span class="seg" id="presetSeg" role="group" aria-label="Transmission preset"><button data-v="fixed">Fixed tones</button><button data-v="classroom">Classroom</button></span>
+    <span class="muted" id="presetHint"></span>
+  </div>
   <div class="opts" id="txOpts">
     <span class="muted mo">Error correction</span><span class="seg mo" id="codeSeg"><button class="xsc" data-v="none">None</button><button class="xsc" data-v="conv">Convolutional</button><button class="xw" data-v="turbo">Turbo</button><button data-v="ldpc">LDPC</button><button data-v="polar">Polar</button></span>
     <span class="muted mo tr">Turbo code rate</span><span class="seg mo tr" id="trSeg"><button data-v="turbo">1/2</button><button data-v="turbo3">1/3</button><button data-v="turbo4">1/4</button></span>
@@ -250,6 +256,9 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
   <p class="muted" id="txInfo"></p>
   <div class="row">
     <button class="btn primary" id="sendBtn">▶ Send</button>
+    <label class="muted hidden" id="speakerControl">Speaker output
+      <select class="btn" id="speakerOutput" disabled><option value="">System default</option></select>
+    </label>
     <button class="btn" id="wavBtn">Download WAV</button>
   </div>
   <div class="progress"><div id="txProg"></div></div>
@@ -4149,13 +4158,17 @@ let picFmt = ['jpeg', 'file'].includes(params.get('pic')) ? params.get('pic') : 
 const sc4 = () => Math.min(imgScale, 4);   // v7.7: the size of everything but a photo's JPEG (8x and 16x are for those only)
 const bigOk = () => msgMode === 'photo' && picFmt !== 'bits';   // v7.7: 8x and 16x offered
 
-function seg(el, value, onPick) {
-  const set = v => el.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
-  set(value);
-  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.v); onPick(b.dataset.v); });
+function setSeg(el, value) {
+  el.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(value))));
 }
-function ctx() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; }
-function syncUrl() { const u = new URL(location.href); u.searchParams.set('mod', cfg.mod); u.searchParams.set('tones', cfg.tones); u.searchParams.set('rate', cfg.rate); u.searchParams.set('pre', cfg.pre); u.searchParams.set('code', cfg.code); if (cfg.mod === 'ofdm') u.searchParams.set('guard', cfg.guard); else u.searchParams.delete('guard'); if (cfg.mod === 'ofdm' || cfg.mod === 'sc') u.searchParams.set('map', cfg.map); else u.searchParams.delete('map'); if (cfg.mod === 'sc') u.searchParams.set('train', cfg.train); else u.searchParams.delete('train'); if ((cfg.mod === 'sc' || cfg.mod === 'ofdm') && cfg.band !== 'usual') u.searchParams.set('band', cfg.band); else u.searchParams.delete('band'); if (imgScale > 1) u.searchParams.set('img', { 2: 'large', 4: 'huge', 8: 'x8', 16: 'x16' }[imgScale]); else u.searchParams.delete('img'); if (picFmt !== 'bits') { u.searchParams.set('pic', picFmt); u.searchParams.set('q', jpegQ); } else { u.searchParams.delete('pic'); u.searchParams.delete('q'); } if ((cfg.mod === 'ofdm' || cfg.mod === 'sc') && cfg.control === 'long') u.searchParams.set('ctl', 'long'); else u.searchParams.delete('ctl'); history.replaceState(null, '', u); }
+function seg(el, value, onPick) {
+  setSeg(el, value);
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setSeg(el, b.dataset.v); onPick(b.dataset.v); });
+}
+function ctx() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended' || actx.state === 'interrupted') actx.resume().catch(() => {}); return actx; }
+function syncUrl(preset = false) { const u = new URL(location.href);
+  if (preset) { u.searchParams.set('role', 'tx'); u.searchParams.set('view', view); }
+  u.searchParams.set('mod', cfg.mod); u.searchParams.set('tones', cfg.tones); u.searchParams.set('rate', cfg.rate); u.searchParams.set('pre', cfg.pre); u.searchParams.set('code', cfg.code); if (cfg.mod === 'ofdm') u.searchParams.set('guard', cfg.guard); else u.searchParams.delete('guard'); if (cfg.mod === 'ofdm' || cfg.mod === 'sc') u.searchParams.set('map', cfg.map); else u.searchParams.delete('map'); if (cfg.mod === 'sc') u.searchParams.set('train', cfg.train); else u.searchParams.delete('train'); if ((cfg.mod === 'sc' || cfg.mod === 'ofdm') && cfg.band !== 'usual') u.searchParams.set('band', cfg.band); else u.searchParams.delete('band'); if (imgScale > 1) u.searchParams.set('img', { 2: 'large', 4: 'huge', 8: 'x8', 16: 'x16' }[imgScale]); else u.searchParams.delete('img'); if (picFmt !== 'bits') { u.searchParams.set('pic', picFmt); u.searchParams.set('q', jpegQ); } else { u.searchParams.delete('pic'); u.searchParams.delete('q'); } if ((cfg.mod === 'ofdm' || cfg.mod === 'sc') && cfg.control === 'long') u.searchParams.set('ctl', 'long'); else u.searchParams.delete('ctl'); history.replaceState(null, '', u); }
 // QR code: the online copy of this page (also when the laptop runs it from a local file); receivers need no settings
 function phoneUrl() {
   const target = new URL(location.protocol === 'https:' ? location.origin + location.pathname : PAGE_SITE);
@@ -4190,6 +4203,17 @@ const TX_HINT = {   // under the transmitter's options: what the modulation chos
   ofdm: 'OFDM: hundreds of subcarriers at once, far faster than FSK (the rates shown are before the code): use it with a code. Echo longer than the guard acts as noise, so take the long guard in a reverberant room. DQPSK needs no pilots; QPSK to 256QAM add pilots to measure the room: QPSK reaches farther than DQPSK, 16QAM is nearly twice as fast for about 3 dB more signal, 64QAM and 256QAM are 1.5 and 2 times faster again for about 5 and 11 dB more: try them close to the speaker. The wide band (v7.21, 2.3–20.5 kHz) takes QPSK to 1024QAM and LDPC 5/6 at every mapping, with LDPC or polar codes: up to 131 kbit/s after the code (about 105 in a room) for phones close together, and it decodes far faster than the single carrier. Receivers need no settings.',
   sc: 'Single carrier (v5): one symbol at a time, 9600 per second (13 714 in the wide band, 16 000 in the fast one), with no guard. Training blocks every 0.5 s let the receiver learn the room and undo its echo (soft SMAP with the decoder), which takes a few seconds. Take a training longer than the room\'s echo. 256QAM needs a still room; 16QAM or 64QAM is safer when people move. 1024QAM (v7.5) needs about 6 dB more signal than 256QAM: only for phones close together in a quiet room, with LDPC 2/3. 256QAM and 1024QAM play 1 dB quieter (v7.9), which clips less. 256QAM with LDPC 5/6 (v7.6) carries as much and stands a little more noise. Turbo or LDPC codes only (the others are greyed out): at the same rate turbo needs about 1 dB less signal here, while LDPC 2/3 and 3/4 carry more when the signal is strong. The wide band (v7.4, 2.3 to 20.5 kHz) carries 43 % more, with LDPC or polar codes only, but gives each symbol about 1.5 dB less signal: take it when the signal is strong. The fast wide band (v7.19, roll-off 1/7) carries 17 % more than the wide one for about 0.6 dB less signal. Receivers need no settings.'
 };
+const TX_PRESETS = {
+  fixed: { mod: 2, rate: 400, pre: 127, tones: 'low', code: 'none' },
+  classroom: { mod: 2, rate: 400, pre: 127, tones: 'hop', code: 'conv' }
+};
+seg($('presetSeg'), null, name => {
+  const preset = TX_PRESETS[name];
+  Object.assign(cfg, preset);
+  for (const [key, value] of Object.entries(preset)) setSeg($(key + 'Seg'), value);
+  showMod(); showTurbo(); no56(); guardLabels(); trainLabels();
+  syncUrl(true); txInfo();
+});
 function showMod() {   // the rates and tone labels of binary or 4-tone FSK; OFDM has a guard interval instead of tones and a rate
   $('txHint').textContent = TX_HINT[cfg.mod];
   $('txOpts').classList.toggle('ofdm', cfg.mod === 'ofdm' || cfg.mod === 'sc'); $('txOpts').classList.toggle('sc', cfg.mod === 'sc');   // the single carrier: OFDM's options less the guard
@@ -4310,6 +4334,7 @@ function showTx() {
   $('txText').classList.toggle('hidden', msgMode !== 'text');
   $('txImg').classList.toggle('hidden', msgMode === 'text' || msgMode === 'sound');
   $('txOpts').classList.toggle('sounding', msgMode === 'sound');
+  $('presetRow').classList.toggle('hidden', msgMode === 'sound');
   $('drawTools').classList.toggle('hidden', msgMode !== 'draw');
   $('photoTools').classList.toggle('hidden', msgMode !== 'photo');
   $('picRow').classList.toggle('hidden', msgMode === 'draw');   // v7.1
@@ -4358,6 +4383,10 @@ function fileDesc(m) {   // v7.7: the picture file sent, in words
   return `The file holds ${Math.round(photoRaw.length / 1024)} KB, more than a frame carries (${Math.floor(JPEG_MAX / 1024)} KB): ${photoImg ? `sent as a ${jpg}` : `this browser cannot open it to make it smaller, so the demo image goes, as a ${jpg}`}`;
 }
 function txInfo() {
+  const preset = Object.keys(TX_PRESETS).find(name => Object.entries(TX_PRESETS[name]).every(([k, v]) => cfg[k] === v));
+  setSeg($('presetSeg'), preset);
+  $('presetHint').textContent = preset === 'classroom' ? 'Hopping tones with error correction for listeners farther away.'
+    : preset === 'fixed' ? '4 and 8 kHz, uncoded, for a nearby receiver.' : 'Custom lab settings.';
   const msg = currentMsg(), f = txFrame(msg);
   txRateLine(f);
   if (msg.type === 'text') {
@@ -4454,33 +4483,126 @@ let playing = null;
 // within 1.5 s, the other takes over. The address can choose one: out=element or out=webaudio.
 const APPLE = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Safari\//.test(navigator.userAgent) && !/Chrom|Edg|OPR|Firefox|Android/.test(navigator.userAgent));
 const OUT_WAYS = { element: ['element'], webaudio: ['webaudio'] }[params.get('out')] || (APPLE ? ['element', 'webaudio'] : ['webaudio', 'element']);
+// Bind the output before Send so play() still runs directly in the user's tap.
+const speakerSelect = $('speakerOutput'), mediaDevices = navigator.mediaDevices;
+const canRoute = typeof HTMLMediaElement !== 'undefined' &&
+  typeof HTMLMediaElement.prototype.setSinkId === 'function' && typeof mediaDevices?.enumerateDevices === 'function';
+const PICK_SPEAKER = ':choose-output:';
+let speakerPlayer = null, speakerId = '', speakerLabel = '', speakerBusy = false;
+let speakerListVersion = 0, routeGraceUntil = 0;
+
+function speakerControls() {
+  if (!canRoute) return;
+  speakerSelect.disabled = !!playing || speakerBusy || speakerSelect.options.length < 2;
+  $('sendBtn').disabled = !playing && (speakerBusy || !!speakerSelect.selectedOptions[0]?.disabled);
+}
+
+async function refreshSpeakers() {
+  if (!canRoute || speakerBusy || document.hidden) return;
+  const version = ++speakerListVersion;
+  let devices;
+  try { devices = await mediaDevices.enumerateDevices(); } catch { return; }
+  if (version !== speakerListVersion) return;
+  const options = [new Option('System default', '')];
+  for (const d of devices) {
+    if (d.kind === 'audiooutput' && d.deviceId && d.deviceId !== 'default') {
+      options.push(new Option(d.label || `Output ${options.length}`, d.deviceId));
+    }
+  }
+  const wasMissing = speakerSelect.selectedOptions[0]?.disabled;
+  if (speakerId && !options.some(o => o.value === speakerId)) {
+    const missing = new Option(speakerLabel + ' (unavailable)', speakerId);
+    missing.disabled = true;
+    options.push(missing);
+    if (playing) playing.stop();
+    $('txStatus').textContent = 'The selected speaker is unavailable. Choose another output.';
+  } else if (wasMissing) {
+    $('txStatus').textContent = 'The selected speaker is available again.';
+  }
+  if (typeof mediaDevices.selectAudioOutput === 'function') options.push(new Option('Choose another output…', PICK_SPEAKER));
+  speakerSelect.replaceChildren(...options);
+  speakerSelect.value = speakerId;
+  speakerControls();
+}
+
+if (canRoute) {
+  $('speakerControl').classList.remove('hidden');
+  if (typeof mediaDevices.selectAudioOutput === 'function') speakerSelect.add(new Option('Choose another output…', PICK_SPEAKER));
+  speakerControls();
+  speakerSelect.onchange = async () => {
+    const choice = speakerSelect.value;
+    const label = speakerSelect.selectedOptions[0].textContent;
+    ++speakerListVersion;   // discard any enumeration started before this selection
+    speakerBusy = true;
+    speakerControls();
+    try {
+      const device = choice === PICK_SPEAKER ? await mediaDevices.selectAudioOutput() : null;
+      const id = device?.deviceId === 'default' ? '' : (device?.deviceId ?? choice);
+      const player = speakerPlayer || new Audio();
+      routeGraceUntil = performance.now() + 2000;
+      await player.setSinkId(id);
+      routeGraceUntil = performance.now() + 2000;
+      speakerPlayer = id ? player : null;
+      speakerId = id;
+      speakerLabel = id ? (device?.label || (device ? 'Selected output' : label)) : 'System default';
+      if (![...speakerSelect.options].some(o => o.value === id)) speakerSelect.add(new Option(speakerLabel, id));
+      $('txStatus').textContent = `Selected ${speakerLabel} for the next transmission.`;
+    } catch (err) {
+      $('txStatus').textContent = err.name === 'NotAllowedError' || err.name === 'AbortError'
+        ? 'Speaker selection was cancelled or denied. The previous output is selected.'
+        : 'Could not select that speaker. Check the connection or choose another output.';
+    } finally {
+      speakerSelect.value = speakerId;
+      speakerBusy = false;
+      speakerControls();
+      refreshSpeakers();
+    }
+  };
+  mediaDevices.addEventListener?.('devicechange', refreshSpeakers);
+  document.addEventListener('visibilitychange', refreshSpeakers);
+  refreshSpeakers();
+}
+
 $('sendBtn').onclick = () => {
   if (playing) { playing.stop(); return; }
-  const a = new (window.AudioContext || window.webkitAudioContext)(); a.resume().catch(() => {});
+  const routedPlayer = speakerPlayer;
+  const ways = routedPlayer ? ['element'] : OUT_WAYS;
+  const a = routedPlayer ? null : new (window.AudioContext || window.webkitAudioContext)();
+  a?.resume().catch(() => {});
   lastHb = null; const x = modulate(txFrame()), teleHdr = lastHb && parseHeader(lastHb), dur = x.length / FS_TX;
   let way = null, el = null, url = null, src = null, t0 = 0;
   const p = { stop: () => finish('Stopped.') }, pos = () => way === 'element' ? el.currentTime : way === 'webaudio' ? a.currentTime - t0 : 0;
   const halt = () => {   // silences the way in use
-    if (el) { el.onended = null; el.pause(); }
+    if (el) { el.onended = el.onerror = null; el.pause(); }
     if (src) { src.onended = null; try { src.stop(); } catch (e) {} src = null; }
   };
   const finish = msg => {
     if (playing !== p) return;
-    playing = null; halt(); $('sendBtn').textContent = '▶ Send'; $('txProg').style.width = '0'; $('txStatus').textContent = msg;
+    playing = null; halt(); speakerControls(); $('sendBtn').textContent = '▶ Send'; $('txProg').style.width = '0'; $('txStatus').textContent = msg;
     // The speaker may still be playing the end of the buffer (output latency, up to a few tenths of a second with
     // Bluetooth): closing the context now would cut it off, and the postamble with it. So wait before closing.
-    setTimeout(() => { a.close().catch(() => {}); if (url) URL.revokeObjectURL(url); }, 2000 + 1000 * ((a.outputLatency || 0) + (a.baseLatency || 0)));
+    setTimeout(() => {
+      a?.close().catch(() => {});
+      if (url) URL.revokeObjectURL(url);
+    }, 2000 + 1000 * ((a?.outputLatency || 0) + (a?.baseLatency || 0)));
   };
   const next = k => {   // way k gave no sound: the next one, or say so instead of hanging on "Stop"
     halt();
-    if (k + 1 >= OUT_WAYS.length) { finish('The browser played no sound. Check the output device, or play a sound in another app, then click Send again.'); return; }
-    start(k + 1); $('txStatus').textContent = `Sending ${dur.toFixed(1)} s (no sound the first way, so through ${OUT_WAYS[k + 1] === 'element' ? 'an audio element' : 'Web Audio'})… turn the volume up.`;
+    if (routedPlayer) { finish('The selected speaker could not play the frame. Check the output or choose another speaker.'); return; }
+    if (k + 1 >= ways.length) { finish('The browser played no sound. Check the output device, or play a sound in another app, then click Send again.'); return; }
+    start(k + 1); $('txStatus').textContent = `Sending ${dur.toFixed(1)} s (no sound the first way, so through ${ways[k + 1] === 'element' ? 'an audio element' : 'Web Audio'})… turn the volume up.`;
   };
   const start = k => {
-    way = OUT_WAYS[k];
+    way = ways[k];
     if (way === 'element') {
-      if (!el) { url = URL.createObjectURL(wavBlob(x, FS_TX)); el = new Audio(url); }
+      if (!el) {
+        url = URL.createObjectURL(wavBlob(x, FS_TX));
+        el = routedPlayer || new Audio();
+        if (routedPlayer) routeGraceUntil = performance.now() + 2000;
+        el.src = url;
+      }
       el.onended = () => finish('Sent.');
+      el.onerror = () => { if (playing === p && way === 'element') next(k); };
       let r; try { r = el.play(); } catch (e) { r = Promise.reject(e); }
       if (r && r.catch) r.catch(() => { if (playing === p && way === 'element') next(k); });
     } else {
@@ -4489,11 +4611,11 @@ $('sendBtn').onclick = () => {
       src.start(); t0 = a.currentTime;
     }
     setTimeout(() => {   // if the clock does not move, this way plays nothing
-      if (playing !== p || way !== OUT_WAYS[k]) return;
-      if (pos() < 0.1) next(k); else if (way === 'element') a.close().catch(() => {});   // the element plays: no need for the AudioContext
+      if (playing !== p || way !== ways[k]) return;
+      if (pos() < 0.1) next(k); else if (way === 'element') a?.close().catch(() => {});   // the element plays: no need for the AudioContext
     }, 1500);
   };
-  playing = p; $('sendBtn').textContent = '■ Stop'; $('txStatus').textContent = `Sending ${dur.toFixed(1)} s… turn the volume up.`;
+  playing = p; speakerControls(); $('sendBtn').textContent = '■ Stop'; $('txStatus').textContent = `Sending ${dur.toFixed(1)} s… turn the volume up.`;
   start(0);
   const tick = () => { if (playing !== p) return; $('txProg').style.width = Math.min(100, 100 * pos() / dur) + '%'; requestAnimationFrame(tick); };
   tick();
@@ -4523,13 +4645,13 @@ function scDecode(job, onPass) {
   return new Promise((ok, no) => { const id = ++scId; scJobs.set(id, { ok, no, onPass, job }); scWorker.postMessage({ ...job, id }); });
 }
 const detName = d => d === 'lmmse' ? 'linear MMSE' : 'soft SMAP';
-let rx = null, stream = null, proc = null, analyser = null, lastRec = null;   // lastRec: the result on display
+let rx = null, mic = null, lastRec = null;   // lastRec: the result on display
 const pill = (t, cls = '') => { $('rxPill').textContent = t; $('rxPill').className = 'pill ' + cls; };
 // The frames received, newest first: each keeps its result, and a click on its row shows it again. The display follows
 // the newest frame; a single-carrier frame decoded in the background meanwhile only updates its own row.
 const LOG_MAX = 8, frames = [];
 let shown = null, live = null, frameId = 0;   // the frame on display; the frame being received
-const fpill = (f, t, c = 'live') => { f.pill = [t, c]; if (f === shown) pill(t, c); };
+const fpill = (f, t, c = 'live') => { f.pill = [t, c]; if (f === shown && f.capture === mic?.id) pill(t, c); };
 function frameWhat(h) {   // the message and how it was sent, in words
   if (h.type === 'sound') return `Room sounding, ${h.periods} × ${(((1 << h.order) - 1) / FS_TX).toFixed(2)} s`;
   const how = h.sc ? `single carrier ${OFDM_NAMES[h.map]}${h.wide === 2 ? ', fast wide band' : h.wide ? ', wide band' : ''}, ${scTrainName(h.train)} training` : h.ofdm ? `OFDM ${OFDM_NAMES[h.map]}${h.ofdm[0] === 'w' ? ', wide band' : ''}, ${h.ofdm.replace(/^w/, '')} guard`
@@ -4565,9 +4687,9 @@ function outcome(res) {   // [class, words] for the pill and the row: only what 
   if (res.codeword === false) return ['bad', '✗ some bits wrong'];
   if (res.codeword) return ['ok', '✓ decoded'];
   if (res.cwPending) return ['', 'checking…'];
-  return ['', 'received'];   // no code or convolutional: nothing to check the bits against
+  return ['', 'Received · unverified'];   // no code or convolutional: nothing to check the bits against
 }
-const donePill = res => { const [c, w] = outcome(res); pill(w === 'received' ? 'Received' : w, c || 'ok'); };
+const donePill = res => { const [cls, words] = outcome(res); pill(words, cls); };
 function logRow(f) {
   const [c, w] = f.res ? outcome(f.res) : f.lost ? ['bad', '✗ lost'] : ['', f.state], snr = f.res && !f.res.sound ? frameSnr(f.res) : null;
   return `<tr data-i="${f.id}" aria-selected="${f === shown}"${f.lost ? ` title="${f.lost}"` : ''}><td>${f.time.toTimeString().slice(0, 8)}</td><td>${frameWhat(f.hdr)}${snr === null ? '' : ` · SNR ${Math.round(snr) + 0} dB${f.res.sc && f.res.sc.snrEq !== undefined ? ` (${Math.round(f.res.sc.snrEq) + 0} dB after the equalizer)` : ''}`}</td><td class="r-${c}">${w}</td></tr>`;
@@ -4580,7 +4702,8 @@ function display(f) {   // a received frame, in full
 }
 $('logBody').onclick = e => { const tr = e.target.closest('tr'), f = tr && frames.find(q => q.id === +tr.dataset.i); if (f && f.res) { display(f); donePill(f.res); } };
 function makeRx() {
-  const find = h => frames.find(f => f.hdr === h);
+  const capture = mic.id;
+  const byHeader = new WeakMap();
   rxT0 = null;   // v7: set by the first samples
   rx = new Receiver(actx.sampleRate, { ...cfg }, {
     onState: (s, info) => {
@@ -4588,34 +4711,36 @@ function makeRx() {
       if (s === 'detected') specDet = info.t;   // v7: where the frame starts, in seconds of the receiver's samples
       if (s === 'header' && rxT0 !== null && specDet !== null) specMarks.push({ t: rxT0 + specDet, label: info.type === 'sound' ? 'room sounding' : info.type === 'jpeg' ? 'picture file' : info.type });
       if (s === 'header') {   // a new frame: a row of its own, and the display follows it
-        const f = { id: ++frameId, time: new Date(), hdr: info, state: info.type === 'sound' ? 'measuring…' : 'receiving…', res: null };
+        const f = { id: ++frameId, capture, time: new Date(), hdr: info, state: info.type === 'sound' ? 'measuring…' : 'receiving…', res: null };
+        byHeader.set(info, f);
         frames.unshift(f); frames.splice(LOG_MAX);
         live = shown = f; lastRec = null; clearOut(); showLog();
         fpill(f, info.type === 'sound' ? `Measuring the room · ${info.periods} × ${(((1 << info.order) - 1) / FS_TX).toFixed(2)} s`
           : (info.type === 'text' ? `Receiving ${info.len} characters` : info.type === 'jpeg' ? `Receiving a picture file of ${info.len} bytes` : `Receiving ${info.w}×${info.h} image`) + (info.sc ? ` · single carrier ${OFDM_NAMES[info.map]}` : info.ofdm ? ` · OFDM ${OFDM_NAMES[info.map]}${info.ofdm[0] === 'w' ? ', wide band' : ''}, ${info.ofdm.replace(/^w/, '')} guard` : ` · ${info.rate} bit/s` + (info.M === 4 ? ' · 4 tones' : '') + (info.tones === 'hop' ? (info.rate === RATE_WIDE ? ' · whole band' : ' · hopping') : '')) + (info.code === 'none' ? '' : ` · ${CODE_INFO[info.code].short}, decoded at the end`));
       }
       if (s === 'decoding') {   // v5: the single carrier is decoded in the background, listening goes on
-        const f = find(info); if (live === f) live = null;
+        const f = byHeader.get(info); if (live === f) live = null;
         if (f) { f.state = 'decoding…'; showLog(); fpill(f, `Decoding · ${detName(rx.cfg.det)} (${rx.cfg.effort || 'fast'}) and the ${LDPC_R[info.code] ? 'LDPC' : POLAR_R[info.code] ? 'polar' : 'turbo'} decoder`); }
       }
       if (s === 'lost') {
-        const f = /^single carrier/.test(info.reason) ? frames.filter(q => !q.res && !q.lost && (q.state || '').startsWith('decoding')).pop() : null;
+        const f = /^single carrier/.test(info.reason) ? frames.filter(q => q.capture === capture && !q.res && !q.lost && (q.state || '').startsWith('decoding')).pop() : null;
         if (f) { f.lost = info.reason; showLog(); fpill(f, 'Decoding failed', 'bad'); teleReport(f); }
+        else if (capture !== mic?.id) return;
         else if (shown && !shown.res && !shown.lost && shown.pill) pill(...shown.pill);
-        else pill('Listening', 'live');
+        else if (mic?.listening) pill('Listening', 'live');
       }
     },
     scDecode,
     onProgress: p => {
-      const f = find(p.hdr) || live; if (!f) return;
+      const f = byHeader.get(p.hdr); if (!f) return;
       if (p.pass) { f.state = `decoding, pass ${p.pass.pass}`; showLog(); fpill(f, `Decoding · ${p.pass.quick ? 'first pass without the long echo' : `${p.pass.relearn ? 'second try, ' : ''}pass ${p.pass.pass} of at most ${p.pass.npass}`}`); return; }
       if (f !== shown) return;
       if (p.sound || p.ofdm || p.sc) { $('rxProg').style.width = (100 * p.frac) + '%'; return; }
       $('rxProg').style.width = (100 * p.done / p.hdr.nc) + '%'; if (p.bits) showOut(p.hdr, p.bits, p.done);
     },
     onDone: res => {
-      let f = find(res.hdr) || live;
-      if (!f) { f = { id: ++frameId, time: new Date(), hdr: res.hdr }; frames.unshift(f); frames.splice(LOG_MAX); }
+      const f = byHeader.get(res.hdr);
+      if (!f) return;
       f.res = res; if (live === f) live = null;
       if (!res.sound && res.hdr.type === 'jpeg') Object.assign(res, jpegUnpack(res.bits, res.hdr.len));   // v7.1: the file as it arrived, and whether its CRC-32 holds
       checkDemo(res);
@@ -4623,11 +4748,15 @@ function makeRx() {
         res.cwPending = true;
         scDecode({ kind: 'cw', code: res.hdr.code, n0: res.hdr.n0, llr: Float64Array.from(res.llr), key: res.key, bits: res.bits }).then(ok => { res.codeword = ok; }, () => {}).then(() => {
           res.cwPending = false; teleReport(f);
-          if (shown === f) { display(f); if (!live) donePill(res); } else showLog();
+          if (shown === f) { display(f); if (!live && capture === mic?.id) donePill(res); } else showLog();
         });
       }
       if (!res.cwPending) teleReport(f);
-      if (f === shown) { display(f); donePill(res); setTimeout(() => { if (stream && !live && shown === f) pill('Listening', 'live'); }, 4000); }
+      if (f === shown) {
+        display(f);
+        if (capture === mic?.id) donePill(res);
+        setTimeout(() => { if (capture === mic?.id && mic.listening && !live && shown === f) pill('Listening', 'live'); }, 4000);
+      }
       else showLog();
     }
   });
@@ -4708,7 +4837,7 @@ function teleShowTx() {
   let t = k ? `Class: ${k.listening} listening (${k.phones} on phones), ${k.open} pages open` : 'Connecting to the class server…';
   if (k && m) {
     const v = m.snrs, med = v.length ? v[Math.floor(v.length / 2)] : null;
-    t += ` · last frame sent: ${m.n} of ${m.listening} reported` + (m.n ? `, ${m.ok} ✓ ${m.bad} ✗` : '') + (med !== null ? `, SNR median ${Math.round(med)} dB (${Math.round(v[0])} to ${Math.round(v[v.length - 1])})` : '');
+    t += ` · last frame sent: ${m.n} of ${m.listening} reported` + (m.n ? `, ${m.ok} passed checks, ${m.bad} failed, ${m.n - m.ok - m.bad} unverified` : '') + (med !== null ? `, SNR median ${Math.round(med)} dB (${Math.round(v[0])} to ${Math.round(v[v.length - 1])})` : '');
   }
   $('teleTx').textContent = t; $('teleTx').classList.remove('hidden');
 }
@@ -4986,51 +5115,135 @@ const TAP = `class Tap extends AudioWorkletProcessor {
   }
 }
 registerProcessor('tap', Tap);`;
-let tapCtx = null;
+let tapModule;
 async function tapNode(a) {
   try {
     if (!a.audioWorklet || typeof AudioWorkletNode === 'undefined') return null;
-    if (tapCtx !== a) { const u = URL.createObjectURL(new Blob([TAP], { type: 'text/javascript' })); await a.audioWorklet.addModule(u); URL.revokeObjectURL(u); tapCtx = a; }
+    // Listen again can run while the shared context is still registering its processor.
+    if (!tapModule) {
+      const url = URL.createObjectURL(new Blob([TAP], { type: 'text/javascript' }));
+      tapModule = a.audioWorklet.addModule(url).catch(err => { tapModule = null; throw err; })
+        .finally(() => URL.revokeObjectURL(url));
+    }
+    await tapModule;
     return new AudioWorkletNode(a, 'tap', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
   } catch (e) { return null; }
 }
 
+const MIC_INTERRUPTED = 'The microphone became unavailable. Press Listen again to reconnect.';
+let captureId = 0;
+function stopMic(session, status = 'Idle', reason = '') {
+  if (mic !== session) return;
+  mic = null;
+  clearInterval(session.watch);
+  cancelAnimationFrame(session.raf);
+  if (session.stream) for (const track of session.stream.getTracks()) {
+    track.onmute = track.onended = null;
+    track.stop();
+  }
+  if (session.proc?.port) session.proc.port.onmessage = null;
+  else if (session.proc) session.proc.onaudioprocess = null;
+  for (const node of [session.src, session.analyser, session.proc, session.gain]) node?.disconnect();
+  if (session.listening) Tele.listening(false);
+  if (live) { live.lost = 'Capture stopped before the frame was complete'; live = null; showLog(); }
+  rx = null;
+  $('micLevel').textContent = '';
+  $('rxFs').textContent = '';
+  $('listenBtn').disabled = false;
+  $('listenBtn').textContent = reason ? '● Listen again' : '● Start listening';
+  $('micReason').textContent = reason;
+  $('micHelp').classList.toggle('hidden', !reason);
+  pill(status, reason ? 'warn' : '');
+}
+function checkMic(session) {
+  if (mic !== session || !session.proc || document.hidden) return;
+  const now = performance.now();
+  if (session.track.readyState !== 'ended' && now < routeGraceUntil && (session.track.muted || actx.state === 'interrupted')) return;
+  if (session.track.readyState === 'ended' || session.track.muted || actx.state === 'interrupted') {
+    stopMic(session, 'Microphone interrupted', MIC_INTERRUPTED);
+  } else if (now - session.lastBlock > 5000) {
+    stopMic(session, 'No microphone signal', 'The browser stopped delivering audio. Press Listen again to reconnect.');
+  } else if (!session.quiet && now - session.lastSound > 5000) {
+    // A working input can deliver digital silence between broadcasts. Keep it armed.
+    session.quiet = true;
+    if (session.listening) { session.listening = false; Tele.listening(false); }
+    pill('Silent input');
+    $('micReason').textContent = 'The microphone is delivering silence. Reception will resume when sound arrives.';
+    $('micHelp').classList.remove('hidden');
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !mic?.proc) return;
+  mic.lastBlock = mic.lastSound = performance.now();   // allow fresh audio blocks to arrive after the screen wakes
+  if (actx.state === 'suspended') actx.resume().catch(() => {});
+  checkMic(mic);
+});
 $('listenBtn').onclick = async () => {
+  if (mic) { if (!$('listenBtn').disabled) stopMic(mic); return; }
+  const session = mic = { id: ++captureId };
+  $('listenBtn').disabled = true;
+  $('listenBtn').textContent = 'Opening microphone…';
   $('micHelp').classList.add('hidden');
-  const a = ctx();
-  if (stream) { stream.getTracks().forEach(t => t.stop()); proc.disconnect(); if (proc.port) proc.port.onmessage = null; stream = null; $('listenBtn').textContent = '● Start listening'; pill('Idle'); Tele.listening(false); return; }
+  pill('Opening microphone');
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    const a = ctx();
+    session.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    session.track = session.stream.getAudioTracks()[0];
+    if (!session.track) throw new DOMException('No audio track', 'NotFoundError');
+    const interrupted = () => stopMic(session, 'Microphone interrupted', MIC_INTERRUPTED);
+    session.track.onended = interrupted;
+    session.track.onmute = () => {
+      if (session !== mic) return;
+      if (performance.now() >= routeGraceUntil) { interrupted(); return; }
+      // Switching the hardware output can briefly mute a live input. The watchdog handles a persistent mute.
+      if (session.listening) { session.listening = false; Tele.listening(false); }
+      pill('Microphone paused while switching output');
+    };
+    refreshSpeakers();   // microphone permission can expose the handset speaker and earpiece
+    if (session.track.readyState === 'ended') { interrupted(); return; }
+    session.src = a.createMediaStreamSource(session.stream);
+    session.analyser = a.createAnalyser();
+    Object.assign(session.analyser, { fftSize: 2048, smoothingTimeConstant: 0, minDecibels: -100, maxDecibels: -25 });
+    session.gain = a.createGain(); session.gain.gain.value = 0;
+    session.src.connect(session.analyser); session.gain.connect(a.destination);
+    const tap = await tapNode(a);
+    if (session !== mic) { tap?.disconnect(); return; }
+    session.proc = tap || a.createScriptProcessor(4096, 1, 1);
+    makeRx(); clearOut(); shown = live = null; showLog();
+    session.lastBlock = session.lastSound = performance.now();
+    const input = samples => {
+      if (session !== mic || session.track.muted) return;
+      session.lastBlock = performance.now();
+      if (samples.some(v => v !== 0)) {
+        session.lastSound = session.lastBlock;
+        if (session.quiet) { session.quiet = false; $('micHelp').classList.add('hidden'); }
+        if (!session.listening) {
+          session.listening = true; Tele.listening(true); pill('Listening', 'live');
+        }
+      }
+      rxIn(samples);
+    };
+    if (tap) tap.port.onmessage = e => input(e.data);
+    else session.proc.onaudioprocess = e => input(e.inputBuffer.getChannelData(0));
+    session.src.connect(session.proc); session.proc.connect(session.gain);
+    $('listenBtn').disabled = false;
+    $('listenBtn').textContent = '■ Stop listening';
+    pill('Waiting for microphone audio');
+    $('rxFs').textContent = `microphone at ${a.sampleRate} Hz`;
+    const fmax = Math.min(a.sampleRate / 2, 1.5 * TONES.high[1]);
+    $('specAxis').innerHTML = [2, 4, 8, 12, 16, 20].filter(k => 1000 * k < fmax - 500).map(k => `<span style="top:${(100 * (1 - 1000 * k / fmax)).toFixed(1)}%">${k}</span>`).join('');
+    session.watch = setInterval(() => checkMic(session), 1000);
+    draw();
   } catch (e) {
-    pill('No microphone', 'bad');
-    $('rxFs').textContent = '';
     const reasons = {
       NotAllowedError: 'Allow microphone access for this page in your browser settings, then try again.',
       NotFoundError: 'Connect or select a microphone, then try again.',
       NotReadableError: 'The browser could not start the microphone. Check the selected input and try again.'
     };
-    $('micReason').textContent = window.isSecureContext
+    stopMic(session, 'No microphone', window.isSecureContext
       ? reasons[e.name] || 'Check your microphone input and browser permissions, then try again.'
-      : 'Open this page over HTTPS so the browser can request the microphone.';
-    $('micHelp').classList.remove('hidden');
-    return;
+      : 'Open this page over HTTPS so the browser can request the microphone.');
   }
-  const src = a.createMediaStreamSource(stream);
-  analyser = a.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0; analyser.minDecibels = -100; analyser.maxDecibels = -25;
-  const mute = a.createGain(); mute.gain.value = 0;
-  src.connect(analyser); mute.connect(a.destination);
-  makeRx(); clearOut(); shown = live = null; showLog();
-  // v5: the samples come from an AudioWorklet (the audio thread) in blocks of 4096 posted to the page, so a long
-  // decode here (OFDM's takes up to a second) only delays them; a ScriptProcessor (older browsers) loses audio then
-  proc = await tapNode(a);
-  if (proc) proc.port.onmessage = e => rxIn(e.data);
-  else { proc = a.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = e => rxIn(e.inputBuffer.getChannelData(0)); }
-  src.connect(proc); proc.connect(mute);
-  $('listenBtn').textContent = '■ Stop listening'; pill('Listening', 'live'); Tele.listening(true);
-  $('rxFs').textContent = `microphone at ${a.sampleRate} Hz`;
-  { const fmax = Math.min(a.sampleRate / 2, 1.5 * TONES.high[1]);   // v7: the spectrogram's frequency axis
-    $('specAxis').innerHTML = [2, 4, 8, 12, 16, 20].filter(k => 1000 * k < fmax - 500).map(k => `<span style="top:${(100 * (1 - 1000 * k / fmax)).toFixed(1)}%">${k}</span>`).join(''); }
-  draw();
 };
 
 // live plots
@@ -5041,13 +5254,14 @@ const SPEC_S = 5, specMarks = [];
 let specT = 0, rxT0 = null, specDet = null, lvlT = 0;
 const rxIn = b => { if (rxT0 === null) rxT0 = actx.currentTime - b.length / actx.sampleRate; rx.push(b); };
 function draw() {
-  if (!stream) return;
+  if (!mic?.analyser) return;
+  const analyser = mic.analyser;
   if (actx.currentTime - lvlT > 0.25 && analyser.getFloatTimeDomainData) {   // v7: the input level, 4 times a second
     lvlT = actx.currentTime; analyser.getFloatTimeDomainData(tbuf); let e = 0; for (const v of tbuf) e += v * v;
     $('micLevel').textContent = `input level ${(10 * Math.log10(e / tbuf.length + 1e-12)).toFixed(0)} dBFS`;
   }
   const sp = $('spec'), W = Math.round(sp.clientWidth * devicePixelRatio), H = Math.round(sp.clientHeight * devicePixelRatio);
-  if (!W || !H) { requestAnimationFrame(draw); return; }   // v7: not on screen
+  if (!W || !H) { mic.raf = requestAnimationFrame(draw); return; }   // v7: not on screen
   if (sp.width !== W || sp.height !== H) { sp.width = W; sp.height = H; sp._img = false; }
   const g = sp.getContext('2d');
   if (!sp._img) { sp._img = true; g.fillStyle = css('--plot-bg'); g.fillRect(0, 0, W, H); }
@@ -5091,7 +5305,7 @@ function draw() {
   const L6 = rx.corr6.length;
   for (let i = 0; i < L6; i++) { const v = rx.corr6[(rx.c6pos + i) % L6]; const xx = i / (L6 - 1) * CW; i ? c.lineTo(xx, y(v)) : c.moveTo(xx, y(v)); }
   c.stroke();
-  requestAnimationFrame(draw);
+  mic.raf = requestAnimationFrame(draw);
 }
 })();
 </script>
