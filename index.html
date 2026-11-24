@@ -170,6 +170,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
 #textPreview:empty { display:none; }
 #speakerControl { display:inline-flex; align-items:center; flex-wrap:wrap; gap:.45rem; max-width:100%; }
 #speakerOutput { max-width:100%; }
+#speakerSeg button:disabled { opacity:.45; cursor:default; }
 #micHelp { margin:.4rem 0; }
 #txRate dl { margin:0; }
 #txRate dt { font-weight:600; }
@@ -256,9 +257,10 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
   <p class="muted" id="txInfo"></p>
   <div class="row">
     <button class="btn primary" id="sendBtn">▶ Send</button>
-    <label class="muted hidden" id="speakerControl">Speaker output
+    <span class="muted hidden" id="speakerControl"><label for="speakerOutput" id="speakerLbl">Speaker output</label>
       <select class="btn" id="speakerOutput" disabled><option value="">System default</option></select>
-    </label>
+      <span class="seg hidden" id="speakerSeg" role="group" aria-labelledby="speakerLbl"></span>
+    </span>
     <button class="btn" id="wavBtn">Download WAV</button>
   </div>
   <div class="progress"><div id="txProg"></div></div>
@@ -4490,11 +4492,34 @@ const canRoute = typeof HTMLMediaElement !== 'undefined' &&
 const PICK_SPEAKER = ':choose-output:';
 let speakerPlayer = null, speakerId = '', speakerLabel = '', speakerBusy = false;
 let speakerListVersion = 0, routeGraceUntil = 0;
+// Safari, and every browser on an iPhone or iPad, changes the output only while a tap is being handled, and on an iPhone a
+// choice in a list does not count as one (it was refused as "cancelled or denied"). There the outputs are buttons.
+const SPEAKER_TAPS = APPLE, speakerSeg = $('speakerSeg');
+let speakerKey = '';
 
 function speakerControls() {
   if (!canRoute) return;
   speakerSelect.disabled = !!playing || speakerBusy || speakerSelect.options.length < 2;
+  for (const b of speakerSeg.children) {
+    b.disabled = speakerSelect.disabled || b.dataset.gone === '1';
+    b.setAttribute('aria-pressed', String(b.dataset.v === speakerId));
+  }
   $('sendBtn').disabled = !playing && (speakerBusy || !!speakerSelect.selectedOptions[0]?.disabled);
+}
+
+function speakerButtons() {   // the outputs of the list as buttons, made again only when the list changes
+  const opts = [...speakerSelect.options].filter(o => o.value !== PICK_SPEAKER);
+  const key = opts.map(o => [o.value, o.textContent, o.disabled].join('\u0001')).join('\u0002');
+  if (key === speakerKey) return;
+  speakerKey = key;
+  speakerSeg.replaceChildren(...opts.map(o => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.v = o.value;
+    b.textContent = o.textContent === 'Receiver' ? 'Earpiece' : o.textContent;   // the iPhone's name for its earpiece
+    if (o.disabled) b.dataset.gone = '1';
+    return b;
+  }));
 }
 
 async function refreshSpeakers() {
@@ -4522,16 +4547,18 @@ async function refreshSpeakers() {
   if (typeof mediaDevices.selectAudioOutput === 'function') options.push(new Option('Choose another output…', PICK_SPEAKER));
   speakerSelect.replaceChildren(...options);
   speakerSelect.value = speakerId;
+  speakerButtons();
   speakerControls();
 }
 
 if (canRoute) {
   $('speakerControl').classList.remove('hidden');
   if (typeof mediaDevices.selectAudioOutput === 'function') speakerSelect.add(new Option('Choose another output…', PICK_SPEAKER));
+  if (SPEAKER_TAPS) { speakerSelect.classList.add('hidden'); speakerSeg.classList.remove('hidden'); }
+  speakerButtons();
   speakerControls();
-  speakerSelect.onchange = async () => {
-    const choice = speakerSelect.value;
-    const label = speakerSelect.selectedOptions[0].textContent;
+  // Nothing is awaited before setSinkId() (except for "Choose another output…"), so that it still runs in the tap.
+  const chooseSpeaker = async (choice, label) => {
     ++speakerListVersion;   // discard any enumeration started before this selection
     speakerBusy = true;
     speakerControls();
@@ -4548,15 +4575,20 @@ if (canRoute) {
       if (![...speakerSelect.options].some(o => o.value === id)) speakerSelect.add(new Option(speakerLabel, id));
       $('txStatus').textContent = `Selected ${speakerLabel} for the next transmission.`;
     } catch (err) {
-      $('txStatus').textContent = err.name === 'NotAllowedError' || err.name === 'AbortError'
+      $('txStatus').textContent = (err?.name === 'NotAllowedError' || err?.name === 'AbortError'
         ? 'Speaker selection was cancelled or denied. The previous output is selected.'
-        : 'Could not select that speaker. Check the connection or choose another output.';
+        : 'Could not select that speaker. Check the connection or choose another output.') + ` (${err?.name || err})`;
     } finally {
       speakerSelect.value = speakerId;
       speakerBusy = false;
       speakerControls();
       refreshSpeakers();
     }
+  };
+  speakerSelect.onchange = () => chooseSpeaker(speakerSelect.value, speakerSelect.selectedOptions[0].textContent);
+  speakerSeg.onclick = e => {
+    const b = e.target.closest('button');
+    if (b && !b.disabled) chooseSpeaker(b.dataset.v, b.textContent);
   };
   mediaDevices.addEventListener?.('devicechange', refreshSpeakers);
   document.addEventListener('visibilitychange', refreshSpeakers);
