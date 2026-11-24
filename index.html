@@ -4496,6 +4496,30 @@ let speakerListVersion = 0, routeGraceUntil = 0;
 // choice in a list does not count as one (it was refused as "cancelled or denied"). There the outputs are buttons.
 const SPEAKER_TAPS = APPLE, speakerSeg = $('speakerSeg');
 let speakerKey = '';
+// On an iPhone or iPad, Safari applies the chosen output only to sound from a live stream, as in a video call; a sound
+// file played by an <audio> element ignores it (the frames stayed on the earpiece). So there the choice goes to a silent
+// stream from Web Audio, playing in an element of its own. Safari then routes all of the page's sound, frames included,
+// to that output.
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+let routeKeeper = null;
+function keepRoute() {   // in the tap: plays the silent stream (made once) that carries the output choice on an iPhone
+  if (!routeKeeper) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(), dest = ctx.createMediaStreamDestination();
+    const zero = ctx.createConstantSource();   // a stream destination produces samples only while something feeds it
+    zero.offset.value = 0;
+    zero.connect(dest);
+    zero.start();
+    const el = new Audio();
+    el.srcObject = dest.stream;
+    routeKeeper = { ctx, el };
+  }
+  if (routeKeeper.ctx.state !== 'running') routeKeeper.ctx.resume().catch(() => {});
+  routeKeeper.el.play().catch(() => {});
+  return routeKeeper.el;
+}
+document.addEventListener('visibilitychange', () => {   // back on the page: the silent stream plays on
+  if (!document.hidden && routeKeeper) { routeKeeper.ctx.resume().catch(() => {}); routeKeeper.el.play().catch(() => {}); }
+});
 
 function speakerControls() {
   if (!canRoute) return;
@@ -4565,11 +4589,11 @@ if (canRoute) {
     try {
       const device = choice === PICK_SPEAKER ? await mediaDevices.selectAudioOutput() : null;
       const id = device?.deviceId === 'default' ? '' : (device?.deviceId ?? choice);
-      const player = speakerPlayer || new Audio();
+      const player = IOS ? keepRoute() : (speakerPlayer || new Audio());
       routeGraceUntil = performance.now() + 2000;
       await player.setSinkId(id);
       routeGraceUntil = performance.now() + 2000;
-      speakerPlayer = id ? player : null;
+      speakerPlayer = id && !IOS ? player : null;   // on an iPhone the frames play as usual and follow the new route
       speakerId = id;
       speakerLabel = id ? (device?.label || (device ? 'Selected output' : label)) : 'System default';
       if (![...speakerSelect.options].some(o => o.value === id)) speakerSelect.add(new Option(speakerLabel, id));
