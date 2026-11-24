@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
 <!-- Anonymous visit counter (Bit2Noisy telemetry v3, chat 1.2.9): no cookie, nothing stored on the phone; not counted with Do Not Track, Global Privacy Control or ?tele=off. -->
 <script defer src="https://bit2noisy-telemetry.sheng-yang-e9e.workers.dev/v.js" data-site="chat"></script>
-<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page f71f55cd). -->
+<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page ee220eda). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
 :root{
@@ -322,6 +322,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <div class="hint">Phones with another code ignore your messages: two groups can share a room.</div>
     <label class="check"><input type="checkbox" id="physChk"> <span>Show the physics under each message: mode, SNR, seconds of sound</span></label>
     <label class="check"><input type="checkbox" id="rcptChk"> <span>Receipts by sound: answer each message with a short chirp, so its sender sees ✓✓ and how well it arrived (off by default)</span></label>
+    <div class="hidden" id="volRow"><label>Loudspeaker volume</label><button class="secondary" type="button" id="volBtn">🔊 Play the test sound</button><div class="hint">On an iPhone, the volume buttons set the loudspeaker only while it plays (while the chat listens, they set the call volume). Play the test sound and set the volume with the buttons: messages play at that volume.</div></div>
     <button class="primary" id="setDone">Done</button>
     <p class="small" id="setVer"></p>
   </div></div>
@@ -4440,6 +4441,8 @@ const DET = params.get('det') === 'smap' ? 'smap' : 'lmmse';   // the single car
 //          listening is turned off
 // With either, a line in the chat says what the microphone and the session report.
 const EC_ON = params.get('ec') === '1', AS_ON = params.get('as') === '1';
+// 1.3: an iPhone or iPad holds the loudspeaker for each sound of the chat (see holdSpeaker); not with ?ec=1
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1), HOLD = IOS && !EC_ON;
 function setSession(t) { try { if (AS_ON && navigator.audioSession) navigator.audioSession.type = t; } catch (e) {} }
 function testLine() {
   if (!EC_ON && !AS_ON) return;
@@ -4456,7 +4459,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.2.9', CHAT_DATE = '16 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.3.0', CHAT_DATE = '24 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
@@ -4553,6 +4556,10 @@ function unlockOutput() {
   try { outCtx = new (window.AudioContext || window.webkitAudioContext)(); outCtx.resume().catch(() => {}); } catch (e) { outCtx = null; }
   outEl = new Audio(); outEl.setAttribute('playsinline', ''); outEl.src = URL.createObjectURL(wavBlob(new Float32Array(2400), FS_TX));
   try { const r = outEl.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  if (HOLD) {   // 1.3: the voice player too, as it starts a moment after its tap (the switch to the loudspeaker)
+    vAudio = new Audio(); vAudio.setAttribute('playsinline', ''); vAudio.src = URL.createObjectURL(wavBlob(new Float32Array(2400), FS_TX));
+    try { const r = vAudio.play(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  }
 }
 // 1.2.5: the first frame after a pause could go unheard. An output silent for a while may be asleep (a browser stops a
 // silent Web Audio output; a laptop's or a Bluetooth speaker powers down) and wake only when sound comes, which can take
@@ -4564,7 +4571,7 @@ let spkWoken = 0, spkUrl = null, spkSrc = null;
 const spkNoise = () => { const x = new Float32Array(Math.round(SPK_WAKE_S * FS_TX)); for (let i = 0; i < x.length; i++) x[i] = 1.7e-4 * (2 * Math.random() - 1); return x; };   // rms 1e-4
 function wakeSpeaker() {
   const now = Date.now();
-  if ((!outEl && !outCtx) || playingNow || rec || vNow || now - spkWoken < 1000 * (SPK_WAKE_S - 0.5)) return;
+  if ((!outEl && !outCtx) || playingNow || rec || vNow || volTest || now - spkWoken < 1000 * (SPK_WAKE_S - 0.5)) return;
   spkWoken = now;
   try {
     if (OUT_WAYS[0] === 'element' && outEl) {
@@ -4587,7 +4594,7 @@ for (const ev of ['pointerdown', 'keydown', 'focusin', 'input']) document.addEve
 const PAD = Math.round(0.2 * FS_TX), LEAD = params.has('lead') ? Math.max(0, Math.min(0.2, +params.get('lead') || 0)) : null;
 const PADS = LEAD === null ? (OUT_WAYS[0] === 'element' ? 0.4 : 0.08) : LEAD + 0.05;   // s of silence played around a frame
 const trim = (x, way) => LEAD === null && way === 'element' ? x : x.subarray(PAD - Math.round((LEAD === null ? 0.03 : LEAD) * FS_TX), x.length - PAD + Math.round(0.05 * FS_TX));
-function play(x0) {   // -> a promise of true once the frame has played, false if no way played it
+function play(x0, ctl) {   // -> a promise of true once the frame has played, false if no way played it; ctl (1.3): gets halt()
   let x = x0; const dur = x.length / FS_TX;
   return new Promise(done => {
     let k = -1, way = null, url = null, src = null, t0 = 0, fin = false;
@@ -4602,6 +4609,7 @@ function play(x0) {   // -> a promise of true once the frame has played, false i
       // the speaker may still play the end of the buffer (output latency): the room stays ours a little longer
       setTimeout(() => done(ok), 300 + 1000 * ((outCtx && (outCtx.outputLatency || outCtx.baseLatency)) || 0));
     };
+    if (ctl) ctl.halt = () => finish(true);   // 1.3: the volume test can be stopped
     const start = () => {
       if (way === 'element') {
         if (!outEl) { outEl = new Audio(); outEl.setAttribute('playsinline', ''); }
@@ -4698,7 +4706,7 @@ async function tapNode(a) {
     return new AudioWorkletNode(a, 'tap', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
   } catch (e) { return null; }
 }
-async function startMic() {   // -> true if listening
+async function startMic(again = false) {   // -> true if listening; again (1.3): after the loudspeaker, no test line
   try {
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     if (proc) { try { proc.disconnect(); } catch (e) {} if (proc.port) proc.port.onmessage = null; proc = null; }
@@ -4724,7 +4732,7 @@ async function startMic() {   // -> true if listening
   stream.getTracks().forEach(t => { t.onmute = () => { if (stream && stream.getTracks().includes(t)) banner('The phone has taken the microphone away (a call, Siri or another app?): nothing is received until it gives it back.', 'Listen again', retryMic); }; t.onunmute = () => { if ($('bannerTxt').textContent.startsWith('The phone has taken')) banner(''); }; });   // 1.2.8
   micStartAt = performance.now(); micAt = 0; micZeroFrom = 0; meter = null;   // 1.2.8: the watchdog counts from here; the band meter follows the new rate
   banner('');
-  testLine();   // 1.2.7
+  if (!again) testLine();   // 1.2.7
   micCheck();   // 1.2.8
   return true;
 }
@@ -4741,7 +4749,7 @@ async function setListening(on) {   // -> whether listening is now as asked
     const ok = await startMic(); if (ok) sys('Listening again.'); return ok;
   } finally { listenBusy = false; }
 }
-function stopMic() {
+function stopMic(pause = false) {   // pause (1.3): for the loudspeaker; the banner stays
   if (rec) recStop(false);
   if (stream) { stream.getTracks().forEach(t => { t.onended = null; t.stop(); }); stream = null; }
   if (proc) { try { proc.disconnect(); } catch (e) {} if (proc.port) proc.port.onmessage = null; proc = null; }
@@ -4750,9 +4758,67 @@ function stopMic() {
   for (let i = pendings.length - 1; i >= 0; i--) if (!pendings[i].sc) { const [p] = pendings.splice(i, 1); if (p.b) p.b.el.remove(); }   // half heard: gone
   if (actx && actx.state === 'running') actx.suspend().catch(() => {});
   try { spec.getContext('2d').clearRect(0, 0, spec.width, spec.height); } catch (e) {}
-  banner('');
+  if (!pause) banner('');
   setSession('playback');   // 1.2.7 test (?as=1): out of the call state, if Safari kept it
 }
+// 1.3 (Sheng, 2026-11-24): an iPhone or iPad plays through its earpiece, much quieter, while the page listens without
+// echo cancellation (WebKit bug 326286), and it can stay so after the microphone is released. On the Bit2Noisy page,
+// pausing listening and setting the audio session to playback brought the loudspeaker back. So here too each sound of
+// the chat (a message, a receipt, a voice message, the volume test) holds the loudspeaker: listening pauses (the status
+// button waits), the session goes to playback, the sound starts after 0.4 s of silence (the switch), and 0.3 s after the
+// last sound the session is put back and listening resumes. Meanwhile this phone hears nothing, its own message included
+// (so no volume check after a send). Not with ?ec=1: echo cancellation keeps the loudspeaker.
+let hold = null;   // {n: sounds playing, resume: listen again after, type: the session's type before, timer, resuming}
+async function holdSpeaker() {   // -> seconds of silence the sound should start with, 0 if none
+  if (!HOLD) return 0;
+  while (hold && hold.resuming) await hold.resuming;   // listening is starting again: let it, then pause it
+  if (hold) { hold.n++; clearTimeout(hold.timer); hold.timer = 0; return 0; }
+  const s = navigator.audioSession;
+  hold = { n: 1, resume: !!stream, type: s ? s.type : '', timer: 0, resuming: null };
+  listenBusy = true;
+  if (stream) stopMic(true);
+  try { if (s) s.type = 'playback'; } catch (e) {}
+  return 0.4;
+}
+function releaseSpeaker() {   // a sound ended
+  if (!hold || --hold.n > 0) return;
+  const h = hold;
+  h.timer = setTimeout(() => {   // the session as it was, then listening again
+    h.timer = 0;
+    h.resuming = (async () => {
+      try { if (navigator.audioSession) navigator.audioSession.type = h.type || 'auto'; } catch (e) {}
+      if (h.resume && !stream) await startMic(true);
+    })().catch(() => {}).finally(() => { if (hold === h) hold = null; listenBusy = false; });
+  }, 300);
+}
+function afterHold(fn) { const t0 = Date.now(), w = setInterval(() => { if (!hold) { clearInterval(w); fn(); } else if (Date.now() - t0 > 30000) clearInterval(w); }, 100); }
+// 1.3: the volume test. An iPhone's volume buttons set the loudspeaker only while it plays (while the chat listens, they
+// set the call volume). The test plays 5 s of tones in the frames' band, as loud as a frame's tones, on the loudspeaker;
+// the volume set meanwhile is kept for the messages. A second tap stops it, and so does a message to play.
+let volTest = null;
+function volSound(lead) {   // lead: seconds of silence first; then 0.2 s, 20 tones of 0.18 s every 0.25 s, 0.2 s
+  const T = Math.round(0.25 * FS_TX), L = Math.round(0.18 * FS_TX), R = Math.round(0.01 * FS_TX), F = [3200, 4000, 4800, 4000];
+  const x = new Float32Array(Math.round((lead + 0.4) * FS_TX) + 20 * T), o0 = Math.round((lead + 0.2) * FS_TX);
+  for (let k = 0; k < 20; k++) {
+    const w = 2 * Math.PI * F[k % F.length] / FS_TX, o = o0 + k * T;
+    for (let i = 0; i < L; i++) x[o + i] = 0.9 * Math.min(1, i / R, (L - 1 - i) / R) * Math.sin(w * i);
+  }
+  return x;
+}
+async function volumeTest() {
+  if (volTest) { volTest.stop(); return; }
+  if (playingNow || rec) return;
+  vStop();
+  const t = volTest = { stop() { t.stopped = true; if (t.halt) t.halt(); } };
+  $('volBtn').textContent = '■ Stop the test sound';
+  const lead = await holdSpeaker();
+  if (!t.stopped) await play(volSound(lead), t);
+  if (volTest === t) volTest = null;
+  $('volBtn').textContent = '🔊 Play the test sound';
+  releaseSpeaker();
+}
+if (HOLD) $('volRow').classList.remove('hidden');
+$('volBtn').onclick = () => { volumeTest(); };
 $('pill').onclick = () => { if ($('join').classList.contains('hidden')) setListening(!stream); };
 
 // single-carrier frames are decoded in a worker (a copy of the modem core), so that listening goes on meanwhile
@@ -5049,10 +5115,14 @@ function physMine(it) {   // the physics line of a message of mine
   setPhys(it.b, s);
 }
 async function transmit(frame) {   // play a frame now -> whether it played
-  const x = modulate(frame);
+  let x = modulate(frame);
   playingNow = true; selfUntil = Infinity; lastOwn = frame;
+  const lead = await holdSpeaker();   // 1.3: on an iPhone, the loudspeaker (listening pauses); a volume test gives way
+  if (volTest) volTest.stop();
+  if (lead) { const y = new Float32Array(x.length + Math.round(lead * FS_TX)); y.set(x, y.length - x.length); x = y; }
   const t0 = performance.now(), ok = await play(x);
   lastPlay = { t0, t1: performance.now() };   // 1.2.8: when my sound played, for the volume check
+  releaseSpeaker();
   playingNow = false; selfUntil = Date.now() + 1500; ownTail = Date.now() + 250; quietUntil = Date.now() + 100;
   return ok;
 }
@@ -5061,7 +5131,7 @@ async function playItem(it) {
   const ok = await transmit(it.frame);
   it.played = lastMine = Date.now(); setTick(it, ok ? 'sent' : 'fail'); it.lv = lastPlay;
   if (ok && !busyRoom()) openWin(it);
-  if (ok && stream && !EC_ON) setTimeout(() => { if (it.own === undefined && stream) volumeCheck(false, it.lv); }, 2000 * it.dur + 6000);   // 1.2.7: not with echo cancellation
+  if (ok && stream && !EC_ON && !HOLD) setTimeout(() => { if (it.own === undefined && stream) volumeCheck(false, it.lv); }, 2000 * it.dur + 6000);   // 1.2.7: not with echo cancellation; 1.3: nor when listening pauses
   if (!ok) banner('The browser played no sound. Check the volume and the output device, then send again.');
 }
 async function playReceipt(r) {
@@ -5324,6 +5394,7 @@ let rec = null;   // {chunks, n, fs, acc, k, lo, hi}
 function heard(d) { micNote(d); if (rec) recAdd(d); rx.push(d); }
 function recStart() {
   if (rec) return;
+  if (hold) { vStop(); if (volTest) volTest.stop(); afterHold(recStart); return; }   // 1.3: the loudspeaker gives the microphone back first
   if (!stream && !listenBusy && $('join').classList.contains('hidden')) { setListening(true).then(ok => { if (ok) recStart(); }); return; }   // 1.2.6: listening on again
   if (!stream || !actx) { sys('Voice messages need the microphone: allow it, then try again.'); return; }
   vStop();
@@ -5410,8 +5481,17 @@ function vPlay(vm, at) {
   const a = vAudio; a.onended = () => { if (vNow === vm) vStop(true); };
   a.src = vm.url;
   if (at > 0) a.addEventListener('loadedmetadata', () => { try { a.currentTime = at; } catch (e) {} }, { once: true });
-  let r; try { r = a.play(); } catch (e) { r = Promise.reject(e); }
-  if (r && r.catch) r.catch(() => { if (vNow === vm) vStop(); });
+  const go = () => {
+    if (vNow !== vm) return;
+    let r; try { r = a.play(); } catch (e) { r = Promise.reject(e); }
+    if (r && r.catch) r.catch(() => { if (vNow === vm) vStop(); });
+  };
+  if (volTest) volTest.stop();
+  if (!HOLD) go();
+  else holdSpeaker().then(lead => {   // 1.3: on an iPhone, the loudspeaker first (listening pauses)
+    if (vNow !== vm) { releaseSpeaker(); return; }
+    vm.held = true; if (lead) vm.timer = setTimeout(go, 1000 * lead); else go();
+  });
   vIcon(vm, true); cancelAnimationFrame(vRaf); vRaf = requestAnimationFrame(vTick);
 }
 function vTick() {
@@ -5423,6 +5503,7 @@ function vTick() {
 }
 function vStop(ended = false) {
   const vm = vNow; if (!vm) return; vNow = null;
+  clearTimeout(vm.timer); if (vm.held) { vm.held = false; releaseSpeaker(); }   // 1.3
   vAudio.onended = null; vm.pos = ended ? 0 : vAudio.currentTime || 0; vAudio.pause();
   vIcon(vm, false); vm.d.textContent = vm.pos ? mmss(vm.pos) : vLen(vm.dur);
   if (ended) [...vm.wave.children].forEach(i => i.classList.remove('on'));
@@ -5445,6 +5526,7 @@ $('joinBtn').onclick = async () => {
   $('join').classList.add('hidden');
   const ok = await startMic();
   sys(ok ? `You are ${myNick()}. Everyone in the room with this page open reads what you send.` : `You are ${myNick()}.`);
+  if (HOLD) sys('🔊 On this phone, listening pauses while the chat plays a sound, so that it comes out of the loudspeaker. To set its volume: Settings, then the test sound.');   // 1.3
   wake();
 };
 $('nickIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('joinBtn').click(); });
@@ -5482,13 +5564,15 @@ $('prev').addEventListener('click', e => { if (e.target === $('prev')) closeShee
 setInterval(() => {
   let t = 'Not listening', c = 'off';
   if (playingNow) { t = 'Sending'; c = 'send'; }
+  else if (volTest) { t = 'Volume test'; c = 'send'; }   // 1.3
+  else if (vNow && hold) { t = 'Playing'; c = 'send'; }   // 1.3: a voice message on an iPhone's loudspeaker, listening paused
   else if (rec) { t = 'Recording'; c = 'send'; }
   else if (rx && rx.state !== 'search') { t = 'Receiving'; c = 'hear'; }
   else if (decoding > 0) { t = 'Decoding'; c = 'decode'; }
   else if (queue.length) { t = waitTxt || 'Waiting to send'; c = 'wait'; }
-  else if (stream) { t = 'Listening'; c = 'listen'; }
+  else if (stream || (hold && hold.resume)) { t = 'Listening'; c = 'listen'; }   // 1.3: also while a sound holds the loudspeaker
   const P = $('pill'); if (P.textContent !== t) P.textContent = t; $('status').dataset.state = c;
-  const on = String(!!stream); if (P.getAttribute('aria-pressed') !== on) { P.setAttribute('aria-pressed', on); P.title = stream ? 'Stop listening: the microphone turns off' : 'Listen: the microphone turns on'; }   // 1.2.6
+  const lis = !!stream || !!(hold && hold.resume), on = String(lis); if (P.getAttribute('aria-pressed') !== on) { P.setAttribute('aria-pressed', on); P.title = lis ? 'Stop listening: the microphone turns off' : 'Listen: the microphone turns on'; }   // 1.2.6
 }, 200);
 // the live spectrogram beside it: what the microphone hears above the room's own noise, 0.5 to 16 kHz (log scale, low at
 // the bottom), the last 2.5 s or so. Each row follows its noise floor (quickly down, slowly up), so a frame lights up and silence stays dark.

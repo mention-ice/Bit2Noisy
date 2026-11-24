@@ -257,6 +257,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
   <p class="muted" id="txInfo"></p>
   <div class="row">
     <button class="btn primary" id="sendBtn">▶ Send</button>
+    <button class="btn hidden" id="volBtn" title="Plays a test sound on the loudspeaker, so that its volume can be set">🔊 Volume</button>
     <span class="muted hidden" id="speakerControl"><label for="speakerOutput" id="speakerLbl">Speaker output</label>
       <select class="btn" id="speakerOutput" disabled><option value="">System default</option></select>
       <span class="seg hidden" id="speakerSeg" role="group" aria-labelledby="speakerLbl"></span>
@@ -4598,23 +4599,74 @@ if (canRoute) {
   refreshSpeakers();
 }
 
+// An iPhone or iPad plays through its earpiece, much more quietly, while the page captures the microphone without echo
+// cancellation (WebKit bug 326286), and it can stay so after the microphone stops. So there each sound of the page (a
+// frame, the volume test) holds the loudspeaker: listening pauses, the audio session is set to playback, and 0.3 s after
+// the last sound the session is put back and listening resumes. The Listen button waits meanwhile.
+let spk = null;   // the loudspeaker held: {n: sounds playing, resume: listen again after, type: the session's type before, timer}
+function holdSpeaker(why) {   // -> seconds of silence the sound should start with (the switch to the loudspeaker), 0 if none
+  if (!IOS) return 0;
+  if (spk) { spk.n++; clearTimeout(spk.timer); return 0; }
+  const s = navigator.audioSession;
+  spk = { n: 1, resume: !!mic, type: s ? s.type : '', timer: 0 };
+  if (mic) stopMic(mic, why);
+  $('listenBtn').disabled = true; if (spk.resume) $('listenBtn').textContent = why + '…';   // it comes back by itself
+  try { if (s) s.type = 'playback'; } catch (e) {}
+  return 0.4;
+}
+function releaseSpeaker() {   // a sound of the page ended
+  if (!spk || --spk.n > 0) return;
+  spk.timer = setTimeout(() => {   // the audio session as it was, then listening again
+    const h = spk; spk = null;
+    try { if (navigator.audioSession) navigator.audioSession.type = h.type || 'auto'; } catch (e) {}
+    $('listenBtn').disabled = false;
+    if (h.resume && !mic) $('listenBtn').onclick();
+  }, 300);
+}
+// An iPhone's volume buttons set the loudspeaker's volume only while it plays (while the page listens, they set the call
+// volume). So there the Volume button plays a test sound on the loudspeaker for 5 s, and the volume set meanwhile is kept
+// for the frames: tones in the frames' band, as loud as a frame's tones. A second tap stops it; Send stops it too.
+let volTest = null;
+function volSound(lead) {   // lead: seconds of silence first; then 0.2 s, 20 tones of 0.18 s every 0.25 s, 0.2 s
+  const T = Math.round(0.25 * FS_TX), L = Math.round(0.18 * FS_TX), R = Math.round(0.01 * FS_TX), F = [3200, 4000, 4800, 4000];
+  const x = new Float32Array(Math.round((lead + 0.4) * FS_TX) + 20 * T), o0 = Math.round((lead + 0.2) * FS_TX);
+  for (let k = 0; k < 20; k++) {
+    const w = 2 * Math.PI * F[k % F.length] / FS_TX, o = o0 + k * T;
+    for (let i = 0; i < L; i++) x[o + i] = 0.9 * Math.min(1, i / R, (L - 1 - i) / R) * Math.sin(w * i);
+  }
+  return x;
+}
+if (IOS) $('volBtn').classList.remove('hidden');
+$('volBtn').onclick = () => {
+  if (volTest) { volTest.stop(); return; }
+  if (playing) return;
+  const lead = holdSpeaker('Paused during the volume test'), el = new Audio(), url = URL.createObjectURL(wavBlob(volSound(lead), FS_TX));
+  const t = volTest = { stop: (msg = 'Volume test ended.') => {
+    if (volTest !== t) return;
+    volTest = null; el.onended = el.onerror = null; el.pause(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $('volBtn').textContent = '🔊 Volume'; $('txStatus').textContent = msg;
+    releaseSpeaker();
+  } };
+  el.setAttribute('playsinline', ''); el.onended = () => t.stop(); el.onerror = () => t.stop('The test sound could not play.');
+  el.src = url;
+  let r; try { r = el.play(); } catch (e) { r = Promise.reject(e); }
+  if (r && r.catch) r.catch(() => t.stop('The test sound could not play.'));
+  $('volBtn').textContent = '■ Stop the test';
+  $('txStatus').textContent = 'Test sound on the loudspeaker: set the volume now with the buttons on the side. The frames play at that volume.';
+};
+
 $('sendBtn').onclick = () => {
   if (playing) { playing.stop(); return; }
-  // An iPhone plays through its earpiece, much more quietly, while the page captures the microphone without echo
-  // cancellation (WebKit bug 326286). So there listening pauses while a frame plays, the audio session is set to
-  // playback (the loudspeaker), and listening resumes after the frame.
-  const pauseMic = IOS && !!mic, audioSess = navigator.audioSession, audioType = audioSess?.type;
-  if (pauseMic) {
-    stopMic(mic, 'Paused while sending');
-    $('listenBtn').disabled = true; $('listenBtn').textContent = 'Paused while sending…';   // it comes back by itself
-    try { if (audioSess) audioSess.type = 'playback'; } catch (e) {}
-  }
+  // On an iPhone or iPad the frame holds the loudspeaker (see holdSpeaker); a volume test playing gives way to it.
+  const lead = holdSpeaker('Paused while sending'), paused = !!spk?.resume;
+  volTest?.stop('');
   const routedPlayer = speakerPlayer;
   const ways = routedPlayer ? ['element'] : OUT_WAYS;
   const a = routedPlayer ? null : new (window.AudioContext || window.webkitAudioContext)();
   a?.resume().catch(() => {});
-  lastHb = null; let x = modulate(txFrame()); const teleHdr = lastHb && parseHeader(lastHb);
-  if (pauseMic) { const y = new Float32Array(x.length + Math.round(0.4 * FS_TX)); y.set(x, y.length - x.length); x = y; }   // time for the switch
+  lastHb = null; let x; try { x = modulate(txFrame()); } catch (e) { releaseSpeaker(); throw e; }
+  const teleHdr = lastHb && parseHeader(lastHb);
+  if (lead) { const y = new Float32Array(x.length + Math.round(lead * FS_TX)); y.set(x, y.length - x.length); x = y; }   // time for the switch
   const dur = x.length / FS_TX;
   let way = null, el = null, url = null, src = null, t0 = 0;
   const p = { stop: () => finish('Stopped.') }, pos = () => way === 'element' ? el.currentTime : way === 'webaudio' ? a.currentTime - t0 : 0;
@@ -4625,10 +4677,7 @@ $('sendBtn').onclick = () => {
   const finish = msg => {
     if (playing !== p) return;
     playing = null; halt(); speakerControls(); $('sendBtn').textContent = '▶ Send'; $('txProg').style.width = '0'; $('txStatus').textContent = msg;
-    if (pauseMic) setTimeout(() => {   // the audio session as it was, then listening again
-      try { if (audioSess) audioSess.type = audioType || 'auto'; } catch (e) {}
-      if (!mic) $('listenBtn').onclick();
-    }, 300);
+    $('volBtn').disabled = false; releaseSpeaker();
     // The speaker may still be playing the end of the buffer (output latency, up to a few tenths of a second with
     // Bluetooth): closing the context now would cut it off, and the postamble with it. So wait before closing.
     setTimeout(() => {
@@ -4665,8 +4714,8 @@ $('sendBtn').onclick = () => {
       if (pos() < 0.1) next(k); else if (way === 'element') a?.close().catch(() => {});   // the element plays: no need for the AudioContext
     }, 1500);
   };
-  playing = p; speakerControls(); $('sendBtn').textContent = '■ Stop'; $('txStatus').textContent = `Sending ${dur.toFixed(1)} s… turn the volume up.`
-    + (pauseMic ? ' Listening is paused meanwhile, so that the sound comes out of the loudspeaker.' : '');
+  playing = p; speakerControls(); $('volBtn').disabled = true; $('sendBtn').textContent = '■ Stop'; $('txStatus').textContent = `Sending ${dur.toFixed(1)} s… turn the volume up.`
+    + (paused ? ' Listening is paused meanwhile, so that the sound comes out of the loudspeaker.' : '');
   start(0);
   const tick = () => { if (playing !== p) return; $('txProg').style.width = Math.min(100, 100 * pos() / dur) + '%'; requestAnimationFrame(tick); };
   tick();
