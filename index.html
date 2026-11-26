@@ -311,7 +311,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
     </div>
     <div id="scOut" class="hidden" style="margin-top:10px">
       <canvas id="scPlot" class="plot"></canvas>
-      <div class="legend"><span><i style="background:var(--f1)"></i>the room as the symbols see it: |c|² of the taps (first training block), 0 = the first strong arrival</span></div>
+      <div class="legend"><span><i style="background:var(--f1)"></i>the room as the symbols see it: |c|² of the taps (the whole part's room; per block: the first training block's), 0 = the first strong arrival</span></div>
       <canvas id="scConst" class="plot" style="width:min(100%,280px);height:240px;margin-top:10px"></canvas>
       <div class="legend"><span><i style="background:var(--f1)"></i>received points after the linear MMSE equalizer (first data segment, before the decoder helps)</span><span>circles: the points that can be sent</span></div>
     </div>
@@ -337,8 +337,8 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
     <summary>Receiver settings (single carrier)</summary>
     <div class="row"><span class="muted">Detector</span><span class="seg" id="detSeg"><button data-v="smap">Soft SMAP</button><button data-v="lmmse">Linear MMSE</button></span></div>
     <div class="row"><span class="muted">Effort</span><span class="seg" id="effSeg"><button data-v="fast">Fast</button><button data-v="full">Full</button></span></div>
-    <div class="row"><span class="muted">Room estimate</span><span class="seg" id="estSeg"><button data-v="ls">Least squares</button><button data-v="mmse">MMSE</button></span></div>
-    <p class="muted">Everything else comes with each frame, in its header. Soft SMAP is the detector of v5; linear MMSE, the classical equalizer, is there to compare (it needs about 3 to 4 dB more signal at 256QAM). Full effort runs 5 times more SMAP steps and up to 8 passes instead of 4: slower, and at most about 1 dB better. The room estimate: least squares fits every tap of the room freely; MMSE first learns how the room's power fades with the delay, then pulls the weak, late taps towards zero instead of fitting their noise (on our recordings, the same or 1 dB less signal needed). Changing any of them decodes the frame shown again.</p>
+    <div class="row"><span class="muted">Room estimate</span><span class="seg" id="estSeg"><button data-v="whole">Whole part</button><button data-v="ls">Per block</button><button data-v="mmse">Per block, MMSE</button></span></div>
+    <p class="muted">Everything else comes with each frame, in its header. Soft SMAP is the detector of v5; linear MMSE, the classical equalizer, is there to compare (it needs about 3 to 4 dB more signal at 256QAM). Full effort runs 5 times more SMAP steps and up to 8 passes instead of 4: slower, and at most about 1 dB better. The room estimate: Whole part (v7.25) keeps one room for the whole single-carrier part, learned from all the training blocks at once and again from the decoded data after each pass, and lets only its first taps follow time from one training block to the next. Per block is the receiver of v7.24: a room at each training block, blended in between, by least squares (every tap fitted freely) or, on the first block, by MMSE (it first learns how the room's power fades with the delay, then pulls the weak, late taps towards zero instead of fitting their noise). On 188 recorded frames the whole-part estimate decoded 110 and the per-block one 106, 92 against 76 at the first pass. A frame that decodes at once takes about twice as long with it, one that needs every pass the same time. Changing any of them decodes the frame shown again.</p>
   </details>
   <details>
     <summary>Soft output (LLR)</summary>
@@ -361,7 +361,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
 
 <script id="modem-core">
 // ---- modem core (no DOM): shared by the page and the offline tests ----
-const MODEM_VERSION = 'v7.24', MODEM_DATE = '13 November 2026';   // shown at the foot of the pages (v7.24)
+const MODEM_VERSION = 'v7.25', MODEM_DATE = '26 November 2026';   // shown at the foot of the pages (v7.24)
 // © 2026 Sheng Yang. All rights reserved.
 const PILOT = Array.from("0000000111111011111001111010111000011011101001100010101100000101111000111011011001001010010000100111001011010001000110011010101", Number);
 // Longer preambles for longer distances: maximum-length sequences of 255 and 511 bits (the 127-bit one is unchanged)
@@ -2678,9 +2678,18 @@ const SC_REL = 1.0;           // ridge prior of a training block's room: the one
 const SC_T0_FRAC = 0.5, SC_T0_BACK = 0.015;   // timing: the earliest arrival with half the strongest's correlation, up to 15 ms before it
 const SC_T0_KEEP = 64;   // v7.23: ... or as far before it as the first block's room holds, the strongest this many taps inside its end (scT0Back)
 const SC_MAX_PPM = 500;       // clock offset plus a moving phone
-const SC_EST = ['ls', 'mmse'];   // the receiver's estimate of the room on the first block: least squares (default) or MMSE with
-                               // a prior power per tap learned from a least-squares pilot; on Sheng's recordings with noise
-                               // added, MMSE decoded at the same SNR as least squares or 1 dB lower (v5/taps/tap_estimation.md)
+const SC_EST = ['whole', 'ls', 'mmse'];   // the receiver's estimate of the room. 'whole' (v7.25, the default): one room of
+                               // SC_RELEARN_TAPS taps for the whole part plus, at each training block, a correction of its first
+                               // taps (half the medium training's room: 256 on the usual band, 20 ms after the first strong
+                               // arrival), blended between two blocks; one estimator before the first pass and after every pass,
+                               // one detector over the whole part (scWhole). It replaces steps 4 to 6: the rooms per block, the
+                               // long echo (v7.13), the room learned again (v7.2, v7.18) and the segments' own corrections (v7.8).
+                               // With every symbol known, 106 recorded frames: one room for the part leaves a median SNR of
+                               // 21.3 dB, the heads that follow time 2.3 dB more; the tail does not move. 188 frames: 110 decode
+                               // instead of 106, none lost; 92 instead of 76 at the first pass; 1.22 passes instead of 1.62 where both decode.
+                               // 'ls', 'mmse': v7.24's receiver, a room per training block, the first block's by least squares or
+                               // by MMSE with a prior power per tap learned from a least-squares pilot; on Sheng's recordings with
+                               // noise added, MMSE decoded at the same SNR as least squares or 1 dB lower (v5/taps/tap_estimation.md)
 const SC_SMOOTH = 33;         // MMSE: taps over which the pilot's power is averaged into the prior
 let SC_GAP_MAX = 1024;      // v5.1: the time map also looks this many samples farther, for samples the microphone lost or
 const SC_GAP_COH = 1.5;       // repeated between two training blocks; such a jump is a gap if the blocks agree this much
@@ -2966,7 +2975,8 @@ function scAxisLLR(mu, prec, ax) {   // coordinate c seen as mu[c] plus Gaussian
 }
 const scFlat = z => { const n = z.r.length, v = new Float64Array(2 * n); v.set(z.r); v.set(z.i, n); return v; };
 function scLmmse(y, op, N0) {   // linear MMSE estimate (biased) of the symbols and its bias beta (circulant approximation)
-  const x = scCG(v => { const a = op.adj(op.fwd(v)); for (let j = 0; j < op.n; j++) { a.r[j] += N0 * v.r[j]; a.i[j] += N0 * v.i[j]; } return a; }, op.adj(y));
+  const A = v => { const a = op.adj(op.fwd(v)); for (let j = 0; j < op.n; j++) { a.r[j] += N0 * v.r[j]; a.i[j] += N0 * v.i[j]; } return a; };
+  const x = op.precond ? scPCG(A, op.precond(N0), op.adj(y)) : scCG(A, op.adj(y));   // v7.25: the whole part's operator brings a preconditioner (the same solution, about 10 times fewer steps)
   const lam = op.spectrum(); let s = 0; for (const v of lam) s += 1 / (1 + v / N0);
   return { x, beta: 1 - s / lam.length };
 }
@@ -3325,6 +3335,13 @@ function scSplit(y, rho, t, p, u, back = 0) {   // v7.23: back, the first arriva
 //    v7.20 (SC_TAIL_LAZY): first one pass without the long echo and without the room learned again (quick = true);
 //    only if it fails is the frame decoded as above. The long echo takes most of the time of a frame that decodes in one
 //    pass, and such frames (close by) seldom need it.
+// 7. v7.25 (est 'whole', the default): steps 4 to 6 are replaced by scWhole. One room of SC_RELEARN_TAPS taps for the
+//    whole part and, at each training block, a correction of its first taps; a weighted least squares with a prior on
+//    every tap (the room's power along the delay, learned from the frame) fits both, from the training before the first
+//    pass and from the decoder's soft symbols after every pass; one detector over all the data symbols of the part, with
+//    the echo not learned yet and the room's bend between two blocks counted as noise. Steps 1 to 3 are unchanged: the
+//    rows a gap smears weigh nothing in the fit and in the detector, and the other size or place of the least sure gap
+//    is still tried when the frame fails. est 'ls' or 'mmse': v7.24's receiver, steps 4 to 6 as above.
 // v7.11: the gain by which each sample of the matched filter's output is divided: the square root of its power,
 // averaged over SC_LEVEL seconds around it, relative to the median over the part (samples a .. b - 1, the part's own
 // signal; beyond, the nearest whole average is held). All ones if the part is shorter than the average. As sc_level.
@@ -3410,10 +3427,436 @@ function scLevel(vr, vi, a, b, nv) {
   return g;
 }
 
-function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt = SC_NC, effort = 'fast', est = 'ls', swap = null, quick = false) {
+// ---- v7.25: one room for the whole part, one detector (as SCTV, SCWholeOp, sc_est_round, sc_pdp_init, sc_pdp_em,
+// sc_err_noise, sc_bend_noise and sc_whole in audiocomm_v7.py)
+const SC_RHO = [0.01, 0.002, 1e-4];   // v7.25: how much the heads move from one block to the next, as a share of their power: the first
+// guess, then the least it may be found while the training alone speaks (short stretches cannot prove a room still) and
+// once the decoder's soft symbols are there. Recordings, every symbol known: a median of 0.0056 (22.5 dB under the heads), quartiles 0.0028 and 0.0125
+const SC_PDP_SM = 65;         // v7.25: the room's power along the delay is its taps' power smoothed over this many taps (7 ms)
+const ccopy = a => ({ r: Float64Array.from(a.r), i: Float64Array.from(a.i) });
+function scCGx(op, b, x0, it = 200, tol = 1e-6) {   // v7.25: scCG from the start x0
+  const n = b.r.length, x = ccopy(x0), r = csub(b, op(x)), p = ccopy(r);
+  let rs = cdot(r, r); const b2 = cdot(b, b);
+  for (let k = 0; k < it; k++) {
+    if (rs <= tol * tol * b2) break;
+    const Ap = op(p), a = rs / cdot(p, Ap);
+    for (let j = 0; j < n; j++) { x.r[j] += a * p.r[j]; x.i[j] += a * p.i[j]; r.r[j] -= a * Ap.r[j]; r.i[j] -= a * Ap.i[j]; }
+    const rn = cdot(r, r), bt = rn / rs;
+    for (let j = 0; j < n; j++) { p.r[j] = r.r[j] + bt * p.r[j]; p.i[j] = r.i[j] + bt * p.i[j]; }
+    rs = rn;
+  }
+  return x;
+}
+function scPCG(op, pre, b, it = 200, tol = 1e-6) {   // v7.25: scCG with a preconditioner pre (close to op's inverse, Hermitian positive): the same solution in fewer steps
+  const n = b.r.length, x = cvec(n), r = ccopy(b);
+  let z = pre(r), rz = cdot(r, z), rs = cdot(r, r); const p = ccopy(z), b2 = rs;
+  for (let k = 0; k < it; k++) {
+    if (rs <= tol * tol * b2) break;
+    const Ap = op(p), a = rz / cdot(p, Ap);
+    for (let j = 0; j < n; j++) { x.r[j] += a * p.r[j]; x.i[j] += a * p.i[j]; r.r[j] -= a * Ap.r[j]; r.i[j] -= a * Ap.i[j]; }
+    rs = cdot(r, r); z = pre(r);
+    const rn = cdot(r, z), bt = rn / rz;
+    for (let j = 0; j < n; j++) { p.r[j] = z.r[j] + bt * p.r[j]; p.i[j] = z.i[j] + bt * p.i[j]; }
+    rz = rn;
+  }
+  return x;
+}
+// The room that follows time: rows = cb * s + sum_k phi_k . (d_k * s), cb the whole part's room (L taps), d_k corrections
+// of its first H taps at the knots kn (rows: the middle of each training block), blended linearly between two knots and
+// held before the first and after the last. Two uses: the symbols fixed and the taps unknown (setSym, rows, tapsAdj: the
+// estimate), the taps fixed and the symbols unknown (setTaps, fwd, adj: the detector).
+// By FFTs of B = 4 L points (8192 on the usual band) over blocks of rows, each inside one stretch between two knots:
+// there the room is (cb + d_j) + t (d_j2 - d_j), t the row's place between the two knots, so a block costs one product
+// with each of the two and no transform longer than B (the same sums as SCTV in audiocomm_v7.py, which transforms
+// the whole part at once).
+class SCTV {
+  constructor(ntot, L, H, kn) {
+    this.ntot = ntot; this.L = L; this.H = H; this.kn = kn; this.R = ntot + L - 1; this.N = scN(this.R); this.pN = scPlan(this.N); this.B = scN(4 * L); this.p = scPlan(this.B);
+    const K = kn.length > 1 ? kn.length : 0, R = this.R, B = this.B, M = B - L + 1, cl = v => Math.max(0, Math.min(1, v));
+    this.win = [];   // each head: the rows it acts on and its weight there
+    for (let k = 0; k < K; k++) {
+      const ra = k === 0 ? 0 : Math.trunc(kn[k - 1]), rb = k === K - 1 ? R : Math.trunc(kn[k + 1]), phi = new Float64Array(rb - ra);
+      for (let q = 0; q < rb - ra; q++) {
+        const i = ra + q;
+        phi[q] = k === 0 ? cl((kn[1] - i) / (kn[1] - kn[0])) : k === K - 1 ? cl((i - kn[k - 1]) / (kn[k] - kn[k - 1])) : i < kn[k] ? (i - kn[k - 1]) / (kn[k] - kn[k - 1]) : (kn[k + 1] - i) / (kn[k + 1] - kn[k]);
+      }
+      this.win.push({ ra, rb, phi });
+    }
+    this.blk = [];   // blocks of at most M rows a .. b - 1: the head there is d_j + t (d_j2 - d_j) (j2 = -1: d_j alone; j = -1: no heads)
+    const cut = [0, ...(K ? kn.map(Math.trunc) : []), R];
+    for (let q = 0; q + 1 < cut.length; q++) {
+      const lo = cut[q], hi = cut[q + 1], j = K ? Math.max(q - 1, 0) : -1, j2 = K && q >= 1 && q < K ? q : -1, nb = Math.ceil((hi - lo) / M);
+      for (let u = 0; u < nb; u++) {
+        const a = lo + Math.floor(u * (hi - lo) / nb), b = lo + Math.floor((u + 1) * (hi - lo) / nb);
+        if (b > a) this.blk.push({ a, b, j, j2, t: j2 < 0 ? null : Float64Array.from({ length: b - a }, (_, i) => (a + i - kn[j]) / (kn[j2] - kn[j])) });
+      }
+    }
+    this.ur = new Float64Array(B); this.ui = new Float64Array(B); this.vr = new Float64Array(B); this.vi = new Float64Array(B);
+  }
+  _fft(v) { const o = cvec(this.B); o.r.set(v.r); o.i.set(v.i); scFFT(o.r, o.i, this.p); return o; }
+  _load(s, a, b) {   // the symbols the rows a .. b - 1 see, s[a - L + 1 .. b - 1] (zeros past either end of the part), through the FFT: in ur, ui
+    const { ur, ui, L, ntot } = this, s0 = a - L + 1, lo = Math.max(s0, 0), hi = Math.min(b, ntot);
+    ur.fill(0); ui.fill(0);
+    if (hi > lo) { ur.set(s.r.subarray(lo, hi), lo - s0); ui.set(s.i.subarray(lo, hi), lo - s0); }
+    scFFT(ur, ui, this.p);
+  }
+  _out(y, blk, U, F, F2) {   // the block's rows of y: the symbols' transform U times the taps' F, back; plus t . (U F2, back)
+    const { vr, vi, B, L, p } = this, { a, b, t } = blk;
+    for (let j = 0; j < B; j++) { vr[j] = U.r[j] * F.r[j] - U.i[j] * F.i[j]; vi[j] = U.r[j] * F.i[j] + U.i[j] * F.r[j]; }
+    scFFT(vr, vi, p, true);
+    for (let q = 0; q < b - a; q++) { y.r[a + q] = vr[L - 1 + q]; y.i[a + q] = vi[L - 1 + q]; }
+    if (!F2) return;
+    for (let j = 0; j < B; j++) { vr[j] = U.r[j] * F2.r[j] - U.i[j] * F2.i[j]; vi[j] = U.r[j] * F2.i[j] + U.i[j] * F2.r[j]; }
+    scFFT(vr, vi, p, true);
+    for (let q = 0; q < b - a; q++) { y.r[a + q] += t[q] * vr[L - 1 + q]; y.i[a + q] += t[q] * vi[L - 1 + q]; }
+  }
+  _in(r, blk, w) {   // the block's rows of r (times w, if given), through the FFT: in vr, vi
+    const { vr, vi, L } = this, { a, b } = blk;
+    vr.fill(0); vi.fill(0);
+    if (w) for (let q = 0; q < b - a; q++) { vr[L - 1 + q] = w[q] * r.r[a + q]; vi[L - 1 + q] = w[q] * r.i[a + q]; }
+    else for (let q = 0; q < b - a; q++) { vr[L - 1 + q] = r.r[a + q]; vi[L - 1 + q] = r.i[a + q]; }
+    scFFT(vr, vi, this.p);
+  }
+  setSym(s) { this.Sb = this.blk.map(({ a, b }) => { this._load(s, a, b); return { r: Float64Array.from(this.ur), i: Float64Array.from(this.ui) }; }); }
+  rows(cb, ds) {
+    const B = this.B, Cb = this._fft(cb), hd = ds.length > 0, D = hd ? ds.map(d => this._fft(d)) : null, y = cvec(this.R), F = cvec(B), F2 = cvec(B);
+    this.blk.forEach((blk, k) => {
+      const { j, j2 } = blk;
+      if (!hd || j < 0) { this._out(y, blk, this.Sb[k], Cb, null); return; }
+      const Dj = D[j];
+      for (let i = 0; i < B; i++) { F.r[i] = Cb.r[i] + Dj.r[i]; F.i[i] = Cb.i[i] + Dj.i[i]; }
+      if (j2 >= 0) { const D2 = D[j2]; for (let i = 0; i < B; i++) { F2.r[i] = D2.r[i] - Dj.r[i]; F2.i[i] = D2.i[i] - Dj.i[i]; } }
+      this._out(y, blk, this.Sb[k], F, j2 >= 0 ? F2 : null);
+    });
+    return y;
+  }
+  tapsAdj(r, heads = true) {
+    const { B, L, H, p, vr, vi } = this, Gb = cvec(B), Gd = heads ? this.win.map(() => cvec(B)) : [];
+    this.blk.forEach((blk, k) => {
+      const { j, j2, t } = blk, S = this.Sb[k], G = heads && j >= 0 ? Gd[j] : null;
+      this._in(r, blk, null);
+      for (let i = 0; i < B; i++) {   // times the conjugate of the symbols' transform
+        const x = vr[i] * S.r[i] + vi[i] * S.i[i], y = vi[i] * S.r[i] - vr[i] * S.i[i];
+        Gb.r[i] += x; Gb.i[i] += y;
+        if (G) { G.r[i] += x; G.i[i] += y; }
+      }
+      if (G && j2 >= 0) {
+        const G2 = Gd[j2];
+        this._in(r, blk, t);
+        for (let i = 0; i < B; i++) { const x = vr[i] * S.r[i] + vi[i] * S.i[i], y = vi[i] * S.r[i] - vr[i] * S.i[i]; G.r[i] -= x; G.i[i] -= y; G2.r[i] += x; G2.i[i] += y; }
+      }
+    });
+    scFFT(Gb.r, Gb.i, p, true);
+    return [{ r: Gb.r.slice(0, L), i: Gb.i.slice(0, L) }, Gd.map(G => { scFFT(G.r, G.i, p, true); return { r: G.r.slice(0, H), i: G.i.slice(0, H) }; })];
+  }
+  setTaps(cb, ds) {
+    const B = this.B, Cb = this._fft(cb), D = ds.map(d => this._fft(d));
+    this.A = D.length ? D.map(Dk => { const o = cvec(B); for (let i = 0; i < B; i++) { o.r[i] = Cb.r[i] + Dk.r[i]; o.i[i] = Cb.i[i] + Dk.i[i]; } return o; }) : [Cb];
+    this.A2 = D.slice(1).map((Dk, k) => csub(Dk, D[k]));
+  }
+  fwd(s) {
+    const y = cvec(this.R), U = { r: this.ur, i: this.ui };
+    for (const blk of this.blk) { this._load(s, blk.a, blk.b); this._out(y, blk, U, this.A[Math.max(blk.j, 0)], blk.j2 >= 0 ? this.A2[blk.j] : null); }
+    return y;
+  }
+  adj(r) {
+    const { B, L, ntot, p, ur, ui, vr, vi } = this, g = cvec(ntot);
+    for (const blk of this.blk) {
+      const { a, b, j, j2, t } = blk, A = this.A[Math.max(j, 0)];
+      this._in(r, blk, null);
+      for (let i = 0; i < B; i++) { ur[i] = vr[i] * A.r[i] + vi[i] * A.i[i]; ui[i] = vi[i] * A.r[i] - vr[i] * A.i[i]; }   // times the conjugate of the taps' transform
+      if (j2 >= 0) {
+        const A2 = this.A2[j];
+        this._in(r, blk, t);
+        for (let i = 0; i < B; i++) { ur[i] += vr[i] * A2.r[i] + vi[i] * A2.i[i]; ui[i] += vi[i] * A2.r[i] - vr[i] * A2.i[i]; }
+      }
+      scFFT(ur, ui, p, true);
+      const s0 = a - L + 1, lo = Math.max(s0, 0), hi = Math.min(b, ntot);
+      for (let i = lo; i < hi; i++) { g.r[i] += ur[i - s0]; g.i[i] += ui[i - s0]; }
+    }
+    return g;
+  }
+}
+class SCWholeOp {   // v7.25: the part's data symbols (at dpos) -> its rows through an SCTV whose taps are set, each row scaled by wr (0 on the rows a gap smears or the recording does not hold). The interface of SCConv, for the detectors
+  constructor(tv, dpos, wr, spec) { this.tv = tv; this.dpos = dpos; this.wr = wr; this.n = dpos.length; this.L = tv.L; this.nr = tv.R; this.spec = spec; this.f = cvec(tv.ntot); this.t = cvec(tv.R); }
+  fwd(s) {
+    const { f, dpos, wr, n, nr } = this;
+    for (let q = 0; q < n; q++) { f.r[dpos[q]] = s.r[q]; f.i[dpos[q]] = s.i[q]; }
+    const y = this.tv.fwd(f);
+    for (let j = 0; j < nr; j++) { y.r[j] *= wr[j]; y.i[j] *= wr[j]; }
+    return y;
+  }
+  adj(r) {
+    const { t, dpos, wr, n, nr } = this, o = cvec(n);
+    for (let j = 0; j < nr; j++) { t.r[j] = wr[j] * r.r[j]; t.i[j] = wr[j] * r.i[j]; }
+    const g = this.tv.adj(t);
+    for (let q = 0; q < n; q++) { o.r[q] = g.r[dpos[q]]; o.i[q] = g.i[dpos[q]]; }
+    return o;
+  }
+  spectrum() { return this.spec; }
+  precond(N0) {   // for the linear MMSE start (scLmmse): close to the inverse of adj(fwd(.)) + N0, each data segment as if its room stood still and it went round in a circle: 1 / (|C(f)|^2 + N0), C the mean of the responses at its two training blocks
+    const { tv, dpos, n } = this, B = tv.B, p = tv.p, A = tv.A, runs = [], ur = new Float64Array(B), ui = new Float64Array(B);
+    for (let q = 0, q0 = 0; q <= n; q++) if (q === n || (q > 0 && dpos[q] !== dpos[q - 1] + 1)) { runs.push([q0, q]); q0 = q; }
+    const P = runs.map((_, j) => { const a = A[Math.min(j, A.length - 1)], b = A[Math.min(j + 1, A.length - 1)]; return Float64Array.from({ length: B }, (_, i) => 1 / ((a.r[i] ** 2 + a.i[i] ** 2 + b.r[i] ** 2 + b.i[i] ** 2) / 2 + N0)); });
+    return v => {
+      const o = cvec(n);
+      runs.forEach(([q0, q1], j) => {
+        for (let lo = q0; lo < q1; lo += B) {   // (a segment longer than B: in pieces)
+          const hi = Math.min(q1, lo + B), Pj = P[j];
+          ur.fill(0); ui.fill(0); ur.set(v.r.subarray(lo, hi)); ui.set(v.i.subarray(lo, hi)); scFFT(ur, ui, p);
+          for (let i = 0; i < B; i++) { ur[i] *= Pj[i]; ui[i] *= Pj[i]; }
+          scFFT(ur, ui, p, true);
+          o.r.set(ur.subarray(0, hi - lo), lo); o.i.set(ui.subarray(0, hi - lo), lo);
+        }
+      });
+      return o;
+    };
+  }
+}
+function scSmooth(a, n) {   // the running mean of a over n values (n odd), the ends held
+  const L = a.length, h = n >> 1, o = new Float64Array(L);
+  for (let i = 0; i < L; i++) { let s = 0; for (let j = i - h; j <= i + h; j++) s += a[j < 0 ? 0 : j >= L ? L - 1 : j]; o[i] = s / n; }
+  return o;
+}
+function scConvR(a, b, tv, n, corr = false) {   // the first n values of the real sequences' convolution a * b (corr: sum_i a[i + l] b[i]), by FFTs of tv.N points
+  const N = tv.N, p = tv.pN, ar = new Float64Array(N), ai = new Float64Array(N), br = new Float64Array(N), bi = new Float64Array(N);
+  ar.set(a); br.set(b); scFFT(ar, ai, p); scFFT(br, bi, p);
+  for (let j = 0; j < N; j++) { const x = ar[j], y = ai[j], u = br[j], v = corr ? -bi[j] : bi[j]; ar[j] = x * u - y * v; ai[j] = x * v + y * u; }
+  scFFT(ar, ai, p, true);
+  return ar.slice(0, n);
+}
+// One round of the room's estimate. xm, xv: each symbol's mean and variance (a training symbol: itself and 0; a data
+// symbol before the first pass: 0 and 1; afterwards the decoder's soft symbol). Weighted least squares with a prior on
+// every tap: row i weighs 1 / (N0 + v_i), v_i the echo there of what is still unsure (each symbol's variance through the
+// room's power; on the first rows also the echo of the control part, sent before the silence); tap l of the room has
+// prior power sig2_l (the room's power along the delay, scPdpInit), tap l of a head's correction rho sig2_l. Solved by
+// conjugate gradients from the taps of the round before. Then the noise: what the weighted rows leave, less v and less
+// the echo of the taps the prior holds back, the taps fitted counted (dof). Updates st: cb, ds, N0, J and Jk (the
+// information the rows hold on each tap, on each knot), res, v, wn, dof, pv.
+function scEstRound(tv, yy, good, xm, xv, st, it = 40, heads = true) {
+  const { R, L, H } = tv, K = tv.win.length, ntot = tv.ntot, pw = new Float64Array(L), s2 = st.sig2;
+  for (let l = 0; l < L; l++) {
+    let a = st.cb.r[l], b = st.cb.i[l];
+    if (K && l < H) for (const d of st.ds) { a += d.r[l] / K; b += d.i[l] / K; }
+    pw[l] = a * a + b * b + (st.pv ? st.pv[l] : 0);   // each tap's power: its estimate plus what is still unknown of it
+  }
+  const v = scConvR(xv, pw, tv, R);
+  for (let i = 0; i < R; i++) if (v[i] < 0) v[i] = 0;
+  const g = Math.round(SC_GAP * SC_RS), T = new Float64Array(L + 1);   // the control part still echoes on the first rows,
+  for (let l = L - 1; l >= 0; l--) T[l] = T[l + 1] + pw[l];             // through the taps past the silence
+  for (let i = 0; i < Math.max(Math.min(R, L - g), 0); i++) v[i] += T[i + g];
+  const w = new Float64Array(R), wn = new Float64Array(R); let wmax = 0;
+  for (let i = 0; i < R; i++) { w[i] = good[i] / (st.N0 + v[i]); if (w[i] > wmax) wmax = w[i]; }
+  for (let i = 0; i < R; i++) wn[i] = w[i] / wmax;
+  tv.setSym(xm);
+  const a2 = Float64Array.from(xm.r, (x, i) => x * x + xm.i[i] * xm.i[i]), J = scConvR(w, a2, tv, L, true);
+  for (let l = 0; l < L; l++) if (J[l] < 0) J[l] = 0;
+  const sc = 1 / wmax, hd = heads && K > 0, nth = L + (hd ? K * H : 0);
+  const unpack = th => [cslice(th, 0, L), hd ? tv.win.map((_, k) => cslice(th, L + k * H, L + (k + 1) * H)) : []];
+  const pack = (gb, gd) => { const o = cvec(nth); o.r.set(gb.r); o.i.set(gb.i); gd.forEach((d, k) => { o.r.set(d.r, L + k * H); o.i.set(d.i, L + k * H); }); return o; };
+  const wy = (y, src) => { for (let i = 0; i < R; i++) { y.r[i] = wn[i] * src.r[i]; y.i[i] = wn[i] * src.i[i]; } return y; };
+  const A = th => {
+    const [cb, ds] = unpack(th), y = tv.rows(cb, ds), o = pack(...tv.tapsAdj(wy(y, y), hd));
+    for (let l = 0; l < L; l++) { const lb = sc / s2[l]; o.r[l] += lb * th.r[l]; o.i[l] += lb * th.i[l]; }
+    if (hd) for (let k = 0; k < K; k++) for (let l = 0; l < H; l++) { const ld = sc / (st.rho * s2[l]), j = L + k * H + l; o.r[j] += ld * th.r[j]; o.i[j] += ld * th.i[j]; }
+    return o;
+  };
+  const th = scCGx(A, pack(...tv.tapsAdj(wy(cvec(R), yy), hd)), pack(st.cb, hd ? st.ds : []), it, 1e-5), [cb, ds] = unpack(th);
+  st.cb = ccopy(cb);
+  if (hd) st.ds = ds.map(ccopy);
+  const f = tv.rows(st.cb, K ? st.ds : []), res = cvec(R);
+  for (let i = 0; i < R; i++) { res.r[i] = good[i] * (yy.r[i] - f.r[i]); res.i[i] = good[i] * (yy.i[i] - f.i[i]); }
+  const Jk = tv.win.map(({ ra, rb, phi }) => { let s = 0; for (let i = Math.max(ra, SC_PRE); i < Math.min(rb, SC_PRE + ntot); i++) s += w[i] * phi[i - ra] ** 2 * a2[i - SC_PRE]; return s; });
+  let pe = 0; for (let l = 0; l < L; l++) pe += J[l] * s2[l] / (1 + J[l] * s2[l]);   // the taps the rows really fit
+  if (hd) for (const j of Jk) for (let l = 0; l < H; l++) pe += j * st.rho * s2[l] / (1 + j * st.rho * s2[l]);
+  let nw = 0; for (let i = 0; i < R; i++) nw += wn[i] * wn[i];
+  const dof = nw / Math.max(nw - pe, nw / 4);
+  const kern = Float64Array.from(s2, (s, l) => s / (1 + J[l] * s) ** 2);   // (1 - sh)^2 sig2, sh = J sig2 / (1 + J sig2): what the prior lets a tap take of its echo
+  const bias = scConvR(a2, kern, tv, R);
+  let e = 0, e0 = 0;
+  for (let i = 0; i < R; i++) { const r2 = res.r[i] ** 2 + res.i[i] ** 2, q = wn[i] * wn[i]; e += q * (r2 - v[i] - Math.max(bias[i], 0)); e0 += q * r2; }
+  st.N0 = Math.max(e / nw * dof, 0.3 * e0 / nw); st.J = J; st.Jk = Jk; st.res = res; st.v = v; st.dof = dof; st.wn = wn;
+  st.pv = Float64Array.from(s2, (s, l) => s / (1 + J[l] * s));
+  return st;
+}
+// The room's power along the delay, sig2, from a first estimate under a flat prior (precision lam, L1 taps): the taps'
+// power, the prior's pull undone, less their error, smoothed over SC_PDP_SM taps; past the taps the first block reaches,
+// the decay seen so far carried on (the room's own reverberation time, between 0.1 and 1.5 s; 0.6 s if too little shows).
+function scPdpInit(st, lam, L1) {
+  const cb = st.cb, J = st.J, sm = SC_PDP_SM, L = cb.r.length, raw = new Float64Array(L);
+  let last = 0;
+  for (let l = 0; l < Math.min(L, L1); l++) if (J[l] * st.N0 > 64) {   // at least 64 clean rows' worth, among the taps fitted
+    const Js = Math.max(J[l], 1e-30);
+    raw[l] = (cb.r[l] ** 2 + cb.i[l] ** 2) * ((Js + lam) / Js) ** 2 - 1 / Js; last = l;
+  }
+  const s2 = scSmooth(raw, sm).map(x => Math.max(x, 0)), P = s2.reduce((a, b) => a + b, 0), lo = SC_PRE + 200;
+  let slope = -13.8 / (0.6 * SC_RS);
+  if (last - lo > 300) {
+    let n = 0, sx = 0, sy = 0;
+    for (let l = lo; l < last - sm; l++) if (s2[l] > 1e-7 * P) { n++; sx += l; sy += Math.log(s2[l]); }
+    if (n > 100) {
+      const mx = sx / n, my = sy / n; let sxy = 0, sxx = 0;
+      for (let l = lo; l < last - sm; l++) if (s2[l] > 1e-7 * P) { sxy += (l - mx) * (Math.log(s2[l]) - my); sxx += (l - mx) ** 2; }
+      slope = Math.min(Math.max(sxy / sxx, -13.8 / (0.1 * SC_RS)), -13.8 / (1.5 * SC_RS));
+    }
+  }
+  if (last < L - 1 && last > 3 * sm) {
+    const b0 = Math.max(last - 2 * sm, 0), b1 = Math.max(last - sm, 1); let base = 0;
+    for (let l = b0; l < b1; l++) base += s2[l] / (b1 - b0);
+    for (let l = last - sm; l < L; l++) s2[l] = base * Math.exp(slope * (l - (last - 1.5 * sm)));
+  }
+  st.sig2 = s2.map(x => Math.max(x, 1e-8 * P)); st.rt60 = -13.8 / slope / SC_RS;
+  st.pv = Float64Array.from(st.sig2, (s, l) => l >= last - sm ? s / (1 + J[l] * s) : 0);
+  return st;
+}
+// After a round: sig2 again (each tap's power plus what is still unknown of it, smoothed), and rho, how much the heads
+// move between two blocks as a share of their power, by its evidence: a correction's tap, the prior's pull undone, has
+// variance rho sig2 + 1 / (its information).
+function scPdpEm(st) {
+  const s2 = st.sig2, J = st.J, K = st.ds.length, H = K ? st.ds[0].r.length : 0, sm = SC_PDP_SM, L = s2.length, raw = new Float64Array(L);
+  let P = 0;
+  for (let l = 0; l < L; l++) { const c2 = st.cb.r[l] ** 2 + st.cb.i[l] ** 2; P += c2; raw[l] = c2 + s2[l] / (1 + J[l] * s2[l]); }
+  st.sig2 = scSmooth(raw, sm).map(x => Math.max(x, 1e-8 * P));
+  if (K) {
+    const r0 = st.rho, dh = [], jk = [], sr = [];
+    st.ds.forEach((d, k) => {
+      const j = st.Jk[k];
+      for (let l = 0; l < H; l++) { const sk = j * r0 * s2[l] / (1 + j * r0 * s2[l]); if (sk > 0.05) { dh.push((d.r[l] ** 2 + d.i[l] ** 2) / sk ** 2); jk.push(1 / Math.max(j, 1e-30)); sr.push(s2[l]); } }
+    });
+    if (dh.length >= 4) {
+      let rho = r0;
+      for (let t = 0; t < 12; t++) {
+        let num = 0, den = 0;
+        for (let q = 0; q < dh.length; q++) { const a = (sr[q] / (rho * sr[q] + jk[q])) ** 2; num += a * (dh[q] - jk[q]) / sr[q]; den += a; }
+        rho = Math.min(Math.max(num / den, st.rhoMin), 1);
+      }
+      st.rho = rho;
+    }
+  }
+  return st;
+}
+function scErrNoise(st) {   // v7.25: what the taps' errors add to the noise of a data row: every tap's remaining variance (a tap the training does not reach keeps its prior power: the echo not learned yet), and the heads' between the blocks
+  const s2 = st.sig2, J = st.J, K = st.ds.length, H = K ? st.ds[0].r.length : 0;
+  let e = 0; for (let l = 0; l < s2.length; l++) e += s2[l] / (1 + J[l] * s2[l]);
+  if (K) for (const j of st.Jk) for (let l = 0; l < H; l++) e += st.rho * s2[l] / (1 + j * st.rho * s2[l]) / K;
+  return e;
+}
+function scBendNoise(st) {   // v7.25: what the straight blend between two knots misses, for each stretch between knots: a room that wanders leaves between its knots 1/12 of its second difference's power
+  const ds = st.ds, K = ds.length;
+  if (K < 3) return new Float64Array(Math.max(K - 1, 1));
+  const d2 = [];
+  for (let k = 1; k < K - 1; k++) { let s = 0; for (let l = 0; l < ds[k].r.length; l++) s += (ds[k - 1].r[l] - 2 * ds[k].r[l] + ds[k + 1].r[l]) ** 2 + (ds[k - 1].i[l] - 2 * ds[k].i[l] + ds[k + 1].i[l]) ** 2; d2.push(s / 12); }
+  const e = [d2[0], ...d2, d2[d2.length - 1]];
+  return Float64Array.from({ length: K - 1 }, (_, j) => (e[j] + e[j + 1]) / 2);
+}
+// v7.25: the part's rows yy (the time map, the sampling phase and the level of scReceive's steps 1 to 3 applied; good: 0
+// on the rows a gap smears or the recording does not hold) -> the message. x: the part's symbols, 0 at the data; segs,
+// blocks: the data segments and the training blocks; erased: 1 at the symbols whose first arrival a gap took; c0, N0b:
+// the first block's room and noise from the choice of the sampling phase.
+// The room is c_l(i) = cb_l + sum_k phi_k(i) d_k,l: one room cb of SC_RELEARN_TAPS taps for the whole part and, at the
+// middle of each training block, a correction d_k of its first H taps (half the medium training's room: 256 on the usual
+// band), blended linearly between two blocks. One estimator (scEstRound), before the first pass from the training alone
+// and after every pass with the decoder's soft symbols; one detector over all the data symbols of the part, the
+// training's echo removed, the room following time (SCWholeOp).
+// Before the first pass: a round without the heads on as many taps as the first block's rows carry, its first rows left
+// out; the prior sig2 from it (scPdpInit); two rounds with the heads, sig2 and rho learned again after each (scPdpEm; rho
+// at least SC_RHO[1] while the training alone speaks). The detector's noise: N0 plus what is still unknown of the taps
+// (scErrNoise) plus the bend between two blocks (scBendNoise) plus the floor SC_FLOOR.
+// After a pass: one or two rounds on the soft symbols (rho at least SC_RHO[2]); each stretch between two blocks takes its
+// noise from what the fit leaves there, the rows weighted as in the fit, less the unsure symbols' echo.
+function scWhole(x, segs, blocks, yy, good, erased, c0, N0b, map, code, n0, nc, det = 'smap', effort = 'fast', nmax = null, onPass = null) {
+  const m = OFDM_BITS[map], ax = scAxis(map), ntot = x.r.length, ns = segs.reduce((a, [S, E]) => a + E - S, 0), dpos = new Int32Array(ns);
+  { let q = 0; for (const [S, E] of segs) for (let s = S; s < E; s++) dpos[q++] = s; }
+  const L2 = SC_RELEARN_TAPS, H = SC_TAPS[SC_NC][0] >> 1, kn0 = blocks.map(([a, b]) => (a + b) / 2 + SC_PRE), tv = new SCTV(ntot, L2, H, kn0), R = tv.R, K = tv.win.length;
+  yy = cslice(yy, 0, R); good = good.subarray(0, R);
+  const Lp = c0.r.length, P = cdot(c0, c0), n1 = blocks[0][1], L1 = Math.trunc(Math.min(L2, Math.max(Lp, (n1 - Lp) / 2.5)));   // the first round: as many taps as the first block's rows carry
+  const st = { cb: cvec(L2), ds: tv.win.map(() => cvec(H)), sig2: Float64Array.from({ length: L2 }, (_, l) => l < L1 ? P / 64 : 1e-9 * P), rho: SC_RHO[0], N0: N0b, rhoMin: SC_RHO[1], pv: null };
+  st.cb.r.set(c0.r); st.cb.i.set(c0.i);
+  const xv0 = new Float64Array(ntot); for (let q = 0; q < ns; q++) xv0[dpos[q]] = 1;
+  const g1 = Float64Array.from(good); g1.fill(0, 0, Lp);   // ... its first rows left out (what came before still echoes)
+  scEstRound(tv, yy, g1, x, xv0, st, 60, false);
+  scPdpInit(st, 64 / P, L1);
+  for (let k = 0; k < 2; k++) { scEstRound(tv, yy, good, x, xv0, st, 40); scPdpEm(st); }
+  const room = k => { const c = ccopy(st.cb); if (K) for (let l = 0; l < H; l++) { c.r[l] += st.ds[k].r[l]; c.i[l] += st.ds[k].i[l]; } return c; }, pwr = c => cdot(c, c);
+  const change = []; for (let k = 1; k < K; k++) { const pr = pwr(room(k - 1)); change.push(10 * Math.log10(Math.max(pwr(csub(st.ds[k], st.ds[k - 1])), 1e-12 * pr) / pr)); }
+  const snrs = [];   // each training block: its room against what the fit leaves on its rows
+  blocks.forEach(([b0, b1], k) => {
+    let sw = 0, e = 0, vv = 0;
+    for (let i = b0; i < Math.min(b1 + H, R); i++) { const q = st.wn[i] ** 2; sw += q; e += q * (st.res.r[i] ** 2 + st.res.i[i] ** 2); vv += q * st.v[i]; }
+    if (sw <= 0) { snrs.push(snrs.length ? snrs[snrs.length - 1] : 0); return; }
+    const e2 = e / sw; snrs.push(10 * Math.log10(pwr(room(k)) / (Math.max(e2 - vv / sw, 0.3 * e2) * st.dof)));
+  });
+  const Pc = pwr(st.cb), floor = SC_FLOOR === null ? 0 : 10 ** (SC_FLOOR / 10) * Pc, N0d = st.N0 + scErrNoise(st), drow0 = dpos[0], drow1 = Math.min(dpos[ns - 1] + L2, R);
+  const spec = () => {
+    const nf = Math.max(4096, scN(L2)), p = scPlan(nf), o = new Float64Array(nf), nk = Math.max(K, 1);
+    for (let k = 0; k < nk; k++) { const c = room(k), r = new Float64Array(nf), i = new Float64Array(nf); r.set(c.r); i.set(c.i); scFFT(r, i, p); for (let j = 0; j < nf; j++) o[j] += (r[j] * r[j] + i[j] * i[j]) / nk; }
+    return o;
+  };
+  const detector = Nrow => {   // obs and op for the data symbols: the training's rows removed, each row scaled to the noise Nref
+    tv.setTaps(st.cb, st.ds);
+    let s = 0; for (let i = drow0; i < drow1; i++) s += 1 / (Nrow[i] + floor);
+    const Nref = (drow1 - drow0) / s, wr = Float64Array.from(good, (g, i) => g * Math.sqrt(Nref / (Nrow[i] + floor))), f = tv.fwd(x), obs = cvec(R);
+    for (let i = 0; i < R; i++) { obs.r[i] = wr[i] * (yy.r[i] - f.r[i]); obs.i[i] = wr[i] * (yy.i[i] - f.i[i]); }
+    return { obs, op: new SCWholeOp(tv, dpos, wr, spec()), Nref };
+  };
+  const eq = (sp, N) => { let u = 0; for (const v of sp) u += 1 / (1 + v / N); return 10 * Math.log10(Math.max(sp.length / u - 1, 1e-6)); };
+  const Nrow0 = new Float64Array(R).fill(N0d), bn = scBendNoise(st);
+  for (let j = 0; j + 1 < kn0.length; j++) for (let i = Math.trunc(kn0[j]); i < Math.min(Math.trunc(kn0[j + 1]), R); i++) Nrow0[i] += bn[j];
+  let { obs, op, Nref } = detector(Nrow0);
+  const snrEq = eq(op.spectrum(), Nref), roomBend = eq(op.spectrum(), N0d + floor) - snrEq, { fits, best: fitBest } = scFits(snrEq);
+  const info = { taps: L2, head: H, knots: kn0.length, rho: st.rho, rt60: st.rt60, snrFirst: 10 * Math.log10(Pc / Nref), bendDb: 10 * Math.log10(Math.max(bn.reduce((a, b) => a + b, 0) / bn.length, 1e-12 * Pc) / Pc) };
+  const h = Float32Array.from({ length: L2 }, (_, l) => { let a = st.cb.r[l], b = st.cb.i[l]; if (K && l < H) for (const d of st.ds) { a += d.r[l] / K; b += d.i[l] / K; } return a * a + b * b; });   // the room before the first pass, its heads' mean: for the plot
+  const refit = (sm, sv, firstTime) => {   // the room again, the soft symbols (means sm, variances sv) as training; then the detector on it
+    const xm = ccopy(x), xv = new Float64Array(ntot);
+    for (let q = 0; q < ns; q++) { xm.r[dpos[q]] = sm.r[q]; xm.i[dpos[q]] = sm.i[q]; xv[dpos[q]] = sv[q]; }
+    st.rhoMin = SC_RHO[2];   // the soft symbols can tell a still room; the training alone cannot
+    for (let k = 0; k < (firstTime ? 2 : 1); k++) { scEstRound(tv, yy, good, xm, xv, st, firstTime ? 40 : 25); scPdpEm(st); }
+    const { res, v, wn } = st, Nrow = new Float64Array(R).fill(st.N0), edges = [0, ...kn0.slice(1, -1).map(Math.trunc), R];   // the rows weighed as in the fit: the surest count most
+    let wmax = 0; for (let i = 0; i < R; i++) wmax = Math.max(wmax, wn[i] * wn[i]);
+    for (let j = 0; j + 1 < edges.length; j++) {
+      const a = edges[j], b = edges[j + 1]; let sw = 0, e = 0, vv = 0;
+      for (let i = a; i < b; i++) { const q = wn[i] * wn[i]; sw += q; e += q * (res.r[i] ** 2 + res.i[i] ** 2); vv += q * v[i]; }
+      if (sw > 100 * wmax) { const e2 = e / sw; Nrow.fill(Math.max(e2 - vv / sw, 0.3 * e2) * st.dof, a, b); }
+    }
+    return detector(Nrow);
+  };
+  const [steps, npass] = SC_EFFORT[effort] || SC_EFFORT.fast, nm = nmax === null ? npass + SC_RELEARN_PASSES : nmax;
+  const key = prbs(ns * m), lprior = new Float64Array(ns * m), hist = [];
+  let xs = null, first = null, bits = null, zc = null, relearn = null;
+  for (let it = 0; it < nm; it++) {
+    let le;
+    if (det === 'lmmse') { const o = scSic(obs, op, Nref, ax, lprior); le = o.llr; if (it === 0) zc = o.z; }
+    else {
+      if (!xs) { const o = scLmmse(obs, op, Nref); xs = o.x; if (it === 0) zc = { r: o.x.r.map(v => v / o.beta), i: o.x.i.map(v => v / o.beta) }; }
+      const o = scSmap(obs, op, Nref, ax, lprior, xs, it === 0 ? steps[0] : steps[1]); le = o.llr; xs = o.x;
+    }
+    for (let q = 0; q < ns; q++) if (erased[dpos[q]]) le.fill(0, q * m, q * m + m);   // v5.1: left to the code
+    const lin = Float64Array.from({ length: nc }, (_, i) => key[i] ? -le[i] : le[i]);
+    if (!first) first = le.slice(0, nc);
+    const d = fecSiso(code, lin, n0);
+    bits = d.bits;
+    const cw = encodeFEC(code, bits), dec = d.post || d.app; let bad = 0;
+    for (let i = 0; i < nc; i++) bad += (dec[i] > 0 ? 1 : 0) !== cw[i];   // coded bits that disagree with the decided message
+    hist.push(bad);
+    if (onPass) onPass({ pass: it + 1, bad, nc, npass: nm, relearn: false, quick: false });
+    if (bad === 0 || it + 1 === nm) break;
+    for (let i = 0; i < ns * m; i++) lprior[i] = i < nc ? (key[i] ? -1 : 1) * Math.max(-20, Math.min(20, d.app[i] - lin[i])) : 0;
+    const lpost = Float64Array.from({ length: ns * m }, (_, i) => (key[i] ? -1 : 1) * (i < nc ? Math.max(-30, Math.min(30, d.app[i])) : -30)), sm = scSoft(lpost, ax);
+    ({ obs, op, Nref } = refit(sm.x, sm.v, it === 0)); xs = null;
+    relearn = { taps: L2, snr: 10 * Math.log10(pwr(st.cb) / Nref), own: 0, after: 1 };
+  }
+  if (relearn) relearn.passes = hist.length - 1;
+  info.rhoEnd = st.rho;
+  const cw = encodeFEC(code, bits); let chErr = 0;
+  for (let i = 0; i < nc; i++) chErr += (first[i] > 0 ? 1 : 0) !== (cw[i] ^ key[i]);
+  const srt = [...snrs].sort((a, b) => a - b), nb = srt.length, snrMed = nb % 2 ? srt[(nb - 1) / 2] : (srt[nb / 2 - 1] + srt[nb / 2]) / 2;
+  return { bits: Uint8Array.from(bits), passes: hist.length, codeword: hist[hist.length - 1] === 0, chErr, snr: snrMed, snrs, change, taps: L2, hist, relearn, tail: null,
+           snrEq, roomBend, fits, fitBest, whole: info, llr: Float32Array.from(first), h, zc };
+}
+function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt = SC_NC, effort = 'fast', est = 'whole', swap = null, quick = false) {
   scSetBand(scWideOf(nt));   // v7.4: the band of a TC of nt symbols
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), tStart = now();
-  if (SC_TAIL && SC_TAIL_LAZY && !quick && swap === null) {   // v7.20: one pass without the long echo first
+  if (SC_TAIL && SC_TAIL_LAZY && !quick && swap === null && est !== 'whole') {   // v7.20: one pass without the long echo first
     const o1 = scReceive(y, fs, t0, map, code, n0, nc, det, onPass, nt, effort, est, null, true);
     if (o1.codeword) return o1;
   }
@@ -3562,6 +4005,21 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
     if (e2 / (nf2 - L2) * (1 + L2 / nf2) < N0) { L = L2; c0 = c2; e0 = e2; nfit = nf2; N0b = e0 / (nfit - L); N0 = N0b * (1 + L / nfit); }
   }
   if (est === 'mmse') { L = Math.max(...SC_TAPS[nt]); ({ c0, N0b, N0 } = scMmseFirst(xA, cslice(yy, 0, nA + L - 1), nA, L)); }
+  if (est === 'whole') {   // v7.25 (7.): one room for the whole part, one detector
+    const Rw = ntot + SC_RELEARN_TAPS - 1, gw = new Float64Array(Rw), er = new Uint8Array(ntot);
+    for (let r = 0; r < Rw; r++) gw[r] = good[r] * (zt[Math.min(2 * SC_DLY + phase + P5 * r, nv - 1)] < y.length - 8 ? 1 : 0);   // the rows the recording holds, but for gaps
+    let nErased = 0;
+    for (let q = 0; q < ntot; q++) er[q] = good[SC_PRE + q] ? 0 : 1;
+    for (const [S, E] of segs) for (let q = S; q < E; q++) nErased += er[q];   // data symbols whose first arrival is on a masked row
+    const { zc, ...w } = scWhole(x, segs, blocks, yy, gw, er, c0, N0b, map, code, n0, nc, det, effort, quick ? 1 : null, onPass), step = Math.max(1, Math.floor(zc.r.length / 5000));
+    const out = { ...w, ppm, bend, phase, nseg: segs.length, train: nt, effort, npass, est, T0, sec: (now() - tStart) / 1000, det, quick: null, map, gaps: gaps.map(([g, sz]) => [g / SC_FS, sz]), erased: nErased, swap, rs: SC_RS, wide: scWideOf(nt),
+                  zr: Float32Array.from({ length: Math.ceil(zc.r.length / step) }, (_, k) => zc.r[k * step]), zi: Float32Array.from({ length: Math.ceil(zc.r.length / step) }, (_, k) => zc.i[k * step]) };
+    if (gaps.length && !out.codeword && swap === null && !quick) {   // v5.1: the other size, or the runner-up place, of the least sure gap
+      const o2 = scReceive(y, fs, t0, map, code, n0, nc, det, onPass, nt, effort, est, unsure.reduce((a, b) => b[0] > a[0] ? b : a)[1]);
+      if (o2.codeword) return Object.assign(o2, { sec: (now() - tStart) / 1000 });
+    }
+    return out;
+  }
   // 4. the room at each block
   const chs = [c0], tk = [(L + nA) / 2], change = [], en = c => cdot(c, c);
   for (let k = 1; k < blocks.length; k++) {
@@ -4049,7 +4507,7 @@ class Receiver {
       return;
     }
     const s0 = Math.max(this.base, Math.floor(t0s) - 16), s1 = Math.min(this.n, Math.ceil(ends));
-    const job = { y: this.y.slice(s0 - this.base, s1 - this.base), fs, t0: t0s - s0, map: hdr.map, code: hdr.code, n0: hdr.n0, nc: hdr.nc, det: this.cfg.det || 'smap', nt: hdr.train, wide: !!hdr.wide, effort: this.cfg.effort || 'fast', est: this.cfg.est || 'ls' };
+    const job = { y: this.y.slice(s0 - this.base, s1 - this.base), fs, t0: t0s - s0, map: hdr.map, code: hdr.code, n0: hdr.n0, nc: hdr.nc, det: this.cfg.det || 'smap', nt: hdr.train, wide: !!hdr.wide, effort: this.cfg.effort || 'fast', est: this.cfg.est || 'whole' };
     const r0 = Math.max(this.base, Math.round(this.p1 - 0.3 * fs)), r1 = Math.min(this.n, Math.round(ends + 0.3 * fs));
     const res = { hdr, NP: this.NP, key: this.key, found: true, cmax: this.cmax, hopCtl: this.hop, t: this.p1 / fs, recording: this.y.slice(r0 - this.base, r1 - this.base), fs, job };
     const done = o => { res.sc = o; res.ppm = o.ppm; Object.assign(res, decodeFrame(res, 'cal')); this.cb.onDone && this.cb.onDone(res); };
@@ -4128,7 +4586,7 @@ if (typeof module !== 'undefined') module.exports = { PILOT, NP, NHC, CTRL, RATE
   OFDM_MODES, OFDM_F0, OFDM_F1, OFDM_WMODES, OFDM_WMAPS, OFDM_WIDE_MASK, OFDM_WRMS, ofdmReserve, qamAxes, qamAxisLlr, ofdmMode, ofdmCarriers, ofdmRate, ofdmReference, ofdmSymbols, fracRead, ofdmReceive, ofdmDesc,
   C6_N, C6_CP, C6_REP, C6_LEN, C6_THR, C6_BAL, C6_K, c6Symbol, c6Index, c6Wave, c6Read, c6Filter,
   OFDM_MAPS, OFDM_MASKS, OFDM_BITS, OFDM_NAMES, OFDM_PSTEP, ofdmPoints, ofdmPilot, ofdmLayout, ofdmSmooth, levinson, ofdmCoherent,
-  SC_MAPS, SC_RMS, SC_NC, SC_TRAINS, SC_TCODE, SC_TAPS, SC_BANDS, BAND_IX, SC_FAST_MASK, scSetBand, scWideOf, scBandIx, scBand, scEdges, SC_EFFORT, SC_EST, scEcho, scTrainName, scLayout, scRate, scSeconds, scDesc, scSymbols, scPassband, scPart, scChannelBits, scTraining, scReceive, scMmseFirst, scFit, scTurboSiso, scBcjrApp, SCConv, scFFT, scPlan, scRead, scSmap, scLmmse, scSic, interleave, deinterleave, turboCheck };
+  SC_MAPS, SC_RMS, SC_NC, SC_TRAINS, SC_TCODE, SC_TAPS, SC_BANDS, BAND_IX, SC_FAST_MASK, scSetBand, scWideOf, scBandIx, scBand, scEdges, SC_EFFORT, SC_EST, scEcho, scTrainName, scLayout, scRate, scSeconds, scDesc, scSymbols, scPassband, scPart, scChannelBits, scTraining, scReceive, scWhole, SCTV, SCWholeOp, scEstRound, scPdpInit, scPdpEm, SC_RHO, scMmseFirst, scFit, scTurboSiso, scBcjrApp, SCConv, scFFT, scPlan, scRead, scSmap, scLmmse, scSic, interleave, deinterleave, turboCheck };
 </script>
 
 <script>
@@ -4147,7 +4605,7 @@ const cfg = { mod: MOD0, tones: TONE_SETS.includes(params.get('tones')) ? params
               train: ['short', 'long'].includes(params.get('train')) ? params.get('train') : 'medium',   // v5: its training (sender)
               band: ['wide', 'fast'].includes(params.get('band')) ? params.get('band') : 'usual',   // v7.4: its band, 3.2 to 16 or 2.3 to 20.5 kHz (sender; v7.19: fast, 16 000 symbols/s)
               effort: params.get('effort') === 'full' ? 'full' : 'fast',   // v5: SMAP's steps and the passes (receiver)
-              est: params.get('est') === 'mmse' ? 'mmse' : 'ls',   // v5: the room's estimate, least squares or MMSE (receiver)
+              est: ['ls', 'mmse'].includes(params.get('est')) ? params.get('est') : 'whole',   // v5: the room's estimate (receiver); v7.25: one room for the whole part, or v7.24's per block (least squares or MMSE)
               control: params.get('ctl') === 'long' ? 'long' : 'short' };   // v6: the control part of OFDM and single-carrier frames (sender)
 if (cfg.mod === 'sc') { if (!SC_MAPS.includes(cfg.map)) cfg.map = '256qam'; if (!(cfg.band !== 'usual' ? WIDE_CODES : SC_CODES).includes(cfg.code)) cfg.code = cfg.band !== 'usual' ? 'ldpc' : 'turbo'; }   // OFDM (v4): DQPSK, or QPSK, 8PSK, 16QAM, 64QAM, 256QAM with pilots
 if (cfg.mod === 'ofdm' && cfg.band === 'fast') cfg.band = 'wide';   // v7.21: OFDM's bands, the usual one and the wide one
@@ -5028,16 +5486,17 @@ function showStats(res) {
   }
   if (h.sc) {   // v5, single carrier
     const o = res.sc, dn = detName(o.det);
-    if (o.snrEq !== undefined) st.push([`${o.snrEq.toFixed(1)} dB`, `SNR after the equalizer${o.quick === 'decoded' ? ', no long echo' : ''}`, `what the detector sees (v7.14): the room's uneven response and the echo it cannot learn count against it, unlike the training's SNR.${o.quick === 'decoded' ? ' Measured without the long echo, which this frame did not need (v7.20): with it the SNR can be higher, so faster modes may fit than listed here.' : ''}${o.roomBend >= 0.05 ? ` The room's bend between training blocks, which the blend of two blocks' rooms misses, costs ${o.roomBend.toFixed(1)} dB of it (v7.17).` : ''} With ${SC_SPARE} dB to spare it fits ${o.fits.length ? o.fits.map(([mp, r]) => `${OFDM_NAMES[mp]} LDPC ${r}`).join(', ') + `; the fastest is ${OFDM_NAMES[o.fitBest[0]]} LDPC ${o.fitBest[1]}` : 'no mode'} (v7.17: 69 of 70 such recorded frames decoded)`]);
-    st.push([`${o.snr.toFixed(1)} dB`, 'SNR of the symbols', `the median over the training blocks (${o.snrs.map(v => v.toFixed(1)).join(' / ')} dB), each with its own room: the noise, plus the echo beyond the ${o.taps} taps (${Math.round((o.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) and the room's drift`]);
-    st.push([o.taps, 'taps of the room', o.est === 'mmse' ? `by MMSE, the most the ${scTrainName(o.train)} training allows: each tap weighed by the room's power at its delay` : scBand(o.train).taps[o.train].length > 1 ? `the ${scTrainName(o.train)} training allows ${scBand(o.train).taps[o.train].join(' or ')}: the receiver keeps the one that fits better` : `what the ${scTrainName(o.train)} training allows`]);
+    if (o.snrEq !== undefined) st.push([`${o.snrEq.toFixed(1)} dB`, `SNR after the equalizer${o.quick === 'decoded' ? ', no long echo' : ''}`, `what the detector sees (v7.14): the room's uneven response and the echo it cannot learn count against it, unlike the training's SNR.${o.quick === 'decoded' ? ' Measured without the long echo, which this frame did not need (v7.20): with it the SNR can be higher, so faster modes may fit than listed here.' : ''}${o.roomBend >= 0.05 ? ` The room's bend between training blocks, which the blend of two blocks' rooms misses, costs ${o.roomBend.toFixed(1)} dB of it (v7.17).` : ''} With ${SC_SPARE} dB to spare it fits ${o.fits.length ? o.fits.map(([mp, r]) => `${OFDM_NAMES[mp]} LDPC ${r}`).join(', ') + `; the fastest is ${OFDM_NAMES[o.fitBest[0]]} LDPC ${o.fitBest[1]}` : 'no mode'} (${o.whole ? 'v7.25: 57 of 57 such recorded frames decoded' : 'v7.17: 69 of 70 such recorded frames decoded'})`]);
+    st.push([`${o.snr.toFixed(1)} dB`, 'SNR of the symbols', `the median over the training blocks (${o.snrs.map(v => v.toFixed(1)).join(' / ')} dB), ${o.whole ? 'the room at each against what the fit of the whole part leaves on its rows' : 'each with its own room'}: the noise, plus the echo beyond the ${o.taps} taps (${Math.round((o.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) and the room's drift`]);
+    st.push([o.taps, 'taps of the room', o.whole ? `one room for the whole part, learned from all its training blocks together, each tap held to the room's power at its delay (here it falls by 60 dB in about ${o.whole.rt60.toFixed(2)} s); only its first ${o.whole.head} taps (${Math.round((o.whole.head - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) follow time, one correction at each of the ${o.whole.knots} training blocks (v7.25)` : o.est === 'mmse' ? `by MMSE, the most the ${scTrainName(o.train)} training allows: each tap weighed by the room's power at its delay` : scBand(o.train).taps[o.train].length > 1 ? `the ${scTrainName(o.train)} training allows ${scBand(o.train).taps[o.train].join(' or ')}: the receiver keeps the one that fits better` : `what the ${scTrainName(o.train)} training allows`]);
     if (o.tail && o.tail.used) st.push([o.tail.taps, 'taps with the long echo', `the echo past the ${o.taps} taps, up to ${o.tail.taps} (${Math.round((o.tail.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival), learned from all the training blocks together and added to each block's room: the noise on the training ${(-o.tail.noiseDb).toFixed(1)} dB lower (v7.13)`]);
     if (o.quick === 'decoded') st.push(['not needed', 'long echo', `the first pass decoded without learning the echo past the room's taps, which takes most of a one-pass decode: it is learned only if that pass fails (v7.20)`]);
-    if (o.relearn) st.push([res.codeword ? '✓ decoded' : '✗ failed', o.relearn.after < o.npass ? 'room learned again' : 'second try', `${o.relearn.after < o.npass ? `after pass ${o.relearn.after} and each later one (v7.18),` : `the ${o.npass} passes ended without a codeword, so`} the room was learned again from the whole frame, its data as the decoder's soft symbols: ${o.relearn.taps} taps (${Math.round((o.relearn.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms of echo) instead of ${o.taps}${o.relearn.own ? `, ${o.relearn.own} of the ${o.nseg} data segments with their own correction of ${o.taps} taps (the room changed during the frame)` : ''}, SNR ${o.relearn.snr.toFixed(1)} dB; then ${o.relearn.passes} more pass${o.relearn.passes > 1 ? 'es' : ''} (v7.2${o.relearn.own ? ', v7.8' : ''})`]);
+    if (o.relearn && o.whole) st.push([res.codeword ? '✓ decoded' : '✗ failed', 'room learned again', `after each pass the room and its corrections were learned again from the whole frame, its data as the decoder's soft symbols (what is still unsure counts as noise): SNR ${o.relearn.snr.toFixed(1)} dB at the last one; ${o.relearn.passes} more pass${o.relearn.passes > 1 ? 'es' : ''} (v7.25)`]);
+    else if (o.relearn) st.push([res.codeword ? '✓ decoded' : '✗ failed', o.relearn.after < o.npass ? 'room learned again' : 'second try', `${o.relearn.after < o.npass ? `after pass ${o.relearn.after} and each later one (v7.18),` : `the ${o.npass} passes ended without a codeword, so`} the room was learned again from the whole frame, its data as the decoder's soft symbols: ${o.relearn.taps} taps (${Math.round((o.relearn.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms of echo) instead of ${o.taps}${o.relearn.own ? `, ${o.relearn.own} of the ${o.nseg} data segments with their own correction of ${o.taps} taps (the room changed during the frame)` : ''}, SNR ${o.relearn.snr.toFixed(1)} dB; then ${o.relearn.passes} more pass${o.relearn.passes > 1 ? 'es' : ''} (v7.2${o.relearn.own ? ', v7.8' : ''})`]);
     st.push([o.passes, `pass${o.passes > 1 ? 'es' : ''}, ${dn} ↔ ${LDPC_R[code] ? 'LDPC' : POLAR_R[code] ? 'polar' : 'turbo'}`, `turbo equalization, ${SC_RELEARN_PASSES && SC_RELEARN_FROM !== null && SC_RELEARN_FROM < o.npass ? `at most ${o.npass + SC_RELEARN_PASSES} passes (${o.effort} effort), the room learned again after each one from pass ${SC_RELEARN_FROM} on (v7.18)` : `at most ${o.npass} passes (${o.effort} effort)${SC_RELEARN_PASSES ? `, then up to ${SC_RELEARN_PASSES} more for the second try` : ''}`}; it stops once the decisions form a codeword. Coded bits in doubt after each pass: ${o.hist.join(' → ')}`]);
     st.push([`${o.sec.toFixed(1)} s`, 'to decode', `${dn}, ${o.effort} effort, in the background: listening went on${o.quick === 'failed' ? '; after a first pass without the long echo (v7.20)' : ''}`]);
     st.push([`${res.ppm >= 0 ? '+' : ''}${res.ppm.toFixed(0)} ppm`, 'clock offset', `time scale Rx vs Tx (clock offset, or a moving phone), from the ${o.nseg + 1} training blocks`]);
-    if (o.change.length) st.push([`${Math.max(...o.change).toFixed(0)} dB`, 'room change', 'the largest change of the room from one training block to the next (0.5 s apart), relative to the room. In our recordings: −14 to −20 dB in a still room, −6 to −9 dB when people moved.']);
+    if (o.change.length) st.push([`${Math.max(...o.change).toFixed(0)} dB`, 'room change', o.whole ? 'the largest change of the room\'s first taps from one training block to the next, relative to the room, as the fit of the whole part sees it. In our recordings: −19 to −27 dB in a still room, −7 to −13 dB when people moved.' : 'the largest change of the room from one training block to the next (0.5 s apart), relative to the room. In our recordings: −14 to −20 dB in a still room, −6 to −9 dB when people moved.']);
     if (o.bend > 1) st.push([o.bend.toFixed(1), 'clock wander, samples', 'samples by which the training blocks\' delays depart from a steady clock (a moving phone, or samples lost); the frame is read on the steady clock, each block\'s room takes the rest (v7.17)']);
     if (o.gaps && o.gaps.length) st.push([o.gaps.map(([, d]) => Math.abs(d).toFixed(0)).join(' + '), `samples ${o.gaps.every(([, d]) => d < 0) ? 'lost' : 'lost or repeated'}`, `by the microphone in the middle of the part (${o.gaps.map(([t]) => `${t.toFixed(2)} s`).join(', ')} into it); the part was read again after the gap${o.erased ? `, and the ${o.erased} data symbols around it were erased and left to the code` : ''} (v5.1)`]);
   } else if (h.ofdm) {
@@ -5126,7 +5585,7 @@ function scAgain() {   // v5: decodes the single-carrier frame on display again,
   const f = shown, res = f && f.res;
   if (!res || res.sound || !res.hdr.sc || !res.job) return;
   const job = { ...res.job, det: cfg.det, effort: cfg.effort, est: cfg.est };
-  pill(`Decoding again · ${detName(job.det)} (${job.effort})${job.est === 'mmse' ? ', MMSE room' : ''}`, 'live');
+  pill(`Decoding again · ${detName(job.det)} (${job.effort})${job.est === 'mmse' ? ', MMSE room per block' : job.est === 'ls' ? ', room per block' : ''}`, 'live');
   scDecode(job, p => { if (shown === f) pill(`Decoding again · ${p.quick ? 'first pass without the long echo' : `${p.relearn ? 'second try, ' : ''}pass ${p.pass} of at most ${p.npass}`}`, 'live'); }).then(o => {
     res.job = job; res.sc = o; res.ppm = o.ppm; Object.assign(res, decodeFrame(res, 'cal')); checkDemo(res);
     if (shown === f) { display(f); donePill(res); } else showLog();
@@ -5135,7 +5594,7 @@ function scAgain() {   // v5: decodes the single-carrier frame on display again,
 function rxParam(k, v, d) { const u = new URL(location.href); if (v !== d) u.searchParams.set(k, v); else u.searchParams.delete(k); history.replaceState(null, '', u); }
 seg($('detSeg'), cfg.det, v => { cfg.det = v; if (rx) rx.cfg.det = v; rxParam('det', v, 'smap'); scAgain(); });   // v5: the single carrier's detector
 seg($('effSeg'), cfg.effort, v => { cfg.effort = v; if (rx) rx.cfg.effort = v; rxParam('effort', v, 'fast'); scAgain(); });   // v5: SMAP's steps and the passes
-seg($('estSeg'), cfg.est, v => { cfg.est = v; if (rx) rx.cfg.est = v; rxParam('est', v, 'ls'); scAgain(); });   // v5: the room's estimate
+seg($('estSeg'), cfg.est, v => { cfg.est = v; if (rx) rx.cfg.est = v; rxParam('est', v, 'whole'); scAgain(); });   // v5: the room's estimate
 $('recBtn').onclick = () => { if (lastRec) download(wavBlob(lastRec.recording, lastRec.fs), lastRec.sound ? `received_sounding_${Math.round(lastRec.fs)}Hz.wav` : `received_${lastRec.hdr.sc ? `sc_${lastRec.hdr.map}_${scTrainName(lastRec.hdr.train)}${lastRec.hdr.wide === 2 ? '_fast' : lastRec.hdr.wide ? '_wide' : ''}` : lastRec.hdr.ofdm ? `ofdm_${lastRec.hdr.map}_${lastRec.hdr.ofdm}` : `${lastRec.hdr.M === 4 ? '4fsk_' : ''}${lastRec.hdr.tones}_${lastRec.hdr.rate}bps`}_${Math.round(lastRec.fs)}Hz.wav`); };
 $('irBtn').onclick = () => {   // the measured response, peak at 0.9, from 5 ms before the direct sound to the end of the decay
   if (!lastRec || !lastRec.sound) return;
