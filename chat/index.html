@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
 <!-- Anonymous visit counter (Bit2Noisy telemetry v3, chat 1.2.9): no cookie, nothing stored on the phone; not counted with Do Not Track, Global Privacy Control or ?tele=off. -->
 <script defer src="https://bit2noisy-telemetry.sheng-yang-e9e.workers.dev/v.js" data-site="chat"></script>
-<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page 070225b9). -->
+<!-- © 2026 Sheng Yang. All rights reserved. Built by mk_chat.py from acoustic_modem_v7.html (page 2cd84ad9). -->
 <style>
 /* Colours of the Mention ICE logo: magenta #86144F, ink #1C1722, grey-violet #706A7F, ground #F5F3F6 */
 :root{
@@ -315,6 +315,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
     <label>How my messages sound</label>
     <div class="seg" id="modeSeg"><button data-v="auto">Automatic</button><button data-v="robust">Robust</button><button data-v="fast">Fast</button><button data-v="close">Close by</button><button data-v="max">Max speed</button><button data-v="sc">Single carrier</button></div>
     <div class="hint" id="modeHint"></div>
+    <label class="check"><input type="checkbox" id="movingText"> <span>Moving phones · send texts with slower hopping tones</span></label>
     <label>Pictures I send</label>
     <div class="seg" id="picSeg"><button data-v="small">Small · 160 px</button><button data-v="medium">Medium · 320 px</button></div>
     <label for="groupIn">Group code (0 to 255)</label>
@@ -354,7 +355,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:8px 8p
 
 <script id="modem-core">
 // ---- modem core (no DOM): shared by the page and the offline tests ----
-const MODEM_VERSION = 'v7.25', MODEM_DATE = '26 November 2026';   // shown at the foot of the pages (v7.24)
+const MODEM_VERSION = 'v7.26', MODEM_DATE = '26 November 2026';   // shown at the foot of the pages (v7.24)
 // © 2026 Sheng Yang. All rights reserved.
 const PILOT = Array.from("0000000111111011111001111010111000011011101001100010101100000101111000111011011001001010010000100111001011010001000110011010101", Number);
 // Longer preambles for longer distances: maximum-length sequences of 255 and 511 bits (the 127-bit one is unchanged)
@@ -1411,7 +1412,7 @@ function headerBits(h) {   // 6400 bit/s: tone set 3, rate field 3; OFDM: tone s
   const ld = TYPE3_CODES.indexOf(h.code), c = ld >= 0 ? ld : h.code === LDPC56 ? (h.sc && h.wide ? 2 : 7) : CODES.indexOf(h.code), type = ld >= 0 ? (h.sc && h.wide ? 2 : 3) : h.type, wm = h.ofdm ? OFDM_WMODES.findIndex(m => m.name === h.ofdm) : -1, om = h.ofdm ? (wm >= 0 ? wm : OFDM_MODES.findIndex(m => m.name === h.ofdm)) : -1, wide = h.rate === RATE_WIDE, coh = om >= 0 || !!h.sc;
   const t = wide || coh ? 3 : TONE_SETS.indexOf(h.tones), four = h.mod === 4 || coh;
   if (h.sc && h.wide && ld < 0 && h.code !== LDPC56) throw new Error('the wide band takes an LDPC or a polar code');   // v7.4
-  const B = SC_BANDS[h.sc ? scBandIx(h.wide) : 0], T = h.sc ? B.tcode[h.train || B.nc] : 0;   // v5, single carrier: the training length, 0 medium, 1 short, 2 long
+  const B = SC_BANDS[h.sc ? scBandIx(h.wide) : 0], T = h.sc ? B.tcode[h.train || B.nc] : 0;   // v5, single carrier: the training length, 0 medium, 1 short, 2 long, 3 burst
   const v = [...msb(type, 2), ...msb(h.a | (T >> 1) << 10, 11), ...msb(h.b | (T & 1) << 10, 11), ...msb(c & 3, 2),
              ...msb(h.sc ? SC_FIELD : om >= 0 ? om : wide ? 3 : (four ? RATES4 : RATES).indexOf(h.rate), 2), ...msb(four ? 3 : t, 2), ...msb(four ? t : 0, 2)];
   const mask = (c >> 2 ? 0xff : 0) ^ (coh ? OFDM_MASKS[Math.max(0, OFDM_MAPS.indexOf(h.sc || wm >= 0 ? SC_SLOT[h.map] || h.map : h.map))] : 0) ^ (h.sc && h.wide === 2 ? SC_FAST_MASK : 0) ^ (wm >= 0 ? OFDM_WIDE_MASK : 0);   // v7.21: wide OFDM   // v7.19: the fast wide band   // v4: the mapping's mask (OFDM, and the single carrier in v5; v7.5: 1024QAM in 8PSK's place)
@@ -1625,7 +1626,7 @@ function parseHeader(hb) {   // hb: the 40 decoded header bits; null unless the 
   const tones = ofdm ? 'ofdm' : sc ? 'sc' : set3 ? 'hop' : TONE_SETS[four ? val(30, 2) : tf];
   if (!tones || !rate || !code || (!four && val(30, 2)) || (mi && !ofdm && !sc) || (fast && !scw && !ofdm)) return null;   // a mapping mask on anything but OFDM or the single carrier: not ours
   const scMap = Object.keys(SC_SLOT).find(k => SC_SLOT[k] === OFDM_MAPS[mi]) || OFDM_MAPS[mi];   // v7.5: on the single carrier, 8PSK's mask = 1024QAM
-  if (sc && (T === 3 || !SC_MAPS.includes(scMap) || !SC_CODES.includes(code))) return null;   // the single carrier: QPSK to 1024QAM, turbo, LDPC or polar codes
+  if (sc && (!SC_MAPS.includes(scMap) || !SC_CODES.includes(code))) return null;   // the single carrier: QPSK to 1024QAM, turbo, LDPC or polar codes
   if (ofdm && ofdm.wide && (!OFDM_WMAPS.includes(scMap) || !WIDE_CODES.includes(code))) return null;   // v7.21: wide OFDM (the fast masks on OFDM's rate fields), QPSK to 1024QAM, LDPC or polar codes
   let h = null;
   if (type === 0 && a >= 1 && b === 0) h = { type: 'text', len: a, n0: 8 * a };
@@ -2629,9 +2630,9 @@ const SC_TAIL_WAIT = 0.25;    // v7.14: seconds the receiver waits after a singl
                                // last block (SC_RELEARN_TAPS - 1 rows, 0.21 s), which the long echo's fit and the second try use as the script does
 let SC_NA = 1280;           // TA: the first block's own training, before its TC
 let SC_NC = 1280;           // TC, the training block, by default (medium)
-let SC_TRAINS = { short: 640, medium: 1280, long: 2560 };   // TC: the sender's choice; like OFDM's guard, it sets the
-let SC_TCODE = { 1280: 0, 640: 1, 2560: 2 };                 // longest room the receiver can learn, for some rate (header code)
-let SC_TAPS = { 640: [256], 1280: [512], 2560: [512, 1024] };   // rooms fitted (taps, 64 before the first strong arrival): each
+let SC_TRAINS = { short: 640, medium: 1280, long: 2560, burst: 512 };   // TC: the sender's choice; like OFDM's guard, it sets the
+let SC_TCODE = { 1280: 0, 640: 1, 2560: 2, 512: 3 };                 // longest room the receiver can learn, for some rate (header code)
+let SC_TAPS = { 640: [256], 1280: [512], 512: [512], 2560: [512, 1024] };   // rooms fitted (taps, 64 before the first strong arrival): each
                                // later TC gives TC - taps + 1 rows that see it alone, at least 1.5 taps' worth; with the long
                                // TC the receiver keeps 1024 taps when they leave less (their own error counted)
 let SC_D = 4800;            // at most this many data symbols between two training blocks
@@ -2721,10 +2722,10 @@ let SC_G = scRRC(), SC_DLY = SC_SPAN * SC_SPS;   // 60 samples: the pulse's peak
 // close together fails, 3/4 decodes. Its sizes are 7/6 the wide band's, in multiples of 32.
 const SC_BANDS = [
   { rs: SC_RS, sps: SC_SPS, fc: SC_FC, u: 1, beta: SC_BETA, span: SC_SPAN, ro: '1/3', g: SC_G, na: SC_NA, nc: SC_NC, trains: SC_TRAINS, tcode: SC_TCODE, taps: SC_TAPS, d: SC_D, relearn: SC_RELEARN_TAPS, gapMax: SC_GAP_MAX, gapEdge: SC_GAP_EDGE },
-  { rs: 96000 / 7, sps: 7, fc: 11400, u: 2, beta: 1 / 3, span: 12, ro: '1/3', g: scRRC(SC_BETA, 7), na: 1792, nc: 1792, trains: { short: 896, medium: 1792, long: 3584 }, tcode: { 1792: 0, 896: 1, 3584: 2 },
-    taps: { 896: [352], 1792: [704], 3584: [704, 1408] }, d: 6720, relearn: 2944, gapMax: 2048, gapEdge: 1200 },
-  { rs: 16000, sps: 6, fc: 11400, u: 2, beta: 1 / 7, span: 24, ro: '1/7', g: scRRC(1 / 7, 6, 24), na: 2080, nc: 2080, trains: { short: 1056, medium: 2080, long: 4192 }, tcode: { 2080: 0, 1056: 1, 4192: 2 },
-    taps: { 1056: [416], 2080: [832], 4192: [832, 1632] }, d: 7840, relearn: 3424, gapMax: 2048, gapEdge: 1200 }];   // v7.19
+  { rs: 96000 / 7, sps: 7, fc: 11400, u: 2, beta: 1 / 3, span: 12, ro: '1/3', g: scRRC(SC_BETA, 7), na: 1792, nc: 1792, trains: { short: 896, medium: 1792, long: 3584, burst: 704 }, tcode: { 1792: 0, 896: 1, 3584: 2, 704: 3 },
+    taps: { 896: [352], 1792: [704], 704: [704], 3584: [704, 1408] }, d: 6720, relearn: 2944, gapMax: 2048, gapEdge: 1200 },
+  { rs: 16000, sps: 6, fc: 11400, u: 2, beta: 1 / 7, span: 24, ro: '1/7', g: scRRC(1 / 7, 6, 24), na: 2080, nc: 2080, trains: { short: 1056, medium: 2080, long: 4192, burst: 832 }, tcode: { 2080: 0, 1056: 1, 4192: 2, 832: 3 },
+    taps: { 1056: [416], 2080: [832], 832: [832], 4192: [832, 1632] }, d: 7840, relearn: 3424, gapMax: 2048, gapEdge: 1200 }];   // v7.19
 const BAND_IX = { usual: 0, wide: 1, fast: 2 };   // v7.19: cfg.band -> SC_BANDS
 const scWideOf = nt => Math.max(0, SC_BANDS.findIndex(B => B.tcode[nt] !== undefined));   // v7.4: whether a TC of nt symbols is the wide band's (the bands' TCs differ; v7.19: the band's index, 2 the fast wide band)
 const scBandIx = wide => wide === 2 ? 2 : +!!wide;   // v7.19: wide (false, true or 2) -> SC_BANDS
@@ -2735,8 +2736,13 @@ function scSetBand(wide) {   // v7.4: the band of the single-carrier frame about
 }
 function xorshift32(seed, n) { const o = new Uint32Array(n); let x = (seed >>> 0) || 1; for (let i = 0; i < n; i++) { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; o[i] = x; } return o; }
 const SC_TSEQ = new Map();
+// Burst frames acquire the room on one long opening block. Its last nt symbols are the clock reference.
+function scPrefix(nt) {
+  const band = SC_BANDS[+scWideOf(nt)];
+  return nt === band.trains.burst ? band.trains.long - nt : band.na;
+}
 function scTraining(nt = SC_NC) {   // [TA, TC (nt symbols)] as {r, i}: QPSK exp(j pi/2 (q + 1/2)), q = the top two bits of xorshift32 seeded 0x5C0A and 0x5C0C (a shorter TC is the start of a longer one)
-  if (!SC_TSEQ.has(nt)) SC_TSEQ.set(nt, [[0x5C0A, SC_BANDS[+scWideOf(nt)].na], [0x5C0C, nt]].map(([s, n]) => {
+  if (!SC_TSEQ.has(nt)) SC_TSEQ.set(nt, [[0x5C0A, scPrefix(nt)], [0x5C0C, nt]].map(([s, n]) => {
     const q = xorshift32(s, n), r = new Float64Array(n), i = new Float64Array(n);
     for (let k = 0; k < n; k++) { const a = Math.PI / 2 * ((q[k] >>> 30) + 0.5); r[k] = Math.cos(a); i[k] = Math.sin(a); }
     return { r, i };
@@ -2750,7 +2756,7 @@ function scAxis(map) {   // a square mapping axis by axis: its levels (increasin
   return { map, amp: Float64Array.from(amp), g: Int32Array.from(g), h, width: SC_WIDTH[map] };
 }
 function scLayout(ns, nt = SC_NC) {   // training blocks and data segments as [first, end) symbol indices, and the symbols in all, for ns data symbols and a TC of nt symbols
-  const { d, na } = SC_BANDS[+scWideOf(nt)], nseg = Math.max(1, Math.ceil(ns / d)), blocks = [[0, na + nt]], segs = [];   // v7.4: in nt's band
+  const { d } = SC_BANDS[+scWideOf(nt)], na = scPrefix(nt), nseg = Math.max(1, Math.ceil(ns / d)), blocks = [[0, na + nt]], segs = [];   // v7.4: in nt's band
   let t = na + nt;
   for (let i = 0; i < nseg; i++) { const n = Math.floor(ns / nseg) + (i < ns % nseg ? 1 : 0); segs.push([t, t + n]); t += n; blocks.push([t, t + nt]); t += nt; }
   return { blocks, segs, n: t };
@@ -2762,11 +2768,11 @@ const scSeconds = (ns, nt = SC_NC) => { const B = scBand(nt); return SC_GAP + (s
 const scEcho = nt => { const B = scBand(nt); return Math.round((Math.max(...B.taps[nt]) - SC_PRE) / B.rs * 1000); };   // ms: the longest echo after the first strong arrival the receiver can learn
 const scTrainName = nt => { const t = scBand(nt).trains; return Object.keys(t).find(k => t[k] === nt); };
 const scEdges = B => [B.fc - B.rs * (1 + B.beta) / 2, B.fc + B.rs * (1 + B.beta) / 2];   // v7.4: the band's edges, Hz
-const scDesc = (map, nt = SC_NC) => { const B = scBand(nt), [lo, hi] = scEdges(B); return `single carrier at ${B.fc / 1000} kHz, ${Math.round(B.rs)} symbols/s (roll-off ${B.ro}, ${+(lo / 1000).toFixed(1)} to ${+(hi / 1000).toFixed(1)} kHz), ${OFDM_NAMES[map]}, ${scTrainName(nt)} training (${nt} symbols, echoes up to ${scEcho(nt)} ms) every ${+(B.d / B.rs).toFixed(2)} s`; };
+const scDesc = (map, nt = SC_NC) => { const B = scBand(nt), [lo, hi] = scEdges(B); return `single carrier at ${B.fc / 1000} kHz, ${Math.round(B.rs)} symbols/s (roll-off ${B.ro}, ${+(lo / 1000).toFixed(1)} to ${+(hi / 1000).toFixed(1)} kHz), ${OFDM_NAMES[map]}, ${scTrainName(nt)} training (${scPrefix(nt) + nt} opening symbols, then ${nt} per block) every ${+(B.d / B.rs).toFixed(2)} s`; };
 function scSymbols(bits, map, nt = SC_NC) {   // channel bits (padded, scrambled) -> every symbol of the part: training blocks and data
   const [pr, pim, lab] = ofdmPoints(map), m = OFDM_BITS[map], inv = []; lab.forEach((l, p) => { inv[l] = p; });
   const ns = Math.floor(bits.length / m), [ta, tc] = scTraining(nt), { blocks, segs, n } = scLayout(ns, nt), r = new Float64Array(n), i = new Float64Array(n);
-  r.set(ta.r, 0); i.set(ta.i, 0); r.set(tc.r, SC_NA); i.set(tc.i, SC_NA);
+  r.set(ta.r, 0); i.set(ta.i, 0); r.set(tc.r, ta.r.length); i.set(tc.i, ta.i.length);
   let q = 0;
   segs.forEach(([a, b], k) => {
     for (let s = a; s < b; s++) { let v = 0; for (let t = 0; t < m; t++) v = 2 * v + (bits[q++] || 0); r[s] = pr[inv[v]]; i[s] = pim[inv[v]]; }
@@ -3269,13 +3275,15 @@ function scClock0(y, fs, T0, nt, L) {
 // v5.1: a jump at sample u of the waveform p sent, which arrives near sample t of the recording y. The envelope of the
 // correlation of the recording with p's part before u, against that of its part after (cross-correlated, so the room
 // cancels): [the jump in samples of the recording, the first strong arrival of the part before].
-function scSplit(y, rho, t, p, u, back = 0) {   // v7.23: back, the first arrival's reach (scT0Back); the window reaches as far
+function scSplit(y, rho, t, p, u, back = 0, minGain = 1) {   // v7.23: back, the first arrival's reach (scT0Back); the window reaches as far
   const G = SC_GAP_MAX, B = Math.max(Math.round(SC_T0_BACK * SC_FS), back || 0), lo = t - rho * (B + G), n = 2 * B + 2 * G;
   const at = (o, m) => Float64Array.from({ length: m }, (_, k) => o + rho * k), pb = p.subarray(0, u - SC_GAP_SPAN), pq = p.subarray(u + SC_GAP_SPAN);
   const cb = scEnvXcorr(scRead(y, at(lo, n + pb.length)), pb), cq = scEnvXcorr(scRead(y, at(lo + rho * (u + SC_GAP_SPAN), n + pq.length)), pq);
   const xc = new Float64Array(2 * G + 1);   // lags -G .. G
   for (let d = -G; d <= G; d++) { let a = 0; for (let i = Math.max(0, -d); i < Math.min(cb.length, cq.length - d); i++) a += cq[i + d] * cb[i]; xc[d + G] = a; }
-  return [(scPeak(xc, scArgmax(xc)) - G) * rho, lo + rho * scPeak(cb, scFirstArrival(cb, B))];
+  const peak = scArgmax(xc);
+  const delay = xc[peak] >= minGain * xc[G] ? scPeak(xc, peak) - G : 0;
+  return [delay * rho, lo + rho * scPeak(cb, scFirstArrival(cb, B))];
 }
 // The single-carrier part of a frame whose control part ends near sample t0 of the recording y.
 // 1. Timing: the first strong arrival of the first training block (its correlation with the waveform sent): the
@@ -3440,9 +3448,9 @@ function scCGx(op, b, x0, it = 200, tol = 1e-6) {   // v7.25: scCG from the star
   }
   return x;
 }
-function scPCG(op, pre, b, it = 200, tol = 1e-6) {   // v7.25: scCG with a preconditioner pre (close to op's inverse, Hermitian positive): the same solution in fewer steps
-  const n = b.r.length, x = cvec(n), r = ccopy(b);
-  let z = pre(r), rz = cdot(r, z), rs = cdot(r, r); const p = ccopy(z), b2 = rs;
+function scPCG(op, pre, b, it = 200, tol = 1e-6, x0 = null) {   // v7.25: scCG with a preconditioner pre (close to op's inverse, Hermitian positive): the same solution in fewer steps
+  const n = b.r.length, x = x0 ? ccopy(x0) : cvec(n), r = x0 ? csub(b, op(x)) : ccopy(b);
+  let z = pre(r), rz = cdot(r, z), rs = cdot(r, r); const p = ccopy(z), b2 = x0 ? cdot(b, b) : rs;
   for (let k = 0; k < it; k++) {
     if (rs <= tol * tol * b2) break;
     const Ap = op(p), a = rz / cdot(p, Ap);
@@ -3654,12 +3662,28 @@ function scEstRound(tv, yy, good, xm, xv, st, it = 40, heads = true) {
     if (hd) for (let k = 0; k < K; k++) for (let l = 0; l < H; l++) { const ld = sc / (st.rho * s2[l]), j = L + k * H + l; o.r[j] += ld * th.r[j]; o.i[j] += ld * th.i[j]; }
     return o;
   };
-  const th = scCGx(A, pack(...tv.tapsAdj(wy(cvec(R), yy), hd)), pack(st.cb, hd ? st.ds : []), it, 1e-5), [cb, ds] = unpack(th);
+  const Jk = tv.win.map(({ ra, rb, phi }) => { let s = 0; for (let i = Math.max(ra, SC_PRE); i < Math.min(rb, SC_PRE + ntot); i++) s += w[i] * phi[i - ra] ** 2 * a2[i - SC_PRE]; return s; });
+  const rhs = pack(...tv.tapsAdj(wy(cvec(R), yy), hd)), start = pack(st.cb, hd ? st.ds : []);
+  let th;
+  if (st.burst) {
+    // Jacobi preconditioning. J is the exact data diagonal for the common room.
+    // Each short head uses its knot's information at the direct arrival.
+    const inv = new Float64Array(nth);
+    for (let l = 0; l < L; l++) inv[l] = 1 / (sc * (J[l] + 1 / s2[l]));
+    if (hd) for (let k = 0; k < K; k++) for (let l = 0; l < H; l++)
+      inv[L + k * H + l] = 1 / (sc * (Jk[k] + 1 / (st.rho * s2[l])));
+    const pre = r => {
+      const z = cvec(nth);
+      for (let j = 0; j < nth; j++) { z.r[j] = r.r[j] * inv[j]; z.i[j] = r.i[j] * inv[j]; }
+      return z;
+    };
+    th = scPCG(A, pre, rhs, Math.ceil(it / 2), 1e-5, start);
+  } else th = scCGx(A, rhs, start, it, 1e-5);
+  const [cb, ds] = unpack(th);
   st.cb = ccopy(cb);
   if (hd) st.ds = ds.map(ccopy);
   const f = tv.rows(st.cb, K ? st.ds : []), res = cvec(R);
   for (let i = 0; i < R; i++) { res.r[i] = good[i] * (yy.r[i] - f.r[i]); res.i[i] = good[i] * (yy.i[i] - f.i[i]); }
-  const Jk = tv.win.map(({ ra, rb, phi }) => { let s = 0; for (let i = Math.max(ra, SC_PRE); i < Math.min(rb, SC_PRE + ntot); i++) s += w[i] * phi[i - ra] ** 2 * a2[i - SC_PRE]; return s; });
   let pe = 0; for (let l = 0; l < L; l++) pe += J[l] * s2[l] / (1 + J[l] * s2[l]);   // the taps the rows really fit
   if (hd) for (const j of Jk) for (let l = 0; l < H; l++) pe += j * st.rho * s2[l] / (1 + j * st.rho * s2[l]);
   let nw = 0; for (let i = 0; i < R; i++) nw += wn[i] * wn[i];
@@ -3763,7 +3787,7 @@ function scWhole(x, segs, blocks, yy, good, erased, c0, N0b, map, code, n0, nc, 
   const L2 = SC_RELEARN_TAPS, H = SC_TAPS[SC_NC][0] >> 1, kn0 = blocks.map(([a, b]) => (a + b) / 2 + SC_PRE), tv = new SCTV(ntot, L2, H, kn0), R = tv.R, K = tv.win.length;
   yy = cslice(yy, 0, R); good = good.subarray(0, R);
   const Lp = c0.r.length, P = cdot(c0, c0), n1 = blocks[0][1], L1 = Math.trunc(Math.min(L2, Math.max(Lp, (n1 - Lp) / 2.5)));   // the first round: as many taps as the first block's rows carry
-  const st = { cb: cvec(L2), ds: tv.win.map(() => cvec(H)), sig2: Float64Array.from({ length: L2 }, (_, l) => l < L1 ? P / 64 : 1e-9 * P), rho: SC_RHO[0], N0: N0b, rhoMin: SC_RHO[1], pv: null };
+  const st = { burst: blocks[1][1] - blocks[1][0] === SC_TRAINS.burst, cb: cvec(L2), ds: tv.win.map(() => cvec(H)), sig2: Float64Array.from({ length: L2 }, (_, l) => l < L1 ? P / 64 : 1e-9 * P), rho: SC_RHO[0], N0: N0b, rhoMin: SC_RHO[1], pv: null };
   st.cb.r.set(c0.r); st.cb.i.set(c0.i);
   const xv0 = new Float64Array(ntot); for (let q = 0; q < ns; q++) xv0[dpos[q]] = 1;
   const g1 = Float64Array.from(good); g1.fill(0, 0, Lp);   // ... its first rows left out (what came before still echoes)
@@ -3848,6 +3872,8 @@ function scWhole(x, segs, blocks, yy, good, erased, c0, N0b, map, code, n0, nc, 
 }
 function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt = SC_NC, effort = 'fast', est = 'whole', swap = null, quick = false) {
   scSetBand(scWideOf(nt));   // v7.4: the band of a TC of nt symbols
+  const burst = nt === SC_TRAINS.burst;
+  if (burst) est = 'whole';   // echoes can cross a burst into the next segment
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), tStart = now();
   if (SC_TAIL && SC_TAIL_LAZY && !quick && swap === null && est !== 'whole') {   // v7.20: one pass without the long echo first
     const o1 = scReceive(y, fs, t0, map, code, n0, nc, det, onPass, nt, effort, est, null, true);
@@ -3857,7 +3883,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   const [steps, npass] = SC_EFFORT[effort] || SC_EFFORT.fast, nmax = quick ? 1 : npass + SC_RELEARN_PASSES;   // v7.20: the first pass alone
   let L = SC_TAPS[nt][0];
   const [ta, tc] = scTraining(nt), x = cvec(ntot);
-  x.r.set(ta.r, 0); x.i.set(ta.i, 0); for (const [b] of [[SC_NA], ...blocks.slice(1)]) { x.r.set(tc.r, b); x.i.set(tc.i, b); }
+  x.r.set(ta.r, 0); x.i.set(ta.i, 0); for (const [b] of [[ta.r.length], ...blocks.slice(1)]) { x.r.set(tc.r, b); x.i.set(tc.i, b); }
   // 1. the first block's first strong arrival: frame time 0 (the part's first sample after the silence) arrives at T0
   const tr = { r: Float64Array.from([...ta.r, ...tc.r]), i: Float64Array.from([...ta.i, ...tc.i]) }, pa = scPassband(tr);
   const lo = t0 + SC_GAP * fs - 0.03 * fs, nz = pa.length + Math.round(0.09 * SC_FS), at = (o, k0, k1) => Float64Array.from({ length: k1 - k0 }, (_, k) => o + rho * (k0 + k));
@@ -3867,7 +3893,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   // the prediction error's peak against that of the part after (the envelopes of their correlations with what was sent,
   // cross-correlated; the room cancels)
   const sw = (i, w) => swap !== null && swap[0] === i && swap[1] === w;   // the second try: [gap, 'size' or 'place']
-  const gaps0 = [], unsure = [], ub = P5 * (SC_NA + nt) + 2 * SC_DLY - SC_GAP_EDGE;   // unsure: [how unsure, [gap, what]]
+  const gaps0 = [], unsure = [], ub = P5 * blocks[0][1] + 2 * SC_DLY - SC_GAP_EDGE;   // unsure: [how unsure, [gap, what]]
   if (ub > P5 * L) {
     const [tg] = scClick(y, T0 + rho * P5 * L, T0 + rho * ub), [raw, Tb] = scSplit(y, rho, T0, pa, Math.trunc((tg - T0) / rho), scT0Back(L));
     if (Math.abs(raw) > SC_GAP_MIN) {
@@ -3880,8 +3906,8 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   }
   const J0 = t => { let a = 0; for (const [g, sz] of gaps0) if (t >= g) a += sz; return a; };
   // 2. the time map T(n) = T0 + rho (n + D(n)), D through the blocks' delays
-  const starts = [SC_NA, ...blocks.slice(1).map(b => b[0])];   // where each TC starts (symbols)
-  const w0 = SC_DLY * 2 + P5 * (L - SC_PRE), w1 = P5 * (nt - SC_PRE), NW = scN(w1 - w0), PW = scPlan(NW), kb = [];   // clean stretch of a TC, in samples after its start
+  const starts = [ta.r.length, ...blocks.slice(1).map(b => b[0])];   // where each TC starts (symbols)
+  const w0 = SC_DLY * 2 + P5 * (burst ? nt / 4 : L - SC_PRE), w1 = P5 * (nt - SC_PRE), NW = scN(w1 - w0), PW = scPlan(NW), kb = [];   // clean stretch of a TC, in samples after its start
   const [flo, fhi] = scEdges(SC_BANDS[+scWideOf(nt)]).map(Math.round);   // v7.4: 200 Hz inside the band's edges
   for (let k = 0; k <= NW / 2; k++) { const f = k * SC_FS / NW; if (f > flo + 200 && f < fhi - 200) kb.push(k); }
   const spec = w => { const r = new Float64Array(NW), i = new Float64Array(NW); r.set(w); scFFT(r, i, PW); return [Float64Array.from(kb, k => r[k]), Float64Array.from(kb, k => i[k])]; };
@@ -3889,6 +3915,19 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   const fine = (k, a0) => {   // sub-sample delay of block k near a0, and the coherence of the two blocks there
     const [Xr0, Xi0] = spec(scRead(y, at(T0 + rho * a0, P5 * starts[k] + w0, P5 * starts[k] + w1)));
     const Xr = Xr0.map((a, q) => a * F0r[q] + Xi0[q] * F0i[q]), Xi = Xr0.map((a, q) => Xi0[q] * F0r[q] - a * F0i[q]);   // times conj(F0)
+    if (burst) {
+      // The envelope peak already resolves the carrier cycle. Refine it with the phase
+      // of the same cross-spectrum. At low coherence keep the envelope estimate.
+      let re = 0, im = 0, energy = 0, moment = 0;
+      for (let q = 0; q < kb.length; q++) {
+        const weight = Math.hypot(Xr[q], Xi[q]);
+        re += Xr[q]; im += Xi[q]; energy += weight; moment += weight * kb[q];
+      }
+      const coherence = Math.hypot(re, im) / Math.max(energy, 1e-30);
+      const omega = 2 * Math.PI * moment / (NW * Math.max(energy, 1e-30));
+      const residual = -Math.atan2(im, re) / Math.max(omega, 1e-12);
+      return [coherence >= 0.6 && Math.abs(residual) <= SC_FS / FS_TX ? residual : 0, coherence];
+    }
     const ph = d => { let sr = 0, si = 0; kb.forEach((kk, q) => { const w = 2 * Math.PI * kk / NW * d, cw = Math.cos(w), sw = Math.sin(w); sr += Xr[q] * cw - Xi[q] * sw; si += Xr[q] * sw + Xi[q] * cw; }); return sr * sr + si * si; };
     let best = 0, bv = -1;
     for (let q = 0, u = SC_FS / FS_TX; q <= 200; q++) { const d = (-1 + q / 100) * u, v = ph(d); if (v > bv) { bv = v; best = d; } }
@@ -3937,7 +3976,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   {   // v5.1: a jump inside the last block's clean stretch, which no later block sees
     const tb = T0 + rho * (P5 * blocks[blocks.length - 1][0] + dk[dk.length - 1]), lo = tb + rho * w0, hi = tb + rho * (P5 * nt + 2 * SC_DLY - SC_GAP_EDGE);
     if (mk.length > 1 && hi > lo && !ks.includes(mk.length - 1)) {
-      const [tg] = scClick(y, lo, hi), [raw] = scSplit(y, rho, tb, scPassband(tc), Math.trunc((tg - tb) / rho));
+      const [tg] = scClick(y, lo, hi), [raw] = scSplit(y, rho, tb, scPassband(tc), Math.trunc((tg - tb) / rho), 0, burst ? 1.04 : 1);
       if (Math.abs(raw) > SC_GAP_MIN) {
         let sz = Math.round(raw);
         if (sw(gaps.length, 'size')) sz += raw > sz ? 1 : -1;
@@ -3976,7 +4015,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   };
   const good = new Float64Array(nrows).fill(1);   // v5.1: 0 on the rows a gap smears (row r: sample 5 (r - 64) + 60)
   for (const [g, sz] of gaps) for (let r = 0; r < nrows; r++) { const t = P5 * (r - SC_PRE) + SC_DLY; if (t > g - SC_GAP_SPAN - P5 && t < g + Math.max(0, -sz) + SC_GAP_SPAN + P5) good[r] = 0; }
-  const nA = SC_NA + nt, mask0 = new Float64Array(nA + L - 1).fill(0, 0, L).fill(1, L, nA), xA = cslice(x, 0, nA), zero = cvec(L);
+  const nA = blocks[0][1], mask0 = new Float64Array(nA + L - 1).fill(0, 0, L).fill(1, L, nA), xA = cslice(x, 0, nA), zero = cvec(L);
   for (let j = 0; j < mask0.length; j++) mask0[j] *= good[j];
   let best = null;
   const p4 = scPlan(4096), Fr = new Float64Array(4096), Fi = new Float64Array(4096);
@@ -4651,7 +4690,11 @@ function chatJpegEnvelope(file) {   // the envelope of a chat picture, or null
 function chatTextFrame(e, mode) {   // e: {group, id, seq, nick, text} -> the v7 frame
   if (mode === 'close' || mode === 'max') mode = 'fast';   // v7.21: Close by (and Max speed) sends its texts as Fast: one wide OFDM symbol (0.19 s) holds more than a text, so it is no quicker
   const env = chatPack({ ...e, kind: CHAT_KIND.text, body: chatUtf8(chatClip(e.text, CHAT_TEXT_MAX)) });
-  const f = buildFrame({ type: 'text', text: chatBytesText(env) }, chatCfg(mode)); f.chatMode = mode; return f;
+  // A noncoherent detector can follow a moving handset without a stable carrier phase.
+  const cfg = mode === 'moving' ? { mod: 4, tones: 'hop', rate: 800, pre: 127, code: 'ldpc4' } : chatCfg(mode);
+  const f = buildFrame({ type: 'text', text: chatBytesText(env) }, cfg);
+  f.chatMode = mode;
+  return f;
 }
 function chatPictureFrame(e, file, mode) {   // file: the picture's JPEG (jpegEncode)
   const f = buildFrame({ type: 'jpeg', file: chatJpeg(file, chatPack({ ...e, kind: CHAT_KIND.picture })) }, chatCfg(mode)); f.chatMode = mode; return f;
@@ -4883,6 +4926,7 @@ const myNick = () => nick || defNick;
 const okMode = m => m === 'auto' || !!CHAT_MODES[m];   // auto (chat 1.2): the mode follows the receipts
 let mode = okMode(params.get('mode')) ? params.get('mode') : store.get('mode', 'auto'); if (!okMode(mode)) mode = 'auto';
 let receiptsOn = params.has('receipts') ? params.get('receipts') !== 'off' : store.get('rcpt', '0') === '1';   // I answer messages with a receipt and leave time for the others'; off unless switched on (1.2.1: the chirps can be disturbing; a new key, so a phone that kept 1.2's setting starts off too)
+let movingText = store.get('movingText', '0') === '1';
 let picSize = CHAT_PIC[store.get('pic', 'small')] ? store.get('pic', 'small') : 'small';
 let group = Math.max(0, Math.min(255, parseInt(params.get('group') || store.get('group', '0'), 10) || 0));
 let physics = store.get('physics', '0') === '1';
@@ -4917,7 +4961,7 @@ const EMOJI = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '
   // more (the bar scrolls): single characters, 3 to 7 bytes each in a text, so a smiley costs about as much sound as a letter or two
   '😃', '😄', '😁', '😆', '😅', '🤣', '🙂', '😉', '😊', '😇', '🥰', '🤩', '😘', '😋', '😜', '🤪', '🤓', '🧐', '🤨', '😐', '😶', '🙄', '😏', '😬', '😯', '😲', '😳', '🥺', '😭', '😤', '🤬', '😱', '😨', '😰', '🤗', '🤭', '🤫', '🤤', '😷', '🤒', '🥵', '🥶', '👌', '✌️', '🤞', '🤘', '🙌', '🤝', '🤙', '☝️', '👉', '👀', '🧡', '💛', '💚', '💙', '💜', '🖤', '💔', '💯', '✨', '⭐', '🎊', '❌', '❗', '💡', '🎵', '🎧', '📶', '📡', '📱', '💻', '📷', '🔋', '⏰', '☕', '🍕', '🍰', '🌞', '🌧️', '❄️', '🌈', '🐱', '🐶', '🦊', '🐼', '🙃', '🍀'];
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CHAT_RELEASE = '1.3.0', CHAT_DATE = '24 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
+const CHAT_RELEASE = '1.4.0', CHAT_DATE = '26 November 2026';   // 1.2.3: shown under the join card and in Settings (CHAT_VER is the envelope's own version)
 {   // the line names the modem core this file was built with (its MODEM_VERSION since v7.24)
   const mv = typeof MODEM_VERSION === 'string' ? MODEM_VERSION : 'v7', md = typeof MODEM_DATE === 'string' ? MODEM_DATE : '';
   $('joinVer').textContent = $('setVer').textContent = `Chat ${CHAT_RELEASE}` + (md === CHAT_DATE ? ` · modem ${mv} · ${md}` : ` (${CHAT_DATE}) · modem ${mv}` + (md ? ` (${md})` : ''));
@@ -4976,6 +5020,7 @@ function showPhysics() { document.querySelectorAll('.phys[data-s]').forEach(p =>
 // how a frame was sent, in words
 function codeName(c) { const r = LDPC_R[c] || POLAR_R[c]; return r ? `${LDPC_R[c] ? 'LDPC' : 'polar'} ${r[0]}/${r[1]}` : TURBO_R[c] ? `turbo 1/${TURBO_R[c]}` : c; }
 function frameDesc(h) {
+  if (h.chatMode === 'moving' || (h.M === 4 && h.tones === 'hop')) return `hopping 4-FSK, ${h.rate || 800} bit/s, ${codeName(h.code)}`;
   if (h.ofdm) return `${h.ofdm[0] === 'w' ? 'wide OFDM' : 'OFDM'} ${OFDM_NAMES[h.map]} (${h.ofdm.replace(/^w/, '')} guard), ${codeName(h.code)}`;   // v7.21: wlong, wshort
   if (h.sc || h.tones === 'sc') return `single carrier ${OFDM_NAMES[h.map]}, ${codeName(h.code)}`;
   return `FSK ${h.rate || ''} bit/s`;
@@ -5088,7 +5133,7 @@ function play(x0, ctl) {   // -> a promise of true once the frame has played, fa
     };
     const next = () => { halt(); if (++k >= OUT_WAYS.length) { finish(false); return; } way = OUT_WAYS[k]; start(); };
     next();
-    setTimeout(() => finish(true), 1000 * dur + 10000);   // never hang the queue
+    setTimeout(() => finish(false), 1000 * dur + 10000);   // never hang the queue
   });
 }
 
@@ -5503,7 +5548,7 @@ function noteId(id, sent) { const q = ids.get(id) || { t: 0, sent: 0 }; q.t = Da
 const others = not => [...ids.keys()].filter(id => id !== myId && id !== not && Date.now() - ids.get(id).t < 600000);   // heard in the last 10 minutes
 const senders = () => 1 + [...ids.values()].filter(q => Date.now() - q.sent < 60000).length;
 const csLive = () => !!stream && cs.wall > 0 && Date.now() - cs.wall < 5000;
-const openWin = (it = null, boost = 1) => { if (!receiptsOn) return; win = { hold: chatReceiptHold(Math.max(1, others().length), boost), it, coll: false }; };   // it: my own message; boost: after a poll
+const openWin = (it = null, boost = 1) => { if (!receiptsOn) return; win = { start: performance.now(), hold: chatReceiptHold(Math.max(1, others().length), boost), it, coll: false }; };   // it: my own message; boost: after a poll
 function trouble() {   // sound that nobody could read while receipts were expected: several phones may have answered at once
   if (win && !win.coll) { win.coll = true; if (!win.it) win.hold += 600; }   // the message's sender may ask again (a poll): leave it the time to start
   if (DEBUG && win) console.log('unread sound among the receipts');
@@ -5542,7 +5587,7 @@ function gotReceipt(r) {   // a receipt was read: mine to drop? about a message 
     // Mine still goes, in its turn, only if the message reached me clearly worse (RCPT.tol dB less for one of the mappings)
     // and I have not told this sender about the same in the last minute
     const worse = r.ok && !!q.h.e && q.h.e.some((v, k) => v !== null && r.e[k] !== null && v + RCPT.tol < r.e[k]), t = told.get(q.id);
-    const known = !!t && Date.now() - t.t < 60000 && t.e.every((v, k) => v === null || q.h.e[k] === null || Math.abs(v - q.h.e[k]) < RCPT.tol);
+    const known = !!t && !!q.h.e && Date.now() - t.t < 60000 && t.e.every((v, k) => v === null || q.h.e[k] === null || Math.abs(v - q.h.e[k]) < RCPT.tol);
     if (worse && !known) q.wait = RCPT.t0 + RCPT.slot * q.slot; else receipts.splice(i, 1);
   }
   if (win && r.ok) win = null;
@@ -5551,6 +5596,7 @@ function gotReceipt(r) {   // a receipt was read: mine to drop? about a message 
   else for (const q of sentBySeq.values()) if (q.played && Date.now() - q.played < 20000 && q.n8 === r.n8 && chatFrameMode(q.frame).map === r.mode.map && (!it || q.played > it.played)) it = q;
   if (DEBUG) console.log('receipt read', r.ok ? 'read' : 'not read', 'by', r.nick, r.e.join('/'), it ? 'for my message ' + it.seq : 'not for me');
   if (!it) return;
+  if (r.ok) it.nacks = it.nacks.filter(n => n.by !== r.by);
   const list = r.ok ? it.acks : it.nacks, k = list.findIndex(a => a.by === r.by); if (k >= 0) list[k] = r; else list.push(r);
   chatAutoHear(A, r, it.frame.chatMode, it.item.kind !== 'text', Date.now());
   physMine(it); setTick(it, it.state);
@@ -5607,10 +5653,10 @@ function tick() {
   if (!reading) rxSelf = false; else if (!rxSelf) lastRx = now;   // 1.2.4
   const q = Math.min(now - lastBusy, live ? (cs.quietFrom === null ? 0 : 1000 * (cs.t - cs.quietFrom)) : Infinity);   // ms of quiet
   const hot = live && cs.on;   // sound right now, even a short one
-  if (win && q >= win.hold && !hot) {   // the time for receipts is over; for a message of mine that got only unreadable sound: a poll (three at most)
+  if (win && ((q >= win.hold && !hot) || now - win.start >= RCPT.life)) {   // the time for receipts is over; for a message of mine that got only unreadable sound: a poll (three at most)
     const w = win; win = null;
     if (w.it && !w.it.acks.length && !w.it.nacks.length && Date.now() - lastRcpt < 300000) { w.it.unanswered = true; physMine(w.it); setTick(w.it, w.it.state); }   // phones answer here, but none did: offer Resend
-    if (w.it && w.coll && receiptsOn && !queue.length && w.it.polls < RCPT.polls.length && !w.it.acks.length && !w.it.nacks.length) poll(w.it);
+    if (w.it && w.coll && !hot && receiptsOn && !queue.length && w.it.polls < RCPT.polls.length && !w.it.acks.length && !w.it.nacks.length) poll(w.it);
   }
   for (let i = receipts.length - 1; i >= 0; i--) if (now - receipts[i].t0 > RCPT.life) receipts.splice(i, 1);   // too late to matter
   waitTxt = '';
@@ -5642,34 +5688,46 @@ function setTick(it, s) {
   it.b.tick.textContent = got ? (a ? '✓✓' : '') + (a && n ? ' ' : '') + (n ? '⚠' : '') : { queued: '◷', wait: '◷', sending: '♪', sent: '✓', fail: '!', cancel: '✕' }[s] || '';
   it.b.tick.title = got ? [a ? `read by ${it.acks.map(r => r.nick || chatDefaultNick(r.by)).join(', ')}` : '', n ? `not read by ${it.nacks.map(r => r.nick || chatDefaultNick(r.by)).join(', ')}` : ''].filter(Boolean).join('; ')
     : { queued: 'waiting to send', wait: 'waiting for the room to be quiet', sending: 'playing now', sent: 'played', fail: 'not played', cancel: 'not sent' }[s] || '';
-  // Resend: a picture or a voice message once played (or not); a text only when it was not played or a phone could not read it
-  if (it.resend) it.resend.hidden = it.item.kind === 'text' ? !(s === 'fail' || s === 'cancel' || (s === 'sent' && (n > 0 || (it.unanswered && !it.acks.length)))) : s !== 'sent' && s !== 'fail' && s !== 'cancel';
+  if (it.resend) {
+    const canRetry = s === 'sent' || s === 'fail' || s === 'cancel';
+    it.resend.hidden = !canRetry || (it.item.kind === 'text' && a > 0 && n === 0);
+  }
 }
 function send(frame, b, item) {   // item: what is sent ({kind: 'pic' | 'voice', ...} as the send sheet had it, or {kind: 'text', text}); its again: the sequence number of the copy sent before, or null
   const again = item.again !== null, s = again ? item.again : seq;
-  const c = chatCfg(frame.chatMode), it = { frame, b, seq: s, item, n8: chatLen16(frame), acks: [], nacks: [], count: null, played: 0, polls: 0,
-    desc: (frame.note ? frame.note + ' · ' : '') + frameDesc(c.mod === 'ofdm' ? { ofdm: frame.ofdm, map: c.map, code: c.code } : { sc: true, map: c.map, code: c.code }), dur: frame.dur + PADS };
+  const it = { frame, b, seq: s, item, n8: chatLen16(frame), acks: [], nacks: [], count: null, played: 0, polls: 0,
+    desc: (frame.note ? frame.note + ' · ' : '') + frameDesc(frame), dur: frame.dur + PADS };
   physMine(it);
   sentBySeq.set(s, it); if (!again) { seq = (seq + 1) & 255; store.set('seq', seq); }
   resendBtn(it);
   setTick(it, 'queued'); queue.push(it); tick();
 }
 function resendBtn(it) {   // Resend sends my message again without picking, recording or typing it again: a picture or a voice message through the send sheet, a text at once
-  const k = it.item.kind, r = mk('button', 'resend', 'Resend'); r.type = 'button'; r.hidden = true;
-  r.setAttribute('aria-label', k === 'voice' ? 'Send this voice message again' : k === 'text' ? 'Send this message again' : 'Send this picture again');
-  r.onclick = () => k === 'voice' ? showVoice({ ...it.item, again: it.seq }) : k === 'text' ? postText(it.item.text, it.seq) : showPreview(it.item.file, it.item.w, it.item.h, it.seq);
+  const k = it.item.kind, r = mk('button', 'resend', k === 'text' ? 'Retry with hopping tones' : 'Resend'); r.type = 'button'; r.hidden = true;
+  r.setAttribute('aria-label', k === 'voice' ? 'Send this voice message again' : k === 'text' ? 'Retry this text with hopping tones' : 'Send this picture again');
+  r.onclick = () => k === 'voice' ? showVoice({ ...it.item, again: it.seq }) : k === 'text' ? retryText(it) : showPreview(it.item.file, it.item.w, it.item.h, it.seq);
   it.b.meta.prepend(r); it.resend = r;
 }
 const env = () => ({ group, id: myId, seq, nick: myNick() });
-function postText(text, again) {   // again: the sequence number of the copy sent before (phones that have it show it once), or null
-  const b = bubble({ mine: true }), e = env(); if (again !== null) e.seq = again;
+function retryText(it) {
+  if (it.resend.hidden) return;
+  if (it.item.envelope.group !== group) { banner(`Switch to group ${it.item.envelope.group} to retry this message.`); return; }
+  if (sentBySeq.get(it.seq) !== it) { banner('This message is too old to retry. Send a new text.'); return; }
+  it.frame = chatTextFrame(it.item.envelope, 'moving');
+  it.desc = frameDesc(it.frame); it.dur = it.frame.dur + PADS;
+  it.q0 = it.after = null; it.warned = it.unanswered = false; it.polls = 0; it.own = undefined;
+  physMine(it); setTick(it, 'queued'); queue.push(it); tick();
+}
+function postText(text) {
+  const b = bubble({ mine: true }), envelope = { ...env(), text };
   setText(b, text); add(b.el); chatEl.scrollTop = chatEl.scrollHeight;
-  send(chatTextFrame({ ...e, text }, mode === 'auto' ? 'robust' : mode), b, { kind: 'text', text, again });
+  const textMode = movingText ? 'moving' : mode === 'auto' ? 'robust' : mode;
+  send(chatTextFrame(envelope, textMode), b, { kind: 'text', envelope, again: null });
 }
 function sendText() {
   const t = $('txt').value.replace(/\s+$/, '');
   if (!t.trim()) return;
-  postText(chatClip(t, CHAT_TEXT_MAX), null);
+  postText(chatClip(t, CHAT_TEXT_MAX));
   $('txt').value = ''; grow(); $('emojiBar').classList.add('hidden'); $('emoBtn').setAttribute('aria-pressed', 'false');
 }
 
@@ -6003,12 +6061,13 @@ const MODE_HINT = {
 seg($('modeSeg'), mode, v => { mode = v; store.set('mode', v); if (v !== 'auto') pinMode(v); $('modeHint').textContent = MODE_HINT[v]; });
 $('modeHint').textContent = MODE_HINT[mode];
 seg($('picSeg'), picSize, v => { picSize = v; store.set('pic', v); });
-$('setBtn').onclick = () => { $('nickIn2').value = nick; $('nickIn2').placeholder = defNick; $('groupIn').value = group; $('physChk').checked = physics; $('rcptChk').checked = receiptsOn; $('settings').classList.remove('hidden'); };
+$('setBtn').onclick = () => { $('nickIn2').value = nick; $('nickIn2').placeholder = defNick; $('groupIn').value = group; $('physChk').checked = physics; $('rcptChk').checked = receiptsOn; $('movingText').checked = movingText; $('settings').classList.remove('hidden'); };
 $('meBtn').onclick = $('setBtn').onclick;
 $('setDone').onclick = () => {
   const n = chatClip($('nickIn2').value.trim(), CHAT_NICK_MAX); if (n !== nick) { nick = n; store.set('nick', nick); sys(`You are now ${myNick()}.`); }
   const g = Math.max(0, Math.min(255, parseInt($('groupIn').value, 10) || 0)); if (g !== group) { group = g; store.set('group', g); sys(group ? `Group ${group}: you read and reach only phones with the same code.` : 'Group 0, the default.'); }
   physics = $('physChk').checked; store.set('physics', physics ? 1 : 0); showPhysics();
+  movingText = $('movingText').checked; store.set('movingText', movingText ? 1 : 0);
   receiptsOn = $('rcptChk').checked; store.set('rcpt', receiptsOn ? 1 : 0); if (!receiptsOn) { win = null; receipts.length = 0; }
   showMe(); $('settings').classList.add('hidden');
 };

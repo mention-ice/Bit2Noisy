@@ -231,7 +231,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
     </div>
   </div>
   <div class="row" id="presetRow"><span class="muted">Transmission preset</span>
-    <span class="seg" id="presetSeg" role="group" aria-label="Transmission preset"><button data-v="fixed">Fixed tones</button><button data-v="classroom">Classroom</button></span>
+    <span class="seg" id="presetSeg" role="group" aria-label="Transmission preset"><button data-v="fixed">Fixed tones</button><button data-v="classroom">Classroom</button><button data-v="burst">Short pilots</button></span>
     <span class="muted" id="presetHint"></span>
   </div>
   <div class="opts" id="txOpts">
@@ -244,7 +244,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
     <span class="muted mo fk">Rate, bit/s</span><span class="seg mo fk" id="rateSeg"><button data-v="200">200</button><button data-v="400">400</button><button data-v="800">800</button><button data-v="1600">1600</button><button data-v="3200">3200</button><button data-v="6400">6400</button></span>
     <span class="muted mo of">Mapping</span><span class="seg mo of" id="mapSeg"><button class="xsc" data-v="dqpsk">DQPSK</button><button data-v="qpsk">QPSK</button><button class="xsc" data-v="8psk">8PSK</button><button data-v="16qam">16QAM</button><button data-v="64qam">64QAM</button><button data-v="256qam">256QAM</button><button class="q10" data-v="1024qam">1024QAM</button></span>
     <span class="muted mo of nsc">Guard interval</span><span class="seg mo of nsc" id="guardSeg"><button data-v="long">21 ms · 17 kbit/s</button><button data-v="short">5 ms · 20 kbit/s</button></span>
-    <span class="muted mo sco">Training, longest echo</span><span class="seg mo sco" id="trainSeg"><button data-v="short">20 ms · 68 kbit/s</button><button data-v="medium">47 ms · 61 kbit/s</button><button data-v="long">100 ms · 50 kbit/s</button></span>
+    <span class="muted mo sco">Single-carrier training</span><span class="seg mo sco" id="trainSeg"><button data-v="short">20 ms · 68 kbit/s</button><button data-v="medium">47 ms · 61 kbit/s</button><button data-v="long">100 ms · 50 kbit/s</button><button data-v="burst" title="Short pilot bursts. Requires a v7.26 receiver.">Pilot bursts</button></span>
     <span class="muted mo of">Band</span><span class="seg mo of" id="bandSeg"><button data-v="usual">3.2–16 kHz · 61 kbit/s</button><button data-v="wide">2.3–20.5 kHz · 87 kbit/s</button><button class="sco" data-v="fast" title="v7.19: 16 000 symbols/s, roll-off 1/7">2.3–20.5 kHz, roll-off 1/7 · 101 kbit/s</button></span>
     <span class="muted so">Period</span><span class="seg so" id="ordSeg"><button data-v="14">0.34 s</button><button data-v="15">0.68 s</button><button data-v="16">1.37 s</button></span>
     <span class="muted so">Periods averaged</span><span class="seg so" id="perSeg"><button data-v="1">1</button><button data-v="2">2</button><button data-v="4">4</button><button data-v="8">8</button></span>
@@ -361,7 +361,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
 
 <script id="modem-core">
 // ---- modem core (no DOM): shared by the page and the offline tests ----
-const MODEM_VERSION = 'v7.25', MODEM_DATE = '26 November 2026';   // shown at the foot of the pages (v7.24)
+const MODEM_VERSION = 'v7.26', MODEM_DATE = '26 November 2026';   // shown at the foot of the pages (v7.24)
 // © 2026 Sheng Yang. All rights reserved.
 const PILOT = Array.from("0000000111111011111001111010111000011011101001100010101100000101111000111011011001001010010000100111001011010001000110011010101", Number);
 // Longer preambles for longer distances: maximum-length sequences of 255 and 511 bits (the 127-bit one is unchanged)
@@ -1418,7 +1418,7 @@ function headerBits(h) {   // 6400 bit/s: tone set 3, rate field 3; OFDM: tone s
   const ld = TYPE3_CODES.indexOf(h.code), c = ld >= 0 ? ld : h.code === LDPC56 ? (h.sc && h.wide ? 2 : 7) : CODES.indexOf(h.code), type = ld >= 0 ? (h.sc && h.wide ? 2 : 3) : h.type, wm = h.ofdm ? OFDM_WMODES.findIndex(m => m.name === h.ofdm) : -1, om = h.ofdm ? (wm >= 0 ? wm : OFDM_MODES.findIndex(m => m.name === h.ofdm)) : -1, wide = h.rate === RATE_WIDE, coh = om >= 0 || !!h.sc;
   const t = wide || coh ? 3 : TONE_SETS.indexOf(h.tones), four = h.mod === 4 || coh;
   if (h.sc && h.wide && ld < 0 && h.code !== LDPC56) throw new Error('the wide band takes an LDPC or a polar code');   // v7.4
-  const B = SC_BANDS[h.sc ? scBandIx(h.wide) : 0], T = h.sc ? B.tcode[h.train || B.nc] : 0;   // v5, single carrier: the training length, 0 medium, 1 short, 2 long
+  const B = SC_BANDS[h.sc ? scBandIx(h.wide) : 0], T = h.sc ? B.tcode[h.train || B.nc] : 0;   // v5, single carrier: the training length, 0 medium, 1 short, 2 long, 3 burst
   const v = [...msb(type, 2), ...msb(h.a | (T >> 1) << 10, 11), ...msb(h.b | (T & 1) << 10, 11), ...msb(c & 3, 2),
              ...msb(h.sc ? SC_FIELD : om >= 0 ? om : wide ? 3 : (four ? RATES4 : RATES).indexOf(h.rate), 2), ...msb(four ? 3 : t, 2), ...msb(four ? t : 0, 2)];
   const mask = (c >> 2 ? 0xff : 0) ^ (coh ? OFDM_MASKS[Math.max(0, OFDM_MAPS.indexOf(h.sc || wm >= 0 ? SC_SLOT[h.map] || h.map : h.map))] : 0) ^ (h.sc && h.wide === 2 ? SC_FAST_MASK : 0) ^ (wm >= 0 ? OFDM_WIDE_MASK : 0);   // v7.21: wide OFDM   // v7.19: the fast wide band   // v4: the mapping's mask (OFDM, and the single carrier in v5; v7.5: 1024QAM in 8PSK's place)
@@ -1632,7 +1632,7 @@ function parseHeader(hb) {   // hb: the 40 decoded header bits; null unless the 
   const tones = ofdm ? 'ofdm' : sc ? 'sc' : set3 ? 'hop' : TONE_SETS[four ? val(30, 2) : tf];
   if (!tones || !rate || !code || (!four && val(30, 2)) || (mi && !ofdm && !sc) || (fast && !scw && !ofdm)) return null;   // a mapping mask on anything but OFDM or the single carrier: not ours
   const scMap = Object.keys(SC_SLOT).find(k => SC_SLOT[k] === OFDM_MAPS[mi]) || OFDM_MAPS[mi];   // v7.5: on the single carrier, 8PSK's mask = 1024QAM
-  if (sc && (T === 3 || !SC_MAPS.includes(scMap) || !SC_CODES.includes(code))) return null;   // the single carrier: QPSK to 1024QAM, turbo, LDPC or polar codes
+  if (sc && (!SC_MAPS.includes(scMap) || !SC_CODES.includes(code))) return null;   // the single carrier: QPSK to 1024QAM, turbo, LDPC or polar codes
   if (ofdm && ofdm.wide && (!OFDM_WMAPS.includes(scMap) || !WIDE_CODES.includes(code))) return null;   // v7.21: wide OFDM (the fast masks on OFDM's rate fields), QPSK to 1024QAM, LDPC or polar codes
   let h = null;
   if (type === 0 && a >= 1 && b === 0) h = { type: 'text', len: a, n0: 8 * a };
@@ -2636,9 +2636,9 @@ const SC_TAIL_WAIT = 0.25;    // v7.14: seconds the receiver waits after a singl
                                // last block (SC_RELEARN_TAPS - 1 rows, 0.21 s), which the long echo's fit and the second try use as the script does
 let SC_NA = 1280;           // TA: the first block's own training, before its TC
 let SC_NC = 1280;           // TC, the training block, by default (medium)
-let SC_TRAINS = { short: 640, medium: 1280, long: 2560 };   // TC: the sender's choice; like OFDM's guard, it sets the
-let SC_TCODE = { 1280: 0, 640: 1, 2560: 2 };                 // longest room the receiver can learn, for some rate (header code)
-let SC_TAPS = { 640: [256], 1280: [512], 2560: [512, 1024] };   // rooms fitted (taps, 64 before the first strong arrival): each
+let SC_TRAINS = { short: 640, medium: 1280, long: 2560, burst: 512 };   // TC: the sender's choice; like OFDM's guard, it sets the
+let SC_TCODE = { 1280: 0, 640: 1, 2560: 2, 512: 3 };                 // longest room the receiver can learn, for some rate (header code)
+let SC_TAPS = { 640: [256], 1280: [512], 512: [512], 2560: [512, 1024] };   // rooms fitted (taps, 64 before the first strong arrival): each
                                // later TC gives TC - taps + 1 rows that see it alone, at least 1.5 taps' worth; with the long
                                // TC the receiver keeps 1024 taps when they leave less (their own error counted)
 let SC_D = 4800;            // at most this many data symbols between two training blocks
@@ -2728,10 +2728,10 @@ let SC_G = scRRC(), SC_DLY = SC_SPAN * SC_SPS;   // 60 samples: the pulse's peak
 // close together fails, 3/4 decodes. Its sizes are 7/6 the wide band's, in multiples of 32.
 const SC_BANDS = [
   { rs: SC_RS, sps: SC_SPS, fc: SC_FC, u: 1, beta: SC_BETA, span: SC_SPAN, ro: '1/3', g: SC_G, na: SC_NA, nc: SC_NC, trains: SC_TRAINS, tcode: SC_TCODE, taps: SC_TAPS, d: SC_D, relearn: SC_RELEARN_TAPS, gapMax: SC_GAP_MAX, gapEdge: SC_GAP_EDGE },
-  { rs: 96000 / 7, sps: 7, fc: 11400, u: 2, beta: 1 / 3, span: 12, ro: '1/3', g: scRRC(SC_BETA, 7), na: 1792, nc: 1792, trains: { short: 896, medium: 1792, long: 3584 }, tcode: { 1792: 0, 896: 1, 3584: 2 },
-    taps: { 896: [352], 1792: [704], 3584: [704, 1408] }, d: 6720, relearn: 2944, gapMax: 2048, gapEdge: 1200 },
-  { rs: 16000, sps: 6, fc: 11400, u: 2, beta: 1 / 7, span: 24, ro: '1/7', g: scRRC(1 / 7, 6, 24), na: 2080, nc: 2080, trains: { short: 1056, medium: 2080, long: 4192 }, tcode: { 2080: 0, 1056: 1, 4192: 2 },
-    taps: { 1056: [416], 2080: [832], 4192: [832, 1632] }, d: 7840, relearn: 3424, gapMax: 2048, gapEdge: 1200 }];   // v7.19
+  { rs: 96000 / 7, sps: 7, fc: 11400, u: 2, beta: 1 / 3, span: 12, ro: '1/3', g: scRRC(SC_BETA, 7), na: 1792, nc: 1792, trains: { short: 896, medium: 1792, long: 3584, burst: 704 }, tcode: { 1792: 0, 896: 1, 3584: 2, 704: 3 },
+    taps: { 896: [352], 1792: [704], 704: [704], 3584: [704, 1408] }, d: 6720, relearn: 2944, gapMax: 2048, gapEdge: 1200 },
+  { rs: 16000, sps: 6, fc: 11400, u: 2, beta: 1 / 7, span: 24, ro: '1/7', g: scRRC(1 / 7, 6, 24), na: 2080, nc: 2080, trains: { short: 1056, medium: 2080, long: 4192, burst: 832 }, tcode: { 2080: 0, 1056: 1, 4192: 2, 832: 3 },
+    taps: { 1056: [416], 2080: [832], 832: [832], 4192: [832, 1632] }, d: 7840, relearn: 3424, gapMax: 2048, gapEdge: 1200 }];   // v7.19
 const BAND_IX = { usual: 0, wide: 1, fast: 2 };   // v7.19: cfg.band -> SC_BANDS
 const scWideOf = nt => Math.max(0, SC_BANDS.findIndex(B => B.tcode[nt] !== undefined));   // v7.4: whether a TC of nt symbols is the wide band's (the bands' TCs differ; v7.19: the band's index, 2 the fast wide band)
 const scBandIx = wide => wide === 2 ? 2 : +!!wide;   // v7.19: wide (false, true or 2) -> SC_BANDS
@@ -2742,8 +2742,13 @@ function scSetBand(wide) {   // v7.4: the band of the single-carrier frame about
 }
 function xorshift32(seed, n) { const o = new Uint32Array(n); let x = (seed >>> 0) || 1; for (let i = 0; i < n; i++) { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; o[i] = x; } return o; }
 const SC_TSEQ = new Map();
+// Burst frames acquire the room on one long opening block. Its last nt symbols are the clock reference.
+function scPrefix(nt) {
+  const band = SC_BANDS[+scWideOf(nt)];
+  return nt === band.trains.burst ? band.trains.long - nt : band.na;
+}
 function scTraining(nt = SC_NC) {   // [TA, TC (nt symbols)] as {r, i}: QPSK exp(j pi/2 (q + 1/2)), q = the top two bits of xorshift32 seeded 0x5C0A and 0x5C0C (a shorter TC is the start of a longer one)
-  if (!SC_TSEQ.has(nt)) SC_TSEQ.set(nt, [[0x5C0A, SC_BANDS[+scWideOf(nt)].na], [0x5C0C, nt]].map(([s, n]) => {
+  if (!SC_TSEQ.has(nt)) SC_TSEQ.set(nt, [[0x5C0A, scPrefix(nt)], [0x5C0C, nt]].map(([s, n]) => {
     const q = xorshift32(s, n), r = new Float64Array(n), i = new Float64Array(n);
     for (let k = 0; k < n; k++) { const a = Math.PI / 2 * ((q[k] >>> 30) + 0.5); r[k] = Math.cos(a); i[k] = Math.sin(a); }
     return { r, i };
@@ -2757,7 +2762,7 @@ function scAxis(map) {   // a square mapping axis by axis: its levels (increasin
   return { map, amp: Float64Array.from(amp), g: Int32Array.from(g), h, width: SC_WIDTH[map] };
 }
 function scLayout(ns, nt = SC_NC) {   // training blocks and data segments as [first, end) symbol indices, and the symbols in all, for ns data symbols and a TC of nt symbols
-  const { d, na } = SC_BANDS[+scWideOf(nt)], nseg = Math.max(1, Math.ceil(ns / d)), blocks = [[0, na + nt]], segs = [];   // v7.4: in nt's band
+  const { d } = SC_BANDS[+scWideOf(nt)], na = scPrefix(nt), nseg = Math.max(1, Math.ceil(ns / d)), blocks = [[0, na + nt]], segs = [];   // v7.4: in nt's band
   let t = na + nt;
   for (let i = 0; i < nseg; i++) { const n = Math.floor(ns / nseg) + (i < ns % nseg ? 1 : 0); segs.push([t, t + n]); t += n; blocks.push([t, t + nt]); t += nt; }
   return { blocks, segs, n: t };
@@ -2769,11 +2774,11 @@ const scSeconds = (ns, nt = SC_NC) => { const B = scBand(nt); return SC_GAP + (s
 const scEcho = nt => { const B = scBand(nt); return Math.round((Math.max(...B.taps[nt]) - SC_PRE) / B.rs * 1000); };   // ms: the longest echo after the first strong arrival the receiver can learn
 const scTrainName = nt => { const t = scBand(nt).trains; return Object.keys(t).find(k => t[k] === nt); };
 const scEdges = B => [B.fc - B.rs * (1 + B.beta) / 2, B.fc + B.rs * (1 + B.beta) / 2];   // v7.4: the band's edges, Hz
-const scDesc = (map, nt = SC_NC) => { const B = scBand(nt), [lo, hi] = scEdges(B); return `single carrier at ${B.fc / 1000} kHz, ${Math.round(B.rs)} symbols/s (roll-off ${B.ro}, ${+(lo / 1000).toFixed(1)} to ${+(hi / 1000).toFixed(1)} kHz), ${OFDM_NAMES[map]}, ${scTrainName(nt)} training (${nt} symbols, echoes up to ${scEcho(nt)} ms) every ${+(B.d / B.rs).toFixed(2)} s`; };
+const scDesc = (map, nt = SC_NC) => { const B = scBand(nt), [lo, hi] = scEdges(B); return `single carrier at ${B.fc / 1000} kHz, ${Math.round(B.rs)} symbols/s (roll-off ${B.ro}, ${+(lo / 1000).toFixed(1)} to ${+(hi / 1000).toFixed(1)} kHz), ${OFDM_NAMES[map]}, ${scTrainName(nt)} training (${scPrefix(nt) + nt} opening symbols, then ${nt} per block) every ${+(B.d / B.rs).toFixed(2)} s`; };
 function scSymbols(bits, map, nt = SC_NC) {   // channel bits (padded, scrambled) -> every symbol of the part: training blocks and data
   const [pr, pim, lab] = ofdmPoints(map), m = OFDM_BITS[map], inv = []; lab.forEach((l, p) => { inv[l] = p; });
   const ns = Math.floor(bits.length / m), [ta, tc] = scTraining(nt), { blocks, segs, n } = scLayout(ns, nt), r = new Float64Array(n), i = new Float64Array(n);
-  r.set(ta.r, 0); i.set(ta.i, 0); r.set(tc.r, SC_NA); i.set(tc.i, SC_NA);
+  r.set(ta.r, 0); i.set(ta.i, 0); r.set(tc.r, ta.r.length); i.set(tc.i, ta.i.length);
   let q = 0;
   segs.forEach(([a, b], k) => {
     for (let s = a; s < b; s++) { let v = 0; for (let t = 0; t < m; t++) v = 2 * v + (bits[q++] || 0); r[s] = pr[inv[v]]; i[s] = pim[inv[v]]; }
@@ -3276,13 +3281,15 @@ function scClock0(y, fs, T0, nt, L) {
 // v5.1: a jump at sample u of the waveform p sent, which arrives near sample t of the recording y. The envelope of the
 // correlation of the recording with p's part before u, against that of its part after (cross-correlated, so the room
 // cancels): [the jump in samples of the recording, the first strong arrival of the part before].
-function scSplit(y, rho, t, p, u, back = 0) {   // v7.23: back, the first arrival's reach (scT0Back); the window reaches as far
+function scSplit(y, rho, t, p, u, back = 0, minGain = 1) {   // v7.23: back, the first arrival's reach (scT0Back); the window reaches as far
   const G = SC_GAP_MAX, B = Math.max(Math.round(SC_T0_BACK * SC_FS), back || 0), lo = t - rho * (B + G), n = 2 * B + 2 * G;
   const at = (o, m) => Float64Array.from({ length: m }, (_, k) => o + rho * k), pb = p.subarray(0, u - SC_GAP_SPAN), pq = p.subarray(u + SC_GAP_SPAN);
   const cb = scEnvXcorr(scRead(y, at(lo, n + pb.length)), pb), cq = scEnvXcorr(scRead(y, at(lo + rho * (u + SC_GAP_SPAN), n + pq.length)), pq);
   const xc = new Float64Array(2 * G + 1);   // lags -G .. G
   for (let d = -G; d <= G; d++) { let a = 0; for (let i = Math.max(0, -d); i < Math.min(cb.length, cq.length - d); i++) a += cq[i + d] * cb[i]; xc[d + G] = a; }
-  return [(scPeak(xc, scArgmax(xc)) - G) * rho, lo + rho * scPeak(cb, scFirstArrival(cb, B))];
+  const peak = scArgmax(xc);
+  const delay = xc[peak] >= minGain * xc[G] ? scPeak(xc, peak) - G : 0;
+  return [delay * rho, lo + rho * scPeak(cb, scFirstArrival(cb, B))];
 }
 // The single-carrier part of a frame whose control part ends near sample t0 of the recording y.
 // 1. Timing: the first strong arrival of the first training block (its correlation with the waveform sent): the
@@ -3447,9 +3454,9 @@ function scCGx(op, b, x0, it = 200, tol = 1e-6) {   // v7.25: scCG from the star
   }
   return x;
 }
-function scPCG(op, pre, b, it = 200, tol = 1e-6) {   // v7.25: scCG with a preconditioner pre (close to op's inverse, Hermitian positive): the same solution in fewer steps
-  const n = b.r.length, x = cvec(n), r = ccopy(b);
-  let z = pre(r), rz = cdot(r, z), rs = cdot(r, r); const p = ccopy(z), b2 = rs;
+function scPCG(op, pre, b, it = 200, tol = 1e-6, x0 = null) {   // v7.25: scCG with a preconditioner pre (close to op's inverse, Hermitian positive): the same solution in fewer steps
+  const n = b.r.length, x = x0 ? ccopy(x0) : cvec(n), r = x0 ? csub(b, op(x)) : ccopy(b);
+  let z = pre(r), rz = cdot(r, z), rs = cdot(r, r); const p = ccopy(z), b2 = x0 ? cdot(b, b) : rs;
   for (let k = 0; k < it; k++) {
     if (rs <= tol * tol * b2) break;
     const Ap = op(p), a = rz / cdot(p, Ap);
@@ -3661,12 +3668,28 @@ function scEstRound(tv, yy, good, xm, xv, st, it = 40, heads = true) {
     if (hd) for (let k = 0; k < K; k++) for (let l = 0; l < H; l++) { const ld = sc / (st.rho * s2[l]), j = L + k * H + l; o.r[j] += ld * th.r[j]; o.i[j] += ld * th.i[j]; }
     return o;
   };
-  const th = scCGx(A, pack(...tv.tapsAdj(wy(cvec(R), yy), hd)), pack(st.cb, hd ? st.ds : []), it, 1e-5), [cb, ds] = unpack(th);
+  const Jk = tv.win.map(({ ra, rb, phi }) => { let s = 0; for (let i = Math.max(ra, SC_PRE); i < Math.min(rb, SC_PRE + ntot); i++) s += w[i] * phi[i - ra] ** 2 * a2[i - SC_PRE]; return s; });
+  const rhs = pack(...tv.tapsAdj(wy(cvec(R), yy), hd)), start = pack(st.cb, hd ? st.ds : []);
+  let th;
+  if (st.burst) {
+    // Jacobi preconditioning. J is the exact data diagonal for the common room.
+    // Each short head uses its knot's information at the direct arrival.
+    const inv = new Float64Array(nth);
+    for (let l = 0; l < L; l++) inv[l] = 1 / (sc * (J[l] + 1 / s2[l]));
+    if (hd) for (let k = 0; k < K; k++) for (let l = 0; l < H; l++)
+      inv[L + k * H + l] = 1 / (sc * (Jk[k] + 1 / (st.rho * s2[l])));
+    const pre = r => {
+      const z = cvec(nth);
+      for (let j = 0; j < nth; j++) { z.r[j] = r.r[j] * inv[j]; z.i[j] = r.i[j] * inv[j]; }
+      return z;
+    };
+    th = scPCG(A, pre, rhs, Math.ceil(it / 2), 1e-5, start);
+  } else th = scCGx(A, rhs, start, it, 1e-5);
+  const [cb, ds] = unpack(th);
   st.cb = ccopy(cb);
   if (hd) st.ds = ds.map(ccopy);
   const f = tv.rows(st.cb, K ? st.ds : []), res = cvec(R);
   for (let i = 0; i < R; i++) { res.r[i] = good[i] * (yy.r[i] - f.r[i]); res.i[i] = good[i] * (yy.i[i] - f.i[i]); }
-  const Jk = tv.win.map(({ ra, rb, phi }) => { let s = 0; for (let i = Math.max(ra, SC_PRE); i < Math.min(rb, SC_PRE + ntot); i++) s += w[i] * phi[i - ra] ** 2 * a2[i - SC_PRE]; return s; });
   let pe = 0; for (let l = 0; l < L; l++) pe += J[l] * s2[l] / (1 + J[l] * s2[l]);   // the taps the rows really fit
   if (hd) for (const j of Jk) for (let l = 0; l < H; l++) pe += j * st.rho * s2[l] / (1 + j * st.rho * s2[l]);
   let nw = 0; for (let i = 0; i < R; i++) nw += wn[i] * wn[i];
@@ -3770,7 +3793,7 @@ function scWhole(x, segs, blocks, yy, good, erased, c0, N0b, map, code, n0, nc, 
   const L2 = SC_RELEARN_TAPS, H = SC_TAPS[SC_NC][0] >> 1, kn0 = blocks.map(([a, b]) => (a + b) / 2 + SC_PRE), tv = new SCTV(ntot, L2, H, kn0), R = tv.R, K = tv.win.length;
   yy = cslice(yy, 0, R); good = good.subarray(0, R);
   const Lp = c0.r.length, P = cdot(c0, c0), n1 = blocks[0][1], L1 = Math.trunc(Math.min(L2, Math.max(Lp, (n1 - Lp) / 2.5)));   // the first round: as many taps as the first block's rows carry
-  const st = { cb: cvec(L2), ds: tv.win.map(() => cvec(H)), sig2: Float64Array.from({ length: L2 }, (_, l) => l < L1 ? P / 64 : 1e-9 * P), rho: SC_RHO[0], N0: N0b, rhoMin: SC_RHO[1], pv: null };
+  const st = { burst: blocks[1][1] - blocks[1][0] === SC_TRAINS.burst, cb: cvec(L2), ds: tv.win.map(() => cvec(H)), sig2: Float64Array.from({ length: L2 }, (_, l) => l < L1 ? P / 64 : 1e-9 * P), rho: SC_RHO[0], N0: N0b, rhoMin: SC_RHO[1], pv: null };
   st.cb.r.set(c0.r); st.cb.i.set(c0.i);
   const xv0 = new Float64Array(ntot); for (let q = 0; q < ns; q++) xv0[dpos[q]] = 1;
   const g1 = Float64Array.from(good); g1.fill(0, 0, Lp);   // ... its first rows left out (what came before still echoes)
@@ -3855,6 +3878,8 @@ function scWhole(x, segs, blocks, yy, good, erased, c0, N0b, map, code, n0, nc, 
 }
 function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt = SC_NC, effort = 'fast', est = 'whole', swap = null, quick = false) {
   scSetBand(scWideOf(nt));   // v7.4: the band of a TC of nt symbols
+  const burst = nt === SC_TRAINS.burst;
+  if (burst) est = 'whole';   // echoes can cross a burst into the next segment
   const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), tStart = now();
   if (SC_TAIL && SC_TAIL_LAZY && !quick && swap === null && est !== 'whole') {   // v7.20: one pass without the long echo first
     const o1 = scReceive(y, fs, t0, map, code, n0, nc, det, onPass, nt, effort, est, null, true);
@@ -3864,7 +3889,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   const [steps, npass] = SC_EFFORT[effort] || SC_EFFORT.fast, nmax = quick ? 1 : npass + SC_RELEARN_PASSES;   // v7.20: the first pass alone
   let L = SC_TAPS[nt][0];
   const [ta, tc] = scTraining(nt), x = cvec(ntot);
-  x.r.set(ta.r, 0); x.i.set(ta.i, 0); for (const [b] of [[SC_NA], ...blocks.slice(1)]) { x.r.set(tc.r, b); x.i.set(tc.i, b); }
+  x.r.set(ta.r, 0); x.i.set(ta.i, 0); for (const [b] of [[ta.r.length], ...blocks.slice(1)]) { x.r.set(tc.r, b); x.i.set(tc.i, b); }
   // 1. the first block's first strong arrival: frame time 0 (the part's first sample after the silence) arrives at T0
   const tr = { r: Float64Array.from([...ta.r, ...tc.r]), i: Float64Array.from([...ta.i, ...tc.i]) }, pa = scPassband(tr);
   const lo = t0 + SC_GAP * fs - 0.03 * fs, nz = pa.length + Math.round(0.09 * SC_FS), at = (o, k0, k1) => Float64Array.from({ length: k1 - k0 }, (_, k) => o + rho * (k0 + k));
@@ -3874,7 +3899,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   // the prediction error's peak against that of the part after (the envelopes of their correlations with what was sent,
   // cross-correlated; the room cancels)
   const sw = (i, w) => swap !== null && swap[0] === i && swap[1] === w;   // the second try: [gap, 'size' or 'place']
-  const gaps0 = [], unsure = [], ub = P5 * (SC_NA + nt) + 2 * SC_DLY - SC_GAP_EDGE;   // unsure: [how unsure, [gap, what]]
+  const gaps0 = [], unsure = [], ub = P5 * blocks[0][1] + 2 * SC_DLY - SC_GAP_EDGE;   // unsure: [how unsure, [gap, what]]
   if (ub > P5 * L) {
     const [tg] = scClick(y, T0 + rho * P5 * L, T0 + rho * ub), [raw, Tb] = scSplit(y, rho, T0, pa, Math.trunc((tg - T0) / rho), scT0Back(L));
     if (Math.abs(raw) > SC_GAP_MIN) {
@@ -3887,8 +3912,8 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   }
   const J0 = t => { let a = 0; for (const [g, sz] of gaps0) if (t >= g) a += sz; return a; };
   // 2. the time map T(n) = T0 + rho (n + D(n)), D through the blocks' delays
-  const starts = [SC_NA, ...blocks.slice(1).map(b => b[0])];   // where each TC starts (symbols)
-  const w0 = SC_DLY * 2 + P5 * (L - SC_PRE), w1 = P5 * (nt - SC_PRE), NW = scN(w1 - w0), PW = scPlan(NW), kb = [];   // clean stretch of a TC, in samples after its start
+  const starts = [ta.r.length, ...blocks.slice(1).map(b => b[0])];   // where each TC starts (symbols)
+  const w0 = SC_DLY * 2 + P5 * (burst ? nt / 4 : L - SC_PRE), w1 = P5 * (nt - SC_PRE), NW = scN(w1 - w0), PW = scPlan(NW), kb = [];   // clean stretch of a TC, in samples after its start
   const [flo, fhi] = scEdges(SC_BANDS[+scWideOf(nt)]).map(Math.round);   // v7.4: 200 Hz inside the band's edges
   for (let k = 0; k <= NW / 2; k++) { const f = k * SC_FS / NW; if (f > flo + 200 && f < fhi - 200) kb.push(k); }
   const spec = w => { const r = new Float64Array(NW), i = new Float64Array(NW); r.set(w); scFFT(r, i, PW); return [Float64Array.from(kb, k => r[k]), Float64Array.from(kb, k => i[k])]; };
@@ -3896,6 +3921,19 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   const fine = (k, a0) => {   // sub-sample delay of block k near a0, and the coherence of the two blocks there
     const [Xr0, Xi0] = spec(scRead(y, at(T0 + rho * a0, P5 * starts[k] + w0, P5 * starts[k] + w1)));
     const Xr = Xr0.map((a, q) => a * F0r[q] + Xi0[q] * F0i[q]), Xi = Xr0.map((a, q) => Xi0[q] * F0r[q] - a * F0i[q]);   // times conj(F0)
+    if (burst) {
+      // The envelope peak already resolves the carrier cycle. Refine it with the phase
+      // of the same cross-spectrum. At low coherence keep the envelope estimate.
+      let re = 0, im = 0, energy = 0, moment = 0;
+      for (let q = 0; q < kb.length; q++) {
+        const weight = Math.hypot(Xr[q], Xi[q]);
+        re += Xr[q]; im += Xi[q]; energy += weight; moment += weight * kb[q];
+      }
+      const coherence = Math.hypot(re, im) / Math.max(energy, 1e-30);
+      const omega = 2 * Math.PI * moment / (NW * Math.max(energy, 1e-30));
+      const residual = -Math.atan2(im, re) / Math.max(omega, 1e-12);
+      return [coherence >= 0.6 && Math.abs(residual) <= SC_FS / FS_TX ? residual : 0, coherence];
+    }
     const ph = d => { let sr = 0, si = 0; kb.forEach((kk, q) => { const w = 2 * Math.PI * kk / NW * d, cw = Math.cos(w), sw = Math.sin(w); sr += Xr[q] * cw - Xi[q] * sw; si += Xr[q] * sw + Xi[q] * cw; }); return sr * sr + si * si; };
     let best = 0, bv = -1;
     for (let q = 0, u = SC_FS / FS_TX; q <= 200; q++) { const d = (-1 + q / 100) * u, v = ph(d); if (v > bv) { bv = v; best = d; } }
@@ -3944,7 +3982,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   {   // v5.1: a jump inside the last block's clean stretch, which no later block sees
     const tb = T0 + rho * (P5 * blocks[blocks.length - 1][0] + dk[dk.length - 1]), lo = tb + rho * w0, hi = tb + rho * (P5 * nt + 2 * SC_DLY - SC_GAP_EDGE);
     if (mk.length > 1 && hi > lo && !ks.includes(mk.length - 1)) {
-      const [tg] = scClick(y, lo, hi), [raw] = scSplit(y, rho, tb, scPassband(tc), Math.trunc((tg - tb) / rho));
+      const [tg] = scClick(y, lo, hi), [raw] = scSplit(y, rho, tb, scPassband(tc), Math.trunc((tg - tb) / rho), 0, burst ? 1.04 : 1);
       if (Math.abs(raw) > SC_GAP_MIN) {
         let sz = Math.round(raw);
         if (sw(gaps.length, 'size')) sz += raw > sz ? 1 : -1;
@@ -3983,7 +4021,7 @@ function scReceive(y, fs, t0, map, code, n0, nc, det = 'smap', onPass = null, nt
   };
   const good = new Float64Array(nrows).fill(1);   // v5.1: 0 on the rows a gap smears (row r: sample 5 (r - 64) + 60)
   for (const [g, sz] of gaps) for (let r = 0; r < nrows; r++) { const t = P5 * (r - SC_PRE) + SC_DLY; if (t > g - SC_GAP_SPAN - P5 && t < g + Math.max(0, -sz) + SC_GAP_SPAN + P5) good[r] = 0; }
-  const nA = SC_NA + nt, mask0 = new Float64Array(nA + L - 1).fill(0, 0, L).fill(1, L, nA), xA = cslice(x, 0, nA), zero = cvec(L);
+  const nA = blocks[0][1], mask0 = new Float64Array(nA + L - 1).fill(0, 0, L).fill(1, L, nA), xA = cslice(x, 0, nA), zero = cvec(L);
   for (let j = 0; j < mask0.length; j++) mask0[j] *= good[j];
   let best = null;
   const p4 = scPlan(4096), Fr = new Float64Array(4096), Fi = new Float64Array(4096);
@@ -4602,7 +4640,7 @@ const cfg = { mod: MOD0, tones: TONE_SETS.includes(params.get('tones')) ? params
               guard: params.get('guard') === 'short' ? 'short' : 'long',   // OFDM: the long (21 ms) or the short (5 ms) guard interval
               map: [...OFDM_MAPS, '1024qam'].includes(params.get('map')) ? params.get('map') : 'dqpsk',   // v7.5: 1024QAM, single carrier only
               det: params.get('det') === 'lmmse' ? 'lmmse' : 'smap',   // v5: the single carrier's detector (receiver)
-              train: ['short', 'long'].includes(params.get('train')) ? params.get('train') : 'medium',   // v5: its training (sender)
+              train: ['short', 'long', 'burst'].includes(params.get('train')) ? params.get('train') : 'medium',   // v5: its training (sender)
               band: ['wide', 'fast'].includes(params.get('band')) ? params.get('band') : 'usual',   // v7.4: its band, 3.2 to 16 or 2.3 to 20.5 kHz (sender; v7.19: fast, 16 000 symbols/s)
               effort: params.get('effort') === 'full' ? 'full' : 'fast',   // v5: SMAP's steps and the passes (receiver)
               est: ['ls', 'mmse'].includes(params.get('est')) ? params.get('est') : 'whole',   // v5: the room's estimate (receiver); v7.25: one room for the whole part, or v7.24's per block (least squares or MMSE)
@@ -4662,16 +4700,17 @@ const TX_HINT = {   // under the transmitter's options: what the modulation chos
   2: 'Binary FSK: one tone per bit, the low one for 0, the high one for 1. A lower rate, a longer preamble or 4 tones reach farther; in a reverberant room, beyond a few metres, use Hopping. Receivers need no settings: each frame\'s header tells them.',
   4: '4-FSK: one of four tones per symbol, 2 bits each (Gray-coded). At the same bit rate, a symbol lasts twice as long as with 2 tones and gathers twice the energy, so it reaches farther. In a reverberant room use Hopping; 6400 bit/s fills the whole band. Receivers need no settings: each frame\'s header tells them.',
   ofdm: 'OFDM: hundreds of subcarriers at once, far faster than FSK (the rates shown are before the code): use it with a code. Echo longer than the guard acts as noise, so take the long guard in a reverberant room. DQPSK needs no pilots; QPSK to 256QAM add pilots to measure the room: QPSK reaches farther than DQPSK, 16QAM is nearly twice as fast for about 3 dB more signal, 64QAM and 256QAM are 1.5 and 2 times faster again for about 5 and 11 dB more: try them close to the speaker. The wide band (v7.21, 2.3–20.5 kHz) takes QPSK to 1024QAM and LDPC 5/6 at every mapping, with LDPC or polar codes: up to 131 kbit/s after the code (about 105 in a room) for phones close together, and it decodes far faster than the single carrier. Receivers need no settings.',
-  sc: 'Single carrier (v5): one symbol at a time, 9600 per second (13 714 in the wide band, 16 000 in the fast one), with no guard. Training blocks every 0.5 s let the receiver learn the room and undo its echo (soft SMAP with the decoder), which takes a few seconds. Take a training longer than the room\'s echo. 256QAM needs a still room; 16QAM or 64QAM is safer when people move. 1024QAM (v7.5) needs about 6 dB more signal than 256QAM: only for phones close together in a quiet room, with LDPC 2/3. 256QAM and 1024QAM play 1 dB quieter (v7.9), which clips less. 256QAM with LDPC 5/6 (v7.6) carries as much and stands a little more noise. Turbo or LDPC codes only (the others are greyed out): at the same rate turbo needs about 1 dB less signal here, while LDPC 2/3 and 3/4 carry more when the signal is strong. The wide band (v7.4, 2.3 to 20.5 kHz) carries 43 % more, with LDPC or polar codes only, but gives each symbol about 1.5 dB less signal: take it when the signal is strong. The fast wide band (v7.19, roll-off 1/7) carries 17 % more than the wide one for about 0.6 dB less signal. Receivers need no settings.'
+  sc: 'Single carrier (v5): one symbol at a time, 9600 per second (13 714 in the wide band, 16 000 in the fast one), with no guard. Training blocks every 0.5 s let the receiver learn the room and undo its echo (soft SMAP with the decoder), which takes a few seconds. Pilot bursts (v7.26) use one long opening block and short updates. Both devices need v7.26 for this layout. For the other layouts, take a training longer than the room\'s echo. 256QAM needs a still room; 16QAM or 64QAM is safer when people move. 1024QAM (v7.5) needs about 6 dB more signal than 256QAM: only for phones close together in a quiet room, with LDPC 2/3. 256QAM and 1024QAM play 1 dB quieter (v7.9), which clips less. 256QAM with LDPC 5/6 (v7.6) carries as much and stands a little more noise. Turbo or LDPC codes only (the others are greyed out): at the same rate turbo needs about 1 dB less signal here, while LDPC 2/3 and 3/4 carry more when the signal is strong. The wide band (v7.4, 2.3 to 20.5 kHz) carries 43 % more, with LDPC or polar codes only, but gives each symbol about 1.5 dB less signal: take it when the signal is strong. The fast wide band (v7.19, roll-off 1/7) carries 17 % more than the wide one for about 0.6 dB less signal. Receivers need no settings.'
 };
 const TX_PRESETS = {
   fixed: { mod: 2, rate: 400, pre: 127, tones: 'low', code: 'none' },
-  classroom: { mod: 2, rate: 400, pre: 127, tones: 'hop', code: 'conv' }
+  classroom: { mod: 2, rate: 400, pre: 127, tones: 'hop', code: 'conv' },
+  burst: { mod: 'sc', map: '16qam', band: 'usual', code: 'ldpc23', train: 'burst', control: 'short' }
 };
 seg($('presetSeg'), null, name => {
   const preset = TX_PRESETS[name];
   Object.assign(cfg, preset);
-  for (const [key, value] of Object.entries(preset)) setSeg($(key + 'Seg'), value);
+  for (const [key, value] of Object.entries(preset)) setSeg($(key === 'control' ? 'ctlSeg' : key + 'Seg'), value);
   showMod(); showTurbo(); no56(); guardLabels(); trainLabels();
   syncUrl(true); txInfo();
 });
@@ -4706,7 +4745,7 @@ function guardLabels() { $('guardSeg').querySelectorAll('button').forEach(b => {
 seg($('trainSeg'), cfg.train, v => { cfg.train = v; syncUrl(); txInfo(); });
 function trainLabels() {   // v5: like the guard's; v7.4: and the bands'
   const map = SC_MAPS.includes(cfg.map) ? cfg.map : '256qam';
-  $('trainSeg').querySelectorAll('button').forEach(b => { const nt = SC_BANDS[BAND_IX[cfg.band]].trains[b.dataset.v]; b.textContent = `${scEcho(nt)} ms · ${(scRate(map, nt) / 1000).toFixed(0)} kbit/s`; });
+  $('trainSeg').querySelectorAll('button').forEach(b => { const nt = SC_BANDS[BAND_IX[cfg.band]].trains[b.dataset.v]; b.textContent = `${b.dataset.v === 'burst' ? 'Pilot bursts' : scEcho(nt) + ' ms'} · ${(scRate(map, nt) / 1000).toFixed(0)} kbit/s`; });
   $('bandSeg').querySelectorAll('button').forEach(b => {
     if (cfg.mod === 'ofdm') { const w = b.dataset.v !== 'usual', om = ofdmMode((w ? 'w' : '') + cfg.guard), mp = (w ? OFDM_WMAPS : OFDM_MAPS).includes(cfg.map) ? cfg.map : '256qam'; b.textContent = `${w ? '2.3–20.5' : '3.2–16'} kHz · ${(ofdmRate(om, mp) / 1000).toFixed(0)} kbit/s`; return; }   // v7.21: OFDM's bands
     const B = SC_BANDS[BAND_IX[b.dataset.v]], [lo, hi] = scEdges(B); b.textContent = `${+(lo / 1000).toFixed(1)}–${+(hi / 1000).toFixed(1)} kHz${B.ro !== '1/3' ? `, roll-off ${B.ro}` : ''} · ${(scRate(map, B.trains[cfg.train]) / 1000).toFixed(0)} kbit/s`; });
@@ -4847,6 +4886,7 @@ function txInfo() {
   const preset = Object.keys(TX_PRESETS).find(name => Object.entries(TX_PRESETS[name]).every(([k, v]) => cfg[k] === v));
   setSeg($('presetSeg'), preset);
   $('presetHint').textContent = preset === 'classroom' ? 'Hopping tones with error correction for listeners farther away.'
+    : preset === 'burst' ? '16QAM with rate-2/3 LDPC and short tracking pilots. Use v7.26 on the receiver.'
     : preset === 'fixed' ? '4 and 8 kHz, uncoded, for a nearby receiver.' : 'Custom lab settings.';
   const msg = currentMsg(), f = txFrame(msg);
   txRateLine(f);
@@ -4863,8 +4903,8 @@ function txInfo() {
   const long = f.dur + 0.4 > 150 ? ' · Too long: the receivers record at most 160 s, so choose a higher rate or a smaller message.'
     : msg.type === 'jpeg' && f.dur > 10 ? ' · A long frame: receivers may take 2 s per second of sound to decode it, more if the room makes them try again.' : '';   // v7.7
   if (f.sc) {
-    const nb = scLayout(f.ns, f.train).segs.length + 1;
-    $('txInfo').textContent = `${desc} · ${f.n0} message bits${coded} · ${(f.dur + 0.4).toFixed(1)} s of sound, single carrier${f.wide === 2 ? ', fast wide band (2.3 to 20.5 kHz, roll-off 1/7)' : f.wide ? ', wide band (2.3 to 20.5 kHz)' : ''}: ${f.ns} ${OFDM_NAMES[f.map]} symbols at ${Math.round(scBand(f.train).rs)} symbols/s, ${nb} ${scTrainName(f.train)} training blocks of ${f.train} symbols (every ${+(scBand(f.train).d / scBand(f.train).rs).toFixed(2)} s; echoes up to ${scEcho(f.train)} ms) = ${(scRate(f.map, f.train) / 1000).toFixed(1)} kbit/s before the code` + ctlInfo(f) + long;
+    const layout = scLayout(f.ns, f.train);
+    $('txInfo').textContent = `${desc} · ${f.n0} message bits${coded} · ${(f.dur + 0.4).toFixed(1)} s of sound, single carrier${f.wide === 2 ? ', fast wide band (2.3 to 20.5 kHz, roll-off 1/7)' : f.wide ? ', wide band (2.3 to 20.5 kHz)' : ''}: ${f.ns} ${OFDM_NAMES[f.map]} symbols at ${Math.round(scBand(f.train).rs)} symbols/s, ${layout.blocks[0][1]} opening pilot symbols and ${layout.segs.length} × ${f.train} ${scTrainName(f.train)} pilots (every ${+(scBand(f.train).d / scBand(f.train).rs).toFixed(2)} s) = ${(scRate(f.map, f.train) / 1000).toFixed(1)} kbit/s before the code` + ctlInfo(f) + long;
     return;
   }
   if (f.ofdm) {
@@ -5486,7 +5526,9 @@ function showStats(res) {
   }
   if (h.sc) {   // v5, single carrier
     const o = res.sc, dn = detName(o.det);
-    if (o.snrEq !== undefined) st.push([`${o.snrEq.toFixed(1)} dB`, `SNR after the equalizer${o.quick === 'decoded' ? ', no long echo' : ''}`, `what the detector sees (v7.14): the room's uneven response and the echo it cannot learn count against it, unlike the training's SNR.${o.quick === 'decoded' ? ' Measured without the long echo, which this frame did not need (v7.20): with it the SNR can be higher, so faster modes may fit than listed here.' : ''}${o.roomBend >= 0.05 ? ` The room's bend between training blocks, which the blend of two blocks' rooms misses, costs ${o.roomBend.toFixed(1)} dB of it (v7.17).` : ''} With ${SC_SPARE} dB to spare it fits ${o.fits.length ? o.fits.map(([mp, r]) => `${OFDM_NAMES[mp]} LDPC ${r}`).join(', ') + `; the fastest is ${OFDM_NAMES[o.fitBest[0]]} LDPC ${o.fitBest[1]}` : 'no mode'} (${o.whole ? 'v7.25: 57 of 57 such recorded frames decoded' : 'v7.17: 69 of 70 such recorded frames decoded'})`]);
+    const burstTraining = scTrainName(h.train) === 'burst';
+    const advice = burstTraining ? 'The mode thresholds for burst pilots are still uncalibrated.' : `With ${SC_SPARE} dB to spare it fits ${o.fits.length ? o.fits.map(([mp, r]) => `${OFDM_NAMES[mp]} LDPC ${r}`).join(', ') + `; the fastest is ${OFDM_NAMES[o.fitBest[0]]} LDPC ${o.fitBest[1]}` : 'no mode'} (${o.whole ? 'v7.25: 57 of 57 such recorded frames decoded' : 'v7.17: 69 of 70 such recorded frames decoded'})`;
+    if (o.snrEq !== undefined) st.push([`${o.snrEq.toFixed(1)} dB`, `SNR after the equalizer${o.quick === 'decoded' ? ', no long echo' : ''}`, `what the detector sees (v7.14): the room's uneven response and the echo it cannot learn count against it, unlike the training's SNR.${o.quick === 'decoded' ? ' Measured without the long echo, which this frame did not need (v7.20): with it the SNR can be higher, so faster modes may fit than listed here.' : ''}${o.roomBend >= 0.05 ? ` The room's bend between training blocks, which the blend of two blocks' rooms misses, costs ${o.roomBend.toFixed(1)} dB of it (v7.17).` : ''} ${advice}`]);
     st.push([`${o.snr.toFixed(1)} dB`, 'SNR of the symbols', `the median over the training blocks (${o.snrs.map(v => v.toFixed(1)).join(' / ')} dB), ${o.whole ? 'the room at each against what the fit of the whole part leaves on its rows' : 'each with its own room'}: the noise, plus the echo beyond the ${o.taps} taps (${Math.round((o.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) and the room's drift`]);
     st.push([o.taps, 'taps of the room', o.whole ? `one room for the whole part, learned from all its training blocks together, each tap held to the room's power at its delay (here it falls by 60 dB in about ${o.whole.rt60.toFixed(2)} s); only its first ${o.whole.head} taps (${Math.round((o.whole.head - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) follow time, one correction at each of the ${o.whole.knots} training blocks (v7.25)` : o.est === 'mmse' ? `by MMSE, the most the ${scTrainName(o.train)} training allows: each tap weighed by the room's power at its delay` : scBand(o.train).taps[o.train].length > 1 ? `the ${scTrainName(o.train)} training allows ${scBand(o.train).taps[o.train].join(' or ')}: the receiver keeps the one that fits better` : `what the ${scTrainName(o.train)} training allows`]);
     if (o.tail && o.tail.used) st.push([o.tail.taps, 'taps with the long echo', `the echo past the ${o.taps} taps, up to ${o.tail.taps} (${Math.round((o.tail.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival), learned from all the training blocks together and added to each block's room: the noise on the training ${(-o.tail.noiseDb).toFixed(1)} dB lower (v7.13)`]);
