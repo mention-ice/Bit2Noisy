@@ -361,7 +361,7 @@ a.help-link { color:var(--accent); text-underline-offset:.17em; }
 
 <script id="modem-core">
 // ---- modem core (no DOM): shared by the page and the offline tests ----
-const MODEM_VERSION = 'v7.26', MODEM_DATE = '26 November 2026';   // shown at the foot of the pages (v7.24)
+const MODEM_VERSION = 'v7.27', MODEM_DATE = '27 November 2026';   // shown at the foot of the pages (v7.24)
 // © 2026 Sheng Yang. All rights reserved.
 const PILOT = Array.from("0000000111111011111001111010111000011011101001100010101100000101111000111011011001001010010000100111001011010001000110011010101", Number);
 // Longer preambles for longer distances: maximum-length sequences of 255 and 511 bits (the 127-bit one is unchanged)
@@ -3421,6 +3421,58 @@ function scFits(snrEq) {   // v7.14: for each mapping, the highest LDPC rate who
   let best = null; for (const f of fits) if (!best || OFDM_BITS[f[0]] * fr(f[1]) > OFDM_BITS[best[0]] * fr(best[1])) best = f;
   return { fits, best };
 }
+const SC_ADVICE_N = 1024;   // v7.27: band advice (scBandAdvice), Welch segments of 1024 samples, half overlapping
+const SC_ADVICE_NAMES = ['usual', 'wide', 'fast'];
+function scRcShape(f, B) {   // v7.27: the power shape of band B's pulse (a raised cosine, 1 in its flat part) at f Hz
+  const a = Math.abs(f - B.fc), f1 = (1 - B.beta) * B.rs / 2, f2 = (1 + B.beta) * B.rs / 2;
+  return a <= f1 ? 1 : a >= f2 ? 0 : 0.5 * (1 + Math.cos(Math.PI / (B.beta * B.rs) * (a - f1)));
+}
+function scWelch(x, a, b, n = SC_ADVICE_N) {   // v7.27: the mean power spectrum of x[a..b) over segments of n samples, half overlapping, each with its
+  // mean removed and a periodic Hann window (bins 0 to n / 2), as sc_welch in audiocomm_v7.py; null if shorter than n
+  if (b - a < n) return null;
+  const P = new Float64Array(n / 2 + 1), re = new Float64Array(n), im = new Float64Array(n), w = Float64Array.from({ length: n }, (_, k) => 0.5 - 0.5 * Math.cos(2 * Math.PI * k / n));
+  let cnt = 0;
+  for (let s = a; s + n <= b; s += n / 2, cnt++) {
+    let m = 0; for (let k = 0; k < n; k++) m += x[s + k]; m /= n;
+    for (let k = 0; k < n; k++) { re[k] = (x[s + k] - m) * w[k]; im[k] = 0; }
+    fft(re, im);
+    for (let k = 0; k <= n / 2; k++) P[k] += re[k] * re[k] + im[k] * im[k];
+  }
+  return P.map(v => v / cnt);
+}
+function scBandAdvice(y, fs, p1, T0, t1, wide, nt, snrEq) {   // v7.27: which band would carry the most here, after a wide or fast frame (it
+  // sounds 2.3 to 20.5 kHz, where all three bands lie), as sc_band_advice in audiocomm_v7.py. The SNR per frequency: the single-carrier part
+  // (T0 + 50 ms to t1 - 50 ms) against the noise before the frame (p1 - 300 ms to p1 - 20 ms), so |H|^2 / N where the frame's pulse has power.
+  // A band's linear MMSE equalizer at the same transmit power sees at each frequency nu of its symbol rate rs the SNR
+  // Q(nu) = c / rs x sum_k G(nu + k rs) |H|^2 / N(nu + k rs) (G its pulse's power shape, the aliases folded), so 1 / mean(1 / (1 + Q)) - 1 after
+  // it; c is set so that the frame's own band reads snrEq, as measured. Then each band's fastest mode that fits (scFits) and what it carries
+  // (scRate with the same kind of training, times the code rate): { own, snr: { band: dB }, mode: { band: [map, rate] or null }, kbps, best }
+  if (!wide || snrEq === undefined || snrEq === null) return null;
+  const n = SC_ADVICE_N, own = scBandIx(wide), B0 = SC_BANDS[own], nf = n / 2 + 1, df = fs / n;
+  const a0 = Math.max(0, Math.round(p1 - 0.3 * fs)), a1 = Math.max(0, Math.round(p1 - 0.02 * fs));
+  const b0 = Math.max(0, Math.round(T0 + 0.05 * fs)), b1 = Math.min(y.length, Math.round(t1 - 0.05 * fs));
+  if (a1 - a0 < 4 * n || b1 - b0 < 8 * n) return null;
+  const pn = scWelch(y, a0, a1), ps = scWelch(y, b0, b1), pmax = ps.reduce((u, v) => Math.max(u, v), 0), g0 = new Float64Array(nf), h2n = new Float64Array(nf);
+  for (let k = 0; k < nf; k++) { const N = Math.max(pn[k], 1e-12 * pmax); g0[k] = scRcShape(k * df, B0); h2n[k] = g0[k] > 0.02 ? Math.max(ps[k] - N, 0) / N / g0[k] : 0; }
+  const bands = [0, 1, 2].filter(b => { let o = 0, t = 0; for (let k = 0; k < nf; k++) { const g = scRcShape(k * df, SC_BANDS[b]); t += g; if (g0[k] <= 0.02) o += g; } return o <= 0.01 * t; });
+  const at = f => { const u = f / df; if (u < 0 || u > nf - 1) return 0; const k = Math.min(Math.floor(u), nf - 2); return h2n[k] + (u - k) * (h2n[k + 1] - h2n[k]); };
+  const eqDb = (b, lc) => {   // band b's SNR after a linear MMSE equalizer, dB, at transmit power 10^lc
+    const B = SC_BANDS[b], m = Math.ceil(B.rs / df), c = 10 ** lc / B.rs; let s = 0;
+    for (let i = 0; i < m; i++) { const nu = ((i + 0.5) / m - 0.5) * B.rs; let q = 0; for (let k = -1; k <= 1; k++) { const f = B.fc + nu + k * B.rs; q += scRcShape(f, B) * at(f); } s += 1 / (1 + q * c); }
+    return 10 * Math.log10(Math.max(m / s - 1, 1e-30));
+  };
+  let lo = -30, hi = 30;
+  if (eqDb(own, hi) < snrEq) return null;
+  for (let it = 0; it < 80; it++) { const mid = (lo + hi) / 2; if (eqDb(own, mid) < snrEq) lo = mid; else hi = mid; }
+  const lc = (lo + hi) / 2, name = Object.keys(B0.trains).find(k => B0.trains[k] === nt) || 'medium', fr = r => { const [u, v] = r.split('/'); return u / v; };
+  const out = { own: SC_ADVICE_NAMES[own], snr: {}, mode: {}, kbps: {}, best: null };
+  for (const b of bands) {
+    const k = SC_ADVICE_NAMES[b], B = SC_BANDS[b], s = eqDb(b, lc), mp = scFits(s).best;
+    out.snr[k] = s; out.mode[k] = mp; out.kbps[k] = mp ? OFDM_BITS[mp[0]] * B.rs * B.d / (B.d + B.trains[name]) * fr(mp[1]) / 1000 : 0;
+    if (out.kbps[k] > 0 && (out.best === null || out.kbps[k] > out.kbps[out.best])) out.best = k;
+  }
+  return out;
+}
 function scLevel(vr, vi, a, b, nv) {
   const g = new Float64Array(nv).fill(1);
   if (SC_LEVEL === null) return g;
@@ -4548,7 +4600,12 @@ class Receiver {
     const job = { y: this.y.slice(s0 - this.base, s1 - this.base), fs, t0: t0s - s0, map: hdr.map, code: hdr.code, n0: hdr.n0, nc: hdr.nc, det: this.cfg.det || 'smap', nt: hdr.train, wide: !!hdr.wide, effort: this.cfg.effort || 'fast', est: this.cfg.est || 'whole' };
     const r0 = Math.max(this.base, Math.round(this.p1 - 0.3 * fs)), r1 = Math.min(this.n, Math.round(ends + 0.3 * fs));
     const res = { hdr, NP: this.NP, key: this.key, found: true, cmax: this.cmax, hopCtl: this.hop, t: this.p1 / fs, recording: this.y.slice(r0 - this.base, r1 - this.base), fs, job };
-    const done = o => { res.sc = o; res.ppm = o.ppm; Object.assign(res, decodeFrame(res, 'cal')); this.cb.onDone && this.cb.onDone(res); };
+    const at = { p1: this.p1 - r0, y0: s0 - r0, t1: t0s + scSeconds(hdr.ns, hdr.train) * fs - r0 };   // v7.27: where the frame lies in res.recording
+    const done = o => {
+      res.sc = o; res.ppm = o.ppm;
+      try { res.bands = scBandAdvice(res.recording, fs, at.p1, at.y0 + o.T0, at.t1, hdr.wide, hdr.train, o.snrEq); } catch (e) { res.bands = null; }   // v7.27
+      Object.assign(res, decodeFrame(res, 'cal')); this.cb.onDone && this.cb.onDone(res);
+    };
     this.state = 'search'; this.sp = Math.round(t0s + scSeconds(hdr.ns, hdr.train) * fs); this.s6 = Math.max(this.s6, Math.round(this.sp * this.r6));
     if (this.cb.scDecode) {
       this.cb.onState && this.cb.onState('decoding', hdr);
@@ -5529,6 +5586,11 @@ function showStats(res) {
     const burstTraining = scTrainName(h.train) === 'burst';
     const advice = burstTraining ? 'The mode thresholds for burst pilots are still uncalibrated.' : `With ${SC_SPARE} dB to spare it fits ${o.fits.length ? o.fits.map(([mp, r]) => `${OFDM_NAMES[mp]} LDPC ${r}`).join(', ') + `; the fastest is ${OFDM_NAMES[o.fitBest[0]]} LDPC ${o.fitBest[1]}` : 'no mode'} (${o.whole ? 'v7.25: 57 of 57 such recorded frames decoded' : 'v7.17: 69 of 70 such recorded frames decoded'})`;
     if (o.snrEq !== undefined) st.push([`${o.snrEq.toFixed(1)} dB`, `SNR after the equalizer${o.quick === 'decoded' ? ', no long echo' : ''}`, `what the detector sees (v7.14): the room's uneven response and the echo it cannot learn count against it, unlike the training's SNR.${o.quick === 'decoded' ? ' Measured without the long echo, which this frame did not need (v7.20): with it the SNR can be higher, so faster modes may fit than listed here.' : ''}${o.roomBend >= 0.05 ? ` The room's bend between training blocks, which the blend of two blocks' rooms misses, costs ${o.roomBend.toFixed(1)} dB of it (v7.17).` : ''} ${advice}`]);
+    if (res.bands) {   // v7.27: band advice
+      const ba = res.bands, KHZ = { usual: '3.2–16 kHz', wide: '2.3–20.5 kHz', fast: '2.3–20.5 kHz, roll-off 1/7' };
+      const each = Object.keys(ba.snr).map(b => `${KHZ[b]}${b === ba.own ? ' (this frame)' : ''}: ${ba.snr[b].toFixed(1)} dB, ${ba.mode[b] ? `${OFDM_NAMES[ba.mode[b][0]]} LDPC ${ba.mode[b][1]}, ${ba.kbps[b].toFixed(0)} kbit/s` : 'no mode'}`).join('; ');
+      st.push([ba.best ? KHZ[ba.best] : 'none', ba.best ? `band that would carry the most, at ${OFDM_NAMES[ba.mode[ba.best][0]]} LDPC ${ba.mode[ba.best][1]}` : 'band that would carry the most', `the SNR after the equalizer that each band would get here at the same loudness, predicted from this frame's spectrum (it covers 2.3 to 20.5 kHz) and scaled to the value measured on it, then the fastest mode that fits each and its information rate: ${each}${burstTraining ? '. The mode thresholds for burst pilots are still uncalibrated' : ''} (v7.27)`]);
+    }
     st.push([`${o.snr.toFixed(1)} dB`, 'SNR of the symbols', `the median over the training blocks (${o.snrs.map(v => v.toFixed(1)).join(' / ')} dB), ${o.whole ? 'the room at each against what the fit of the whole part leaves on its rows' : 'each with its own room'}: the noise, plus the echo beyond the ${o.taps} taps (${Math.round((o.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) and the room's drift`]);
     st.push([o.taps, 'taps of the room', o.whole ? `one room for the whole part, learned from all its training blocks together, each tap held to the room's power at its delay (here it falls by 60 dB in about ${o.whole.rt60.toFixed(2)} s); only its first ${o.whole.head} taps (${Math.round((o.whole.head - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival) follow time, one correction at each of the ${o.whole.knots} training blocks (v7.25)` : o.est === 'mmse' ? `by MMSE, the most the ${scTrainName(o.train)} training allows: each tap weighed by the room's power at its delay` : scBand(o.train).taps[o.train].length > 1 ? `the ${scTrainName(o.train)} training allows ${scBand(o.train).taps[o.train].join(' or ')}: the receiver keeps the one that fits better` : `what the ${scTrainName(o.train)} training allows`]);
     if (o.tail && o.tail.used) st.push([o.tail.taps, 'taps with the long echo', `the echo past the ${o.taps} taps, up to ${o.tail.taps} (${Math.round((o.tail.taps - SC_PRE) / (o.rs || SC_BANDS[0].rs) * 1000)} ms after the first strong arrival), learned from all the training blocks together and added to each block's room: the noise on the training ${(-o.tail.noiseDb).toFixed(1)} dB lower (v7.13)`]);
